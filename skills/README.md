@@ -41,6 +41,12 @@ Each skill file should include:
 - `architecture.md`
 - `node-dashboard-patterns.md`
 - `python-research-pipeline.md`
+- `phase-delivery-playbook.md`
+- `mission-control-ui-patterns.md`
+- `backend-ws-contracts.md`
+- `trading-safety-guardrails.md`
+- `release-hardening.md`
+- `skill-factory-governor.md`
 
 
 

@@ -16,5 +16,8 @@
     "packages",
     "tests",
     "vitest.config.ts"
+  ],
+  "exclude": [
+    "apps/mission-control"
   ]
 }

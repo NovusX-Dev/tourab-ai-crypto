@@ -31,6 +31,7 @@ If `rg` is still not found after install, restart the terminal (or sign out/in) 
 
 ## Repository layout
 - `apps/dashboard/`: Node.js + TypeScript local control plane/dashboard
+- `apps/mission-control/`: React + Vite real-time operator web dashboard (Phase 1)
 - `apps/research/`: Python research and signal science workspace
 - `packages/shared/`: shared schemas and types (proposal, risk, events)
 - `skills/`: living operational knowledge in Markdown
@@ -109,6 +110,22 @@ npm run okx:demo:cancel -- --symbol BTC-USDT --ord-id <ordId> --approval-token <
 npm run okx:demo:cancel -- --symbol BTC-USDT --all --approval-token <your_token>
 ```
 
+## Strategy Automation (safe start)
+- Start with proposal automation only (`--mode propose`).
+- `--mode execute` is available, but still guarded by drift checks, same-side open-order blocking, gatekeeper, and human token.
+
+Run one automated proposal cycle:
+
+```powershell
+npm run okx:demo:auto-loop -- --mode propose --symbol BTC-USDT --side buy --max-cycles 1 --context-file tests/fixtures/context.valid.json
+```
+
+Run periodic proposal cycles:
+
+```powershell
+npm run okx:demo:auto-loop -- --mode propose --symbol BTC-USDT --side buy --interval-sec 300 --max-cycles 12 --context-file tests/fixtures/context.valid.json
+```
+
 ## Project indexing
 - Current index file: `docs/project-index.md`
 - Generator script: `scripts/update-project-index.ps1`
@@ -125,4 +142,23 @@ Manual index refresh:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-project-index.ps1
+```
+
+## Mission Control Web App (Phase 1)
+Run locally:
+
+```powershell
+npm run mission-control:dev
+```
+
+Build:
+
+```powershell
+npm run mission-control:build
+```
+
+Run unit tests:
+
+```powershell
+npm run mission-control:test
 ```

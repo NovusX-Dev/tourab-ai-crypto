@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-16 09:11:52 UTC
+Generated: 2026-02-16 17:01:36 UTC
 
 ## Summary
 - Root: `.`
 - Directories indexed: 21
-- Files indexed: 71
+- Files indexed: 73
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -23,6 +23,7 @@ Generated: 2026-02-16 09:11:52 UTC
         - execution-service.ts
         - human-approval.ts
         - lifecycle-store.ts
+        - okx-demo-auto-loop-cli.ts
         - okx-demo-cancel-cli.ts
         - okx-demo-execute-cli.ts
         - okx-demo-health-cli.ts
@@ -41,6 +42,7 @@ Generated: 2026-02-16 09:11:52 UTC
     - deep-research-report.md
     - learning-report.md
     - roadmap.md
+    - ui-prompts.md
   - logs/
     - okx-snapshot.json
     - order-intents.jsonl
@@ -108,7 +110,7 @@ Generated: 2026-02-16 09:11:52 UTC
 | Path | Size (bytes) | Last Modified (UTC) | SHA256 |
 |---|---:|---|---|
 | `.env` | 1059 | 2026-02-16 08:54:24 | `ee243e89dd6eb1b343d2db02f46400c8d094c9fc075a156c0db8cb8c4a47cfa4` |
-| `.env.example` | 1109 | 2026-02-16 09:09:21 | `a52a093532bf69dd5ebb30cf950c65b7f09d21f7a6f688cd84a36623ffd11ecd` |
+| `.env.example` | 1147 | 2026-02-16 09:14:04 | `333a1907e86732a7e68611297f62697c34acc0a38383536aa1a4f654dad59179` |
 | `.gitattributes` | 24 | 2026-02-16 07:43:43 | `6fda4653ef71808abc2eb5e88b7cf1ec9912e800d3bad13d3b4f46abc8d6f7ea` |
 | `.githooks/post-checkout` | 243 | 2026-02-16 07:41:58 | `81a66130ba52de51a55b1fcbb489cc44d186b51386d808a7774390d586e28680` |
 | `.githooks/post-merge` | 243 | 2026-02-16 07:41:54 | `81a66130ba52de51a55b1fcbb489cc44d186b51386d808a7774390d586e28680` |
@@ -120,6 +122,7 @@ Generated: 2026-02-16 09:11:52 UTC
 | `apps/dashboard/src/execution-service.ts` | 1218 | 2026-02-16 09:05:50 | `d5bd4670bc3df63d1ccb486a6faf6bc5bfad27dcc7fc74e2378499ef61d826cc` |
 | `apps/dashboard/src/human-approval.ts` | 1510 | 2026-02-16 09:05:29 | `1bfa540e680e7b3ee14f93c0e0e84cfc60afdca358cc34f83d964a25df69e52b` |
 | `apps/dashboard/src/lifecycle-store.ts` | 1135 | 2026-02-16 09:06:05 | `d836bad7d35bb5ba19d65b4a9625bb40838261f599332bae7bcfc80d30dda38d` |
+| `apps/dashboard/src/okx-demo-auto-loop-cli.ts` | 8364 | 2026-02-16 09:13:49 | `ac0bc2288fafb95dc5563966263950717588d0b6befcbb8ae8429262ea28f2b5` |
 | `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4122 | 2026-02-16 09:07:52 | `3ea968a0d4fd17495f87bcdfc8d2fd07da0067bfe182a6460a6c14a6f1308577` |
 | `apps/dashboard/src/okx-demo-execute-cli.ts` | 4218 | 2026-02-16 09:06:14 | `fd227bcccfbafe734eed97f8178faee4cd96296f3cf4fe2a06c7908a10027665` |
 | `apps/dashboard/src/okx-demo-health-cli.ts` | 1691 | 2026-02-16 08:57:16 | `12fd73e0564d89a4b16b1c23edcdd5ba7bb18e6827868a6589866a278275f0f2` |
@@ -134,10 +137,11 @@ Generated: 2026-02-16 09:11:52 UTC
 | `docs/okx/okx-docs-v5-en.html` | 4731242 | 2026-02-15 08:37:49 | `f46686a9f46827dc51b633b0dcb80331ada0a0a18e1dc44efe1ce3f6449c0459` |
 | `docs/okx/source-verification.md` | 2779 | 2026-02-15 08:44:50 | `2ecd8ccbe303873fa80b753fd914f75c30a2cda753ad1ca7090d0aecc6c4facb` |
 | `docs/roadmap.md` | 1512 | 2026-02-15 08:26:13 | `d0512bbf58fdea4b9d3751eaeaddf82807337dfb147a998cf616ccdad314a2ab` |
+| `docs/ui-prompts.md` | 16045 | 2026-02-16 17:00:33 | `de5e884a5d4fc1f5b340efe9bc28adfcb313ccee16d4e9136b1c73818e832c3c` |
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 527 | 2026-02-16 09:10:35 | `0b55dab427203c4225bf7c7da0457b53134e0e32288fc829019aeba37a25b942` |
 | `logs/reconcile-report.json` | 901 | 2026-02-16 09:09:42 | `f986871f719c9b77a42714dc634af4bb8a17baf0f95d0be58d08f9505c0a53df` |
-| `package.json` | 916 | 2026-02-16 09:08:07 | `9d31a85a9650ac785c4ca8c7cf65fc6652d54394e65ed9683f0bd810c56cd001` |
+| `package.json` | 994 | 2026-02-16 09:13:59 | `ddce9bd6bf5054a7932ce553ee36bcf60ab88920c7632f3830d66cd3df6bbeed` |
 | `package-lock.json` | 55327 | 2026-02-16 08:27:14 | `58428502cde6865e36a088f08fa24a5a4e27232a0cfee240240027cfb6dec7d3` |
 | `packages/okx-demo-adapter/package.json` | 183 | 2026-02-16 08:25:46 | `e52f527393c9a8a8bfda9431c02394f745fc500f298979ee4b7e00f5564fd2df` |
 | `packages/okx-demo-adapter/src/index.ts` | 7234 | 2026-02-16 09:06:30 | `95003ab16ba286c0141ca6c08655c5b4d0ac7342161cb4b0694dbdeee77f9019` |
@@ -147,7 +151,7 @@ Generated: 2026-02-16 09:11:52 UTC
 | `packages/shared/src/index.ts` | 58 | 2026-02-16 08:22:19 | `3bcb2309866449a8c6fe6bb243bef2d006e0c3ee15dac3a9892d3f892678e453` |
 | `packages/shared/src/schemas.ts` | 1833 | 2026-02-16 08:22:16 | `6c92756e8f8fadaaa397f12295d9cad8e834e91e3c866bda5c94e02e2ce06e75` |
 | `packages/shared/src/types.ts` | 1541 | 2026-02-16 08:14:35 | `05029340e6c853bea2e894d9735d8f1a1e2a05a2c0d19bf7d50e93cfb2435e78` |
-| `README.md` | 4313 | 2026-02-16 09:09:06 | `354dc7c3a23bfe9ea06f375baad6ce29a821df5371fe61293fcd8daf55aabc74` |
+| `README.md` | 4936 | 2026-02-16 09:14:11 | `2861dee33759d6380653a51ff661314bfe825c852c5a877ba77e0824c5a7eb45` |
 | `scripts/install-index-hooks.ps1` | 239 | 2026-02-16 07:42:01 | `2420afd0c3aca0b6bbf968754a814003dab3ee40f81410ea97137236162633ae` |
 | `scripts/update-project-index.ps1` | 4280 | 2026-02-16 07:43:03 | `cfad26a7179677daccc8e102a741b3baa933bc3031ff7b523d4598079552e7f7` |
 | `skills/architecture.md` | 957 | 2026-02-15 08:25:39 | `4cf99efbe8c8773c23996f9c38763fb7a40c0b9e9414fe1b802d99d129ecaba6` |

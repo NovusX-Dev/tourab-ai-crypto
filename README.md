@@ -8,7 +8,7 @@ Safety model:
 3. Human approve: nothing executes until you explicitly approve.
 4. Execute: only approved actions can be sent to exchange APIs.
 
-Current milestone status: research and scaffold only. No order execution code is implemented.
+Current milestone status: gatekeeper + demo adapter baseline implemented.
 
 ## Tooling prerequisites
 - PowerShell (Windows PowerShell 5+ or PowerShell 7+)
@@ -42,6 +42,28 @@ If `rg` is still not found after install, restart the terminal (or sign out/in) 
 - No autonomous trading in early milestones.
 - No withdrawals/transfers.
 - No leverage/derivatives/margin in v0.
+
+## Demo execution flow (Milestone 2)
+- Execution path is hard-gated: `evaluateTradeProposal` must return `APPROVE` before any OKX call.
+- Demo adapter sends private requests with `x-simulated-trading: 1`.
+- Use demo-only env vars (`OKX_TRADING_MODE=demo` + `OKX_DEMO_*`).
+- Human approval token gate is enabled by default for execution CLI.
+
+Validate proposal/context without execution:
+
+```powershell
+npm run gatekeeper:cli -- --proposal-file tests/fixtures/proposal.valid.json --context-file tests/fixtures/context.valid.json
+```
+
+Execute via OKX demo adapter (still gatekeeper-first):
+
+```powershell
+npm run okx:demo:execute -- --proposal-file tests/fixtures/proposal.valid.json --context-file tests/fixtures/context.valid.json --approval-token <your_token>
+```
+
+Enable/disable human-approval gate quickly:
+- Enable (default): set `TOURAB_HUMAN_APPROVAL_ENABLED=1` and `TOURAB_HUMAN_APPROVAL_TOKEN=<token>`.
+- Disable: set `TOURAB_HUMAN_APPROVAL_ENABLED=0`.
 
 ## Project indexing
 - Current index file: `docs/project-index.md`

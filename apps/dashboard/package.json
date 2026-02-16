@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/cli.ts",
   "dependencies": {
+    "@tourab/okx-demo-adapter": "0.1.0",
     "@tourab/risk-gatekeeper": "0.1.0",
     "@tourab/shared": "0.1.0"
   }

@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-16 08:20:30 UTC
+Generated: 2026-02-16 08:24:33 UTC
 
 ## Summary
 - Root: `.`
 - Directories indexed: 18
-- Files indexed: 42
+- Files indexed: 46
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -19,6 +19,7 @@ Generated: 2026-02-16 08:20:30 UTC
     - dashboard/
       - src/
         - cli.ts
+        - cli-validation.ts
       - package.json
     - research/
   - docs/
@@ -37,6 +38,7 @@ Generated: 2026-02-16 08:20:30 UTC
     - shared/
       - src/
         - index.ts
+        - schemas.ts
         - types.ts
       - package.json
   - scripts/
@@ -59,7 +61,9 @@ Generated: 2026-02-16 08:20:30 UTC
   - tests/
     - fixtures/
       - context.valid.json
+      - proposal.invalid.json
       - proposal.valid.json
+    - cli-validation.spec.ts
     - risk-gatekeeper.spec.ts
     - TEST_PLAN.md
   - .env.example
@@ -82,19 +86,21 @@ Generated: 2026-02-16 08:20:30 UTC
 | `.githooks/pre-commit` | 274 | 2026-02-16 07:41:51 | `9a68a1a9e1b68e7ea8f44c5e4368bae6eafc89ad6e928a2d68cc2113c6812339` |
 | `.gitignore` | 385 | 2026-02-15 08:24:52 | `b0e963bbe4731fbadd53f9fb4519b2dadc110279778dcfaecc695d528a052122` |
 | `apps/dashboard/package.json` | 214 | 2026-02-16 08:17:55 | `729d53db49af0f18a95fd7dc5485892128194d8551d8298cb29fa6a124099737` |
-| `apps/dashboard/src/cli.ts` | 1545 | 2026-02-16 08:15:35 | `77e3cddbfabf50b16caaa5f1deb635bb8cfdc6f48d8696ff703679e7a2baf296` |
+| `apps/dashboard/src/cli.ts` | 2739 | 2026-02-16 08:22:42 | `65b65600773088fa34d56c25abb0ee54c99647f1afdc11f148b009391a385b15` |
+| `apps/dashboard/src/cli-validation.ts` | 1532 | 2026-02-16 08:22:27 | `1d7bd77d440d0ac9d265c556515fe93879d76ac8b4e473074911b4e0da2dac27` |
 | `docs/decisions.md` | 2088 | 2026-02-15 08:26:13 | `63d8d3c8c3c79b27d331690ed9bd27f4829e5a8a0614002e0614dae42ab17aa8` |
 | `docs/deep-research-report.md` | 33989 | 2026-02-13 07:01:58 | `c9fbd1c30c7797d84470c754e60895505aa69ae912d3539d4e36955ed1cd2540` |
 | `docs/learning-report.md` | 5173 | 2026-02-15 08:44:50 | `5382135f52b032164ea444c4a4f30ba2640ce59c991223577482d76612f62c10` |
 | `docs/okx/okx-docs-v5-en.html` | 4731242 | 2026-02-15 08:37:49 | `f46686a9f46827dc51b633b0dcb80331ada0a0a18e1dc44efe1ce3f6449c0459` |
 | `docs/okx/source-verification.md` | 2779 | 2026-02-15 08:44:50 | `2ecd8ccbe303873fa80b753fd914f75c30a2cda753ad1ca7090d0aecc6c4facb` |
 | `docs/roadmap.md` | 1512 | 2026-02-15 08:26:13 | `d0512bbf58fdea4b9d3751eaeaddf82807337dfb147a998cf616ccdad314a2ab` |
-| `package.json` | 419 | 2026-02-16 08:16:41 | `b16cceb7c1385e5466b39fbcc63699048b124fa94db21f96d83b551217d2207f` |
-| `package-lock.json` | 54520 | 2026-02-16 08:16:53 | `32822f9cbb29db4110589054570da80746d9839be3ff3d606a36b41991a3a44d` |
+| `package.json` | 464 | 2026-02-16 08:22:02 | `a2669f6a98e9ced15e434093d6514bd35420121eab0bf232b5efcabd6a2c7ad6` |
+| `package-lock.json` | 54986 | 2026-02-16 08:23:06 | `41f8289e4e9f3495ba02624fd47af6b84192e243c7c0892dc405238da9451dae` |
 | `packages/risk-gatekeeper/package.json` | 182 | 2026-02-16 08:17:52 | `2b47fc52824541ff54e151d3bea9a0c2798ca5e47bcd1ab3f280b0b053610936` |
 | `packages/risk-gatekeeper/src/index.ts` | 5192 | 2026-02-16 08:15:17 | `231c7ee0c11a6005baccb148d74e26c4a77e0b8fd3e24925b63ecd373b2ab4d1` |
-| `packages/shared/package.json` | 118 | 2026-02-16 08:14:24 | `678030ed3b44c1f4a4dc3450e747f79afcda4e85808867512bd4e8037ca818dd` |
-| `packages/shared/src/index.ts` | 28 | 2026-02-16 08:14:37 | `1c7764ba79b08ea4de0d9435cff463fc4df1fe6c16d3e1a32a40e2c11508e147` |
+| `packages/shared/package.json` | 163 | 2026-02-16 08:22:05 | `2f30f4e4845845ba9f2a7a29ee88fdacf2380b2bf02cbf47c7bc8e4499a85ab3` |
+| `packages/shared/src/index.ts` | 58 | 2026-02-16 08:22:19 | `3bcb2309866449a8c6fe6bb243bef2d006e0c3ee15dac3a9892d3f892678e453` |
+| `packages/shared/src/schemas.ts` | 1833 | 2026-02-16 08:22:16 | `6c92756e8f8fadaaa397f12295d9cad8e834e91e3c866bda5c94e02e2ce06e75` |
 | `packages/shared/src/types.ts` | 1541 | 2026-02-16 08:14:35 | `05029340e6c853bea2e894d9735d8f1a1e2a05a2c0d19bf7d50e93cfb2435e78` |
 | `README.md` | 1935 | 2026-02-16 07:47:02 | `92634e5b1ed7a1bc32e277aa60eb28df49946e6298239f67274d2f4e0e32647d` |
 | `scripts/install-index-hooks.ps1` | 239 | 2026-02-16 07:42:01 | `2420afd0c3aca0b6bbf968754a814003dab3ee40f81410ea97137236162633ae` |
@@ -111,7 +117,9 @@ Generated: 2026-02-16 08:20:30 UTC
 | `skills/risk-gatekeeper.md` | 1202 | 2026-02-15 08:33:09 | `6462052a76b16f85ab789fda220cf54aedc08ffb6c5a2fa88a20e228bbef7026` |
 | `skills/security-api-keys.md` | 1391 | 2026-02-15 08:39:17 | `f8aeac08d67b6e2c1c20105f36a6bf53c116fe37f4931201d3d2767d8fbd1019` |
 | `skills/trading-oracle.md` | 32746 | 2026-02-16 07:44:03 | `b248d923616037b2e5164bcbdb1ece1d8eed7dd38edf82869d667347f9ee0d21` |
+| `tests/cli-validation.spec.ts` | 2761 | 2026-02-16 08:22:57 | `f469e8e4909db02465e4936662d21d60666afd70b11d9090860b0073edc7070c` |
 | `tests/fixtures/context.valid.json` | 295 | 2026-02-16 08:18:18 | `a9ebc8ee93233576c66d541f820ac5cfff2738fa155ea678a0ba23d609707c94` |
+| `tests/fixtures/proposal.invalid.json` | 90 | 2026-02-16 08:23:00 | `20d3fb277c8e22dacf26ff109c0ea4fcdf0a2b751d2b20d1f57db9908c9a7739` |
 | `tests/fixtures/proposal.valid.json` | 190 | 2026-02-16 08:18:13 | `732ac716730242de204e9e643b81f475ffd12befce0f99e805c9c5b37d3ab1ef` |
 | `tests/risk-gatekeeper.spec.ts` | 5156 | 2026-02-16 08:16:00 | `5d708889f2ad59de32b5152116ff4ead7302487045963bf75a607d2d922dd143` |
 | `tests/TEST_PLAN.md` | 2553 | 2026-02-16 08:16:15 | `8cc0e2a87f4e729d9d83167f38dfac40fc08c469d21234055ea01c01f25d3834` |

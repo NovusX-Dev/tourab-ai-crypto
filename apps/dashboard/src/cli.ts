@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { evaluateTradeProposal } from "@tourab/risk-gatekeeper";
-import { RiskContext, TradeProposal } from "@tourab/shared";
+import {
+  CliStructuredError,
+  parseJsonPayload,
+  validateContextPayload,
+  validateProposalPayload
+} from "./cli-validation.js";
 
 interface CliArgs {
   proposalFile?: string;
@@ -22,29 +27,77 @@ function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
-async function readJson<T>(path: string): Promise<T> {
-  const raw = await readFile(path, "utf-8");
-  return JSON.parse(raw) as T;
+async function readJson(path: string): Promise<string> {
+  return readFile(path, "utf-8");
 }
 
-async function main(): Promise<void> {
+function writeStructuredError(error: CliStructuredError): void {
+  process.stderr.write(
+    `${JSON.stringify(
+      {
+        status: "ERROR",
+        error
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
+function isCliStructuredError(error: unknown): error is CliStructuredError {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  return "code" in error;
+}
+
+async function loadValidatedInputs(
+  proposalFile: string,
+  contextFile: string
+): Promise<{ proposal: ReturnType<typeof validateProposalPayload>; context: ReturnType<typeof validateContextPayload> }> {
+  const [proposalRaw, contextRaw] = await Promise.all([readJson(proposalFile), readJson(contextFile)]);
+
+  const proposalPayload = parseJsonPayload(proposalRaw, proposalFile, "proposal");
+  const contextPayload = parseJsonPayload(contextRaw, contextFile, "context");
+
+  return {
+    proposal: validateProposalPayload(proposalPayload),
+    context: validateContextPayload(contextPayload)
+  };
+}
+
+async function run(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (!args.proposalFile || !args.contextFile) {
-    // Keep usage strict to prevent accidental incomplete risk checks.
-    throw new Error(
-      "Usage: npm run gatekeeper:cli -- --proposal-file <proposal.json> --context-file <context.json>"
-    );
+    throw <CliStructuredError>{
+      code: "USAGE_ERROR",
+      message:
+        "Usage: npm run gatekeeper:cli -- --proposal-file <proposal.json> --context-file <context.json>"
+    };
   }
 
-  const proposal = await readJson<TradeProposal>(args.proposalFile);
-  const context = await readJson<RiskContext>(args.contextFile);
+  const { proposal, context } = await loadValidatedInputs(args.proposalFile, args.contextFile);
   const decision = evaluateTradeProposal(proposal, context);
 
   process.stdout.write(`${JSON.stringify(decision, null, 2)}\n`);
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`Gatekeeper CLI failed: ${message}\n`);
-  process.exit(1);
-});
+async function main(): Promise<void> {
+  try {
+    await run();
+  } catch (error: unknown) {
+    if (isCliStructuredError(error)) {
+      writeStructuredError(error);
+      process.exit(1);
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    writeStructuredError({
+      code: "USAGE_ERROR",
+      message: `Unhandled CLI error: ${message}`
+    });
+    process.exit(1);
+  }
+}
+
+void main();

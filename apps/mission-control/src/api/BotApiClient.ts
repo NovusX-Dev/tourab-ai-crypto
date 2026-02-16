@@ -3,6 +3,7 @@ import type {
   BotEvent,
   BotStateSnapshot,
   ControlAction,
+  ControlActionResponse,
   DashboardSnapshot,
   LogEntry,
   ReconciliationStatus,
@@ -10,10 +11,15 @@ import type {
   UserRole
 } from "../types";
 
+export type ConnectionHealth = "live" | "degraded";
+
 export interface BotApiClient {
   getSnapshot(): Promise<DashboardSnapshot>;
-  subscribeToEvents(onEvent: (event: BotEvent) => void): () => void;
-  performAction(action: ControlAction, role: UserRole): Promise<{ ok: boolean; message: string }>;
+  subscribeToEvents(
+    onEvent: (event: BotEvent) => void,
+    onConnectionHealthChange?: (health: ConnectionHealth) => void
+  ): () => void;
+  performAction(action: ControlAction, role: UserRole): Promise<ControlActionResponse>;
 }
 
 export interface DashboardData {

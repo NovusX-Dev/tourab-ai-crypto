@@ -8,6 +8,12 @@ Local web dashboard for Tourab Crypto AI operations.
 npm run mission-control:dev
 ```
 
+Start backend in another terminal:
+
+```powershell
+npm run mission-control:server
+```
+
 ## Build
 
 ```powershell
@@ -30,12 +36,13 @@ npm run mission-control:test
 
 ## Mock to Real API switch
 
-1. Keep `BotApiClient` contract unchanged.
-2. Add a real implementation (for example `LiveBotApiClient`) using:
-   - REST: `POST /start`, `POST /pause`, `POST /resume`, `POST /stop`, `POST /cancel-all`
-   - WS: `GET /events`
-3. Replace `mockBotApiClient` in `src/App.tsx` with the real client.
-4. Keep events typed as shared discriminated unions in `packages/shared` during Phase 2.
+Phase 2 includes `LiveBotApiClient` already.
+
+Env flags:
+- `VITE_TOURAB_API_BASE` (default: `http://localhost:7071`)
+- `VITE_TOURAB_WS_BASE` (default: `ws://localhost:7071`)
+- `VITE_TOURAB_USE_MOCK=1` forces mock mode
+- `VITE_TOURAB_API_FALLBACK=0` disables fallback to mock when backend is unavailable
 
 ## Expected backend contract (Phase 2)
 

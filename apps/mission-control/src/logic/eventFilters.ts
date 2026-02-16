@@ -12,7 +12,15 @@ export interface EventFilterInput {
 
 const ORDER_TYPES: EventType[] = ["OrderSubmitted", "OrderFilled", "OrderCancelled"];
 const RISK_TYPES: EventType[] = ["GatekeeperDecision", "RiskLimitHit"];
-const SYSTEM_TYPES: EventType[] = ["System", "ReconciliationComplete", "ProposalCreated", "ProposalApproved"];
+const SYSTEM_TYPES: EventType[] = [
+  "System",
+  "ReconciliationComplete",
+  "ProposalCreated",
+  "ProposalApproved",
+  "BotStateChanged",
+  "ControlCommandAccepted",
+  "ControlCommandRejected"
+];
 
 export function filterEvents(events: BotEvent[], filter: EventFilterInput): BotEvent[] {
   return events.filter((event) => {

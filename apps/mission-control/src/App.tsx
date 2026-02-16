@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { mockBotApiClient } from "./api/MockBotApiClient";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createDefaultBotApiClient } from "./api/LiveBotApiClient";
 import { AuditTimeline } from "./components/AuditTimeline";
 import { BotStatusCard } from "./components/BotStatusCard";
 import { ControlDeck } from "./components/ControlDeck";
@@ -12,9 +12,17 @@ import { applyTheme, getInitialTheme, type ThemeName } from "./theme";
 import { useDashboardData } from "./state/useDashboardData";
 import type { AuditItem, ControlAction, EventType } from "./types";
 
-const client = mockBotApiClient;
+const client = createDefaultBotApiClient();
 
 type RightTab = "risk" | "audit" | "logs";
+type ToastTone = "success" | "error";
+
+interface ToastItem {
+  id: string;
+  tone: ToastTone;
+  title: string;
+  body: string;
+}
 
 export default function App() {
   const [theme, setTheme] = useState<ThemeName>(() => {
@@ -27,15 +35,42 @@ export default function App() {
   const [selectedAuditId, setSelectedAuditId] = useState<string>("");
   const [highlightedEventType, setHighlightedEventType] = useState<EventType | undefined>(undefined);
   const [highlightedSymbol, setHighlightedSymbol] = useState<string | undefined>(undefined);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const dashboard = useDashboardData(client);
 
-  const connectionLabel = dashboard.streamPaused ? "Paused" : "Live";
+  const connectionLabel = dashboard.streamPaused
+    ? "Paused"
+    : dashboard.connectionHealth === "degraded"
+      ? "Degraded"
+      : "Live";
 
   function handleTheme(next: ThemeName) {
     setTheme(next);
     applyTheme(next);
   }
+
+  function pushToast(tone: ToastTone, title: string, body: string) {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setToasts((prev) => [{ id, tone, title, body }, ...prev].slice(0, 5));
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id));
+    }, 4500);
+  }
+
+  const previousConnectionHealthRef = useRef(dashboard.connectionHealth);
+  useEffect(() => {
+    const previous = previousConnectionHealthRef.current;
+    const next = dashboard.connectionHealth;
+    if (previous !== next) {
+      if (next === "degraded") {
+        pushToast("error", "CONNECTION_DEGRADED", "Event stream connection degraded. Attempting reconnect.");
+      } else if (previous === "degraded" && next === "live") {
+        pushToast("success", "CONNECTION_RESTORED", "Event stream connection restored.");
+      }
+    }
+    previousConnectionHealthRef.current = next;
+  }, [dashboard.connectionHealth]);
 
   async function handleAction(action: ControlAction) {
     const destructive = action === "stop" || action === "cancel_all" || action === "emergency_stop";
@@ -47,11 +82,11 @@ export default function App() {
     }
     const result = await client.performAction(action, dashboard.role);
     if (!result.ok) {
-      window.alert(result.message);
+      pushToast("error", `${result.code}`, result.message);
       return;
     }
-    const fresh = await client.getSnapshot();
-    dashboard.setState(fresh.state);
+    dashboard.setState((prev) => ({ ...prev, state: result.state }));
+    pushToast("success", `${result.code}`, result.message);
   }
 
   function onSelectAudit(item: AuditItem) {
@@ -105,7 +140,13 @@ export default function App() {
               <option value="operator">Operator</option>
               <option value="admin">Admin</option>
             </select>
-            <span className={`conn-badge ${dashboard.streamPaused ? "warn" : "ok"}`}>{connectionLabel}</span>
+            <span
+              className={`conn-badge ${
+                dashboard.streamPaused || dashboard.connectionHealth === "degraded" ? "warn" : "ok"
+              }`}
+            >
+              {connectionLabel}
+            </span>
           </div>
         </header>
 
@@ -146,6 +187,15 @@ export default function App() {
         </div>
         {rightPanel}
       </aside>
+
+      <section className="toast-stack" aria-live="polite" aria-label="Notifications">
+        {toasts.map((toast) => (
+          <article key={toast.id} className={`toast toast-${toast.tone}`}>
+            <div className="toast-title">{toast.title}</div>
+            <div className="toast-body">{toast.body}</div>
+          </article>
+        ))}
+      </section>
     </div>
   );
 }

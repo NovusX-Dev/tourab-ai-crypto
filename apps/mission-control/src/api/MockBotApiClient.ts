@@ -1,5 +1,6 @@
 import type { BotApiClient } from "./BotApiClient";
-import type { BotEvent, ControlAction, DashboardSnapshot, UserRole } from "../types";
+import type { ConnectionHealth } from "./BotApiClient";
+import type { BotEvent, BotLifecycleState, ControlAction, DashboardSnapshot, UserRole } from "../types";
 import { isActionEnabled, canRoleExecuteAction, transitionState } from "../logic/controlAvailability";
 import {
   applyLifecycleAction,
@@ -34,7 +35,11 @@ export class MockBotApiClient implements BotApiClient {
     };
   }
 
-  subscribeToEvents(onEvent: (event: BotEvent) => void): () => void {
+  subscribeToEvents(
+    onEvent: (event: BotEvent) => void,
+    onConnectionHealthChange?: (health: ConnectionHealth) => void
+  ): () => void {
+    onConnectionHealthChange?.("live");
     if (this.intervalRef) {
       clearInterval(this.intervalRef);
     }
@@ -48,7 +53,7 @@ export class MockBotApiClient implements BotApiClient {
           {
             id: `log-${Date.now()}`,
             at: event.timestamp,
-            severity: "error",
+            severity: "error" as const,
             symbol: event.symbol,
             message: event.message
           },
@@ -66,12 +71,22 @@ export class MockBotApiClient implements BotApiClient {
     };
   }
 
-  async performAction(action: ControlAction, role: UserRole): Promise<{ ok: boolean; message: string }> {
+  async performAction(action: ControlAction, role: UserRole): Promise<{
+    ok: boolean;
+    code: string;
+    message: string;
+    state: BotLifecycleState;
+  }> {
     if (!canRoleExecuteAction(role, action)) {
-      return { ok: false, message: "Not authorized for this action" };
+      return { ok: false, code: "UNAUTHORIZED", message: "Not authorized for this action", state: this.state.state };
     }
     if (!isActionEnabled(this.state.state, action)) {
-      return { ok: false, message: `Action ${action} is not available while bot is ${this.state.state}` };
+      return {
+        ok: false,
+        code: "INVALID_STATE_TRANSITION",
+        message: `Action ${action} is not available while bot is ${this.state.state}`,
+        state: this.state.state
+      };
     }
 
     this.state = applyLifecycleAction(this.state, transitionState(this.state.state, action));
@@ -89,14 +104,14 @@ export class MockBotApiClient implements BotApiClient {
       {
         id: `log-action-${Date.now()}`,
         at: actionEvent.timestamp,
-        severity: "info",
+        severity: "info" as const,
         symbol: this.state.activeSymbol,
         message: actionEvent.message
       },
       ...this.logs
     ].slice(0, 300);
 
-    return { ok: true, message: actionEvent.message };
+    return { ok: true, code: "OK", message: actionEvent.message, state: this.state.state };
   }
 }
 

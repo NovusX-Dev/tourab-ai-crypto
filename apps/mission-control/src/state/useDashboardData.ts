@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { BotApiClient } from "../api/BotApiClient";
+import type { ConnectionHealth } from "../api/BotApiClient";
 import type { AuditItem, BotEvent, BotStateSnapshot, LogEntry, ReconciliationStatus, RiskStatus, UserRole } from "../types";
-import { filterEvents, type EventFilterInput, type QuickFilter } from "../logic/eventFilters";
+import { filterEvents, type QuickFilter } from "../logic/eventFilters";
+import type { EventSeverity, EventType } from "@tourab/shared";
 
 const EMPTY_STATE: BotStateSnapshot = {
   state: "stopped",
@@ -25,10 +27,11 @@ export function useDashboardData(client: BotApiClient) {
   const [role, setRole] = useState<UserRole>("operator");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [symbolFilter, setSymbolFilter] = useState<string>("");
-  const [severityFilter, setSeverityFilter] = useState<EventFilterInput["severity"]>("all");
-  const [eventTypeFilter, setEventTypeFilter] = useState<EventFilterInput["eventType"]>("all");
+  const [severityFilter, setSeverityFilter] = useState<EventSeverity | "all">("all");
+  const [eventTypeFilter, setEventTypeFilter] = useState<EventType | "all">("all");
   const [pinnedSymbol, setPinnedSymbol] = useState<string>("");
   const [streamPaused, setStreamPaused] = useState(false);
+  const [connectionHealth, setConnectionHealth] = useState<ConnectionHealth>("live");
 
   useEffect(() => {
     let mounted = true;
@@ -44,25 +47,30 @@ export function useDashboardData(client: BotApiClient) {
       setLogs(snapshot.logs);
     });
 
-    const unsubscribe = client.subscribeToEvents((event) => {
-      if (streamPaused) {
-        return;
+    const unsubscribe = client.subscribeToEvents(
+      (event) => {
+        if (streamPaused) {
+          return;
+        }
+        setEvents((prev) => [event, ...prev].slice(0, 400));
+        setState((prev) => ({ ...prev, lastHeartbeatAt: event.timestamp }));
+        if (event.type === "Error") {
+          setLogs((prev) => [
+            {
+              id: `log-${Date.now()}`,
+              at: event.timestamp,
+              severity: "error",
+              symbol: event.symbol,
+              message: event.message
+            },
+            ...prev
+          ]);
+        }
+      },
+      (health) => {
+        setConnectionHealth(health);
       }
-      setEvents((prev) => [event, ...prev].slice(0, 400));
-      setState((prev) => ({ ...prev, lastHeartbeatAt: event.timestamp }));
-      if (event.type === "Error") {
-        setLogs((prev) => [
-          {
-            id: `log-${Date.now()}`,
-            at: event.timestamp,
-            severity: "error",
-            symbol: event.symbol,
-            message: event.message
-          },
-          ...prev
-        ]);
-      }
-    });
+    );
 
     return () => {
       mounted = false;
@@ -104,6 +112,7 @@ export function useDashboardData(client: BotApiClient) {
     pinnedSymbol,
     setPinnedSymbol,
     streamPaused,
-    setStreamPaused
+    setStreamPaused,
+    connectionHealth
   };
 }

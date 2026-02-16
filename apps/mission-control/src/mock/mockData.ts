@@ -166,7 +166,10 @@ export function nextEvent(eventIndex: number, state: BotStateSnapshot): BotEvent
     Error: "Transient execution error captured and retried",
     RiskLimitHit: "Risk limit threshold reached, tightening controls",
     ReconciliationComplete: "Reconciliation completed with no critical drift",
-    System: "Heartbeat and telemetry checkpoint"
+    System: "Heartbeat and telemetry checkpoint",
+    BotStateChanged: "Bot state changed",
+    ControlCommandAccepted: "Control command accepted",
+    ControlCommandRejected: "Control command rejected"
   };
 
   return createEvent(`evt-live-${eventIndex}-${Date.now()}`, type, symbol, messages[type]);

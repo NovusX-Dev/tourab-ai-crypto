@@ -151,6 +151,12 @@ Run locally:
 npm run mission-control:dev
 ```
 
+Start Phase 2 backend (REST + WS):
+
+```powershell
+npm run mission-control:server
+```
+
 Build:
 
 ```powershell
@@ -162,3 +168,9 @@ Run unit tests:
 ```powershell
 npm run mission-control:test
 ```
+
+Phase 2 defaults:
+- API base: `http://localhost:7071`
+- WS base: `ws://localhost:7071`
+- Role header for controls: `x-tourab-role` (`read_only`, `operator`, `admin`)
+- Event store JSONL: `logs/mission-events.jsonl` (override via `TOURAB_EVENT_STORE_PATH`)

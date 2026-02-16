@@ -10,6 +10,25 @@ Safety model:
 
 Current milestone status: research and scaffold only. No order execution code is implemented.
 
+## Tooling prerequisites
+- PowerShell (Windows PowerShell 5+ or PowerShell 7+)
+- Git
+- Recommended: `ripgrep` (`rg`) for fast code/file search used in dev workflows
+
+Install `ripgrep` on Windows:
+
+```powershell
+winget install BurntSushi.ripgrep.MSVC
+```
+
+Verify:
+
+```powershell
+rg --version
+```
+
+If `rg` is still not found after install, restart the terminal (or sign out/in) so PATH updates are applied.
+
 ## Repository layout
 - `apps/dashboard/`: Node.js + TypeScript local control plane/dashboard
 - `apps/research/`: Python research and signal science workspace
@@ -23,3 +42,21 @@ Current milestone status: research and scaffold only. No order execution code is
 - No autonomous trading in early milestones.
 - No withdrawals/transfers.
 - No leverage/derivatives/margin in v0.
+
+## Project indexing
+- Current index file: `docs/project-index.md`
+- Generator script: `scripts/update-project-index.ps1`
+- Hook installer: `scripts/install-index-hooks.ps1`
+- Git hooks used: `.githooks/pre-commit`, `.githooks/post-merge`, `.githooks/post-checkout`
+
+Run this once per clone to keep indexing automatic:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-index-hooks.ps1
+```
+
+Manual index refresh:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-project-index.ps1
+```

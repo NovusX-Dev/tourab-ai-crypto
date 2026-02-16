@@ -83,6 +83,32 @@ Enable/disable human-approval gate quickly:
 - Enable (default): set `TOURAB_HUMAN_APPROVAL_ENABLED=1` and `TOURAB_HUMAN_APPROVAL_TOKEN=<token>`.
 - Disable: set `TOURAB_HUMAN_APPROVAL_ENABLED=0`.
 
+## Order Lifecycle + Reconciliation (Milestone 3)
+- Every successful submission appends to local ledger JSONL (`TOURAB_ORDER_LEDGER_PATH`, default `logs/order-intents.jsonl`).
+- Snapshot open orders + recent fills:
+
+```powershell
+npm run okx:demo:orders -- --symbol BTC-USDT --out-file logs/okx-snapshot.json
+```
+
+- Reconcile local ledger against exchange state:
+
+```powershell
+npm run okx:demo:reconcile -- --symbol BTC-USDT --out-file logs/reconcile-report.json
+```
+
+- Cancel one order (token-gated):
+
+```powershell
+npm run okx:demo:cancel -- --symbol BTC-USDT --ord-id <ordId> --approval-token <your_token>
+```
+
+- Cancel all open orders for a symbol (token-gated):
+
+```powershell
+npm run okx:demo:cancel -- --symbol BTC-USDT --all --approval-token <your_token>
+```
+
 ## Project indexing
 - Current index file: `docs/project-index.md`
 - Generator script: `scripts/update-project-index.ps1`

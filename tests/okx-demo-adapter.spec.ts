@@ -87,4 +87,58 @@ describe("OkxDemoAdapter", () => {
     expect(headers["x-simulated-trading"]).toBe("1");
     expect(headers["OK-ACCESS-SIGN"]).toBeTruthy();
   });
+
+  it("fetches pending orders from trade/orders-pending", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [
+            {
+              ordId: "o1",
+              clOrdId: "c1",
+              instId: "BTC-USDT",
+              side: "buy",
+              px: "68000",
+              sz: "0.0001",
+              accFillSz: "0",
+              state: "live",
+              cTime: "1",
+              uTime: "1"
+            }
+          ]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    const orders = await adapter.getPendingOrders("BTC-USDT");
+    expect(orders).toHaveLength(1);
+    expect(calls[0].url).toContain("/api/v5/trade/orders-pending");
+  });
+
+  it("cancels an order through trade/cancel-order", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ ordId: "o1", clOrdId: "c1", sCode: "0", sMsg: "" }]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    const result = await adapter.cancelOrder({ instId: "BTC-USDT", ordId: "o1" });
+    expect(result.ordId).toBe("o1");
+    expect(calls[0].url).toBe("https://www.okx.com/api/v5/trade/cancel-order");
+    expect(calls[0].init?.method).toBe("POST");
+  });
 });

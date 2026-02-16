@@ -13,6 +13,8 @@ export interface OkxOrderResult {
   clOrdId: string;
   sCode: string;
   sMsg: string;
+  tag?: string;
+  ts?: string;
 }
 
 interface OkxApiEnvelope<T> {
@@ -31,6 +33,30 @@ export interface OkxBalanceDetail {
 export interface OkxBalanceRecord {
   totalEq: string;
   details: OkxBalanceDetail[];
+}
+
+export interface OkxPendingOrder {
+  ordId: string;
+  clOrdId: string;
+  instId: string;
+  side: "buy" | "sell";
+  px: string;
+  sz: string;
+  accFillSz: string;
+  state: string;
+  cTime: string;
+  uTime: string;
+}
+
+export interface OkxFillRecord {
+  ordId: string;
+  clOrdId: string;
+  instId: string;
+  side: "buy" | "sell";
+  fillPx: string;
+  fillSz: string;
+  ts: string;
+  tradeId: string;
 }
 
 type FetchLike = typeof fetch;
@@ -153,6 +179,49 @@ export class OkxDemoAdapter {
       throw new OkxApiError("OKX_API_ERROR", "OKX returned no balance data.");
     }
     return envelope.data[0];
+  }
+
+  async getPendingOrders(instId?: string): Promise<OkxPendingOrder[]> {
+    const query = instId ? `?instType=SPOT&instId=${encodeURIComponent(instId)}` : "?instType=SPOT";
+    const requestPath = `/api/v5/trade/orders-pending${query}`;
+    const envelope = await this.privateRequest<OkxPendingOrder>("GET", requestPath, "");
+    return envelope.data;
+  }
+
+  async getFills(instId?: string, limit = 100): Promise<OkxFillRecord[]> {
+    const query = new URLSearchParams();
+    query.set("instType", "SPOT");
+    if (instId) {
+      query.set("instId", instId);
+    }
+    query.set("limit", String(limit));
+    const requestPath = `/api/v5/trade/fills?${query.toString()}`;
+    const envelope = await this.privateRequest<OkxFillRecord>("GET", requestPath, "");
+    return envelope.data;
+  }
+
+  async cancelOrder(params: { instId: string; ordId?: string; clOrdId?: string }): Promise<OkxOrderResult> {
+    if (!params.ordId && !params.clOrdId) {
+      throw new OkxApiError("OKX_CANCEL_INPUT_ERROR", "ordId or clOrdId must be provided for cancel.");
+    }
+    const requestPath = "/api/v5/trade/cancel-order";
+    const body = JSON.stringify({
+      instId: params.instId,
+      ordId: params.ordId,
+      clOrdId: params.clOrdId
+    });
+    const envelope = await this.privateRequest<OkxOrderResult>("POST", requestPath, body);
+    if (envelope.data.length === 0) {
+      throw new OkxApiError("OKX_API_ERROR", "OKX returned no cancel response data.");
+    }
+    const result = envelope.data[0];
+    if (result.sCode !== "0") {
+      throw new OkxApiError("OKX_ORDER_CANCEL_FAILED", result.sMsg || "Order cancel failed.", {
+        sCode: result.sCode,
+        sMsg: result.sMsg
+      });
+    }
+    return result;
   }
 }
 

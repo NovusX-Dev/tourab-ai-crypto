@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
-import { executeProposalWithGatekeeper, HumanApprovalError } from "./execution-service.js";
+import { executeProposalWithGatekeeper } from "./execution-service.js";
+import { HumanApprovalError, parseBooleanEnv } from "./human-approval.js";
+import { appendOrderLedgerRecord } from "./lifecycle-store.js";
 import {
   CliStructuredError,
   parseJsonPayload,
@@ -61,20 +63,6 @@ function isHumanApprovalError(error: unknown): error is HumanApprovalError {
   return error instanceof HumanApprovalError;
 }
 
-function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
-  if (raw === undefined) {
-    return fallback;
-  }
-  const value = raw.trim().toLowerCase();
-  if (value === "1" || value === "true" || value === "yes" || value === "on") {
-    return true;
-  }
-  if (value === "0" || value === "false" || value === "no" || value === "off") {
-    return false;
-  }
-  return fallback;
-}
-
 async function run(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (!args.proposalFile || !args.contextFile) {
@@ -98,6 +86,20 @@ async function run(): Promise<void> {
     requiredToken: requiredApprovalToken,
     providedToken: args.approvalToken
   });
+  if (result.status === "SUBMITTED") {
+    const ledgerPath = process.env.TOURAB_ORDER_LEDGER_PATH ?? "logs/order-intents.jsonl";
+    await appendOrderLedgerRecord(ledgerPath, {
+      type: "ORDER_SUBMITTED",
+      ts: new Date().toISOString(),
+      proposalId: proposal.proposalId,
+      symbol: proposal.symbol,
+      side: proposal.side,
+      qtyBase: proposal.qtyBase,
+      limitPrice: proposal.entryPrice,
+      ordId: result.order.ordId,
+      clOrdId: result.order.clOrdId
+    });
+  }
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 

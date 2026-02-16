@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-16 09:04:06 UTC
+Generated: 2026-02-16 09:11:52 UTC
 
 ## Summary
 - Root: `.`
-- Directories indexed: 20
-- Files indexed: 61
+- Directories indexed: 21
+- Files indexed: 71
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -21,10 +21,16 @@ Generated: 2026-02-16 09:04:06 UTC
         - cli.ts
         - cli-validation.ts
         - execution-service.ts
+        - human-approval.ts
+        - lifecycle-store.ts
+        - okx-demo-cancel-cli.ts
         - okx-demo-execute-cli.ts
         - okx-demo-health-cli.ts
+        - okx-demo-orders-cli.ts
+        - okx-demo-reconcile-cli.ts
         - okx-proposal-helper-cli.ts
         - proposal-helper.ts
+        - reconciliation.ts
       - package.json
     - research/
   - docs/
@@ -35,6 +41,10 @@ Generated: 2026-02-16 09:04:06 UTC
     - deep-research-report.md
     - learning-report.md
     - roadmap.md
+  - logs/
+    - okx-snapshot.json
+    - order-intents.jsonl
+    - reconcile-report.json
   - packages/
     - okx-demo-adapter/
       - src/
@@ -79,6 +89,7 @@ Generated: 2026-02-16 09:04:06 UTC
     - execution-service.spec.ts
     - okx-demo-adapter.spec.ts
     - proposal-helper.spec.ts
+    - reconciliation.spec.ts
     - risk-gatekeeper.spec.ts
     - TEST_PLAN.md
   - .env
@@ -97,7 +108,7 @@ Generated: 2026-02-16 09:04:06 UTC
 | Path | Size (bytes) | Last Modified (UTC) | SHA256 |
 |---|---:|---|---|
 | `.env` | 1059 | 2026-02-16 08:54:24 | `ee243e89dd6eb1b343d2db02f46400c8d094c9fc075a156c0db8cb8c4a47cfa4` |
-| `.env.example` | 1059 | 2026-02-16 08:54:24 | `ee243e89dd6eb1b343d2db02f46400c8d094c9fc075a156c0db8cb8c4a47cfa4` |
+| `.env.example` | 1109 | 2026-02-16 09:09:21 | `a52a093532bf69dd5ebb30cf950c65b7f09d21f7a6f688cd84a36623ffd11ecd` |
 | `.gitattributes` | 24 | 2026-02-16 07:43:43 | `6fda4653ef71808abc2eb5e88b7cf1ec9912e800d3bad13d3b4f46abc8d6f7ea` |
 | `.githooks/post-checkout` | 243 | 2026-02-16 07:41:58 | `81a66130ba52de51a55b1fcbb489cc44d186b51386d808a7774390d586e28680` |
 | `.githooks/post-merge` | 243 | 2026-02-16 07:41:54 | `81a66130ba52de51a55b1fcbb489cc44d186b51386d808a7774390d586e28680` |
@@ -106,28 +117,37 @@ Generated: 2026-02-16 09:04:06 UTC
 | `apps/dashboard/package.json` | 255 | 2026-02-16 08:26:19 | `bc9402bf26447c716ce9d7d058979223a7fa9beb1f58197a439eda1e0b0f2d6e` |
 | `apps/dashboard/src/cli.ts` | 2739 | 2026-02-16 08:22:42 | `65b65600773088fa34d56c25abb0ee54c99647f1afdc11f148b009391a385b15` |
 | `apps/dashboard/src/cli-validation.ts` | 1532 | 2026-02-16 08:22:27 | `1d7bd77d440d0ac9d265c556515fe93879d76ac8b4e473074911b4e0da2dac27` |
-| `apps/dashboard/src/execution-service.ts` | 2233 | 2026-02-16 08:33:47 | `ebe1b3f074fb00d8b5c8dc019993a71a77b9841fbd0aeda27e1778b6f5ea2453` |
-| `apps/dashboard/src/okx-demo-execute-cli.ts` | 4004 | 2026-02-16 08:34:05 | `515f985c2114deba14a8f8d69249fc51eadd3304bbd701d90d67fcc7bd61c169` |
+| `apps/dashboard/src/execution-service.ts` | 1218 | 2026-02-16 09:05:50 | `d5bd4670bc3df63d1ccb486a6faf6bc5bfad27dcc7fc74e2378499ef61d826cc` |
+| `apps/dashboard/src/human-approval.ts` | 1510 | 2026-02-16 09:05:29 | `1bfa540e680e7b3ee14f93c0e0e84cfc60afdca358cc34f83d964a25df69e52b` |
+| `apps/dashboard/src/lifecycle-store.ts` | 1135 | 2026-02-16 09:06:05 | `d836bad7d35bb5ba19d65b4a9625bb40838261f599332bae7bcfc80d30dda38d` |
+| `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4122 | 2026-02-16 09:07:52 | `3ea968a0d4fd17495f87bcdfc8d2fd07da0067bfe182a6460a6c14a6f1308577` |
+| `apps/dashboard/src/okx-demo-execute-cli.ts` | 4218 | 2026-02-16 09:06:14 | `fd227bcccfbafe734eed97f8178faee4cd96296f3cf4fe2a06c7908a10027665` |
 | `apps/dashboard/src/okx-demo-health-cli.ts` | 1691 | 2026-02-16 08:57:16 | `12fd73e0564d89a4b16b1c23edcdd5ba7bb18e6827868a6589866a278275f0f2` |
+| `apps/dashboard/src/okx-demo-orders-cli.ts` | 2158 | 2026-02-16 09:07:13 | `00fdbd2a2e99bf379e09b5dc80face478e21ef0dbb4e56235148bca6ce6bb701` |
+| `apps/dashboard/src/okx-demo-reconcile-cli.ts` | 3436 | 2026-02-16 09:07:31 | `768e6d9cf5b97ef0c7f6e901f3c6eb4272080bf59f70cb7f0e4d4ab8f799f8a4` |
 | `apps/dashboard/src/okx-proposal-helper-cli.ts` | 4686 | 2026-02-16 09:02:41 | `5eed40d512c301142b91deb77e25d164cc22244255bd489a6cb685da7c0dccf0` |
 | `apps/dashboard/src/proposal-helper.ts` | 6727 | 2026-02-16 09:01:09 | `c7904f9d9d4031626eae07d84e2c13fde3aeee8e158eb86af36e45834033e306` |
+| `apps/dashboard/src/reconciliation.ts` | 6040 | 2026-02-16 09:10:08 | `e5f55769e0e1138f12facf33e0575cf932b4237298f02e58439f36490e7e8ee4` |
 | `docs/decisions.md` | 2088 | 2026-02-15 08:26:13 | `63d8d3c8c3c79b27d331690ed9bd27f4829e5a8a0614002e0614dae42ab17aa8` |
 | `docs/deep-research-report.md` | 33989 | 2026-02-13 07:01:58 | `c9fbd1c30c7797d84470c754e60895505aa69ae912d3539d4e36955ed1cd2540` |
 | `docs/learning-report.md` | 5173 | 2026-02-15 08:44:50 | `5382135f52b032164ea444c4a4f30ba2640ce59c991223577482d76612f62c10` |
 | `docs/okx/okx-docs-v5-en.html` | 4731242 | 2026-02-15 08:37:49 | `f46686a9f46827dc51b633b0dcb80331ada0a0a18e1dc44efe1ce3f6449c0459` |
 | `docs/okx/source-verification.md` | 2779 | 2026-02-15 08:44:50 | `2ecd8ccbe303873fa80b753fd914f75c30a2cda753ad1ca7090d0aecc6c4facb` |
 | `docs/roadmap.md` | 1512 | 2026-02-15 08:26:13 | `d0512bbf58fdea4b9d3751eaeaddf82807337dfb147a998cf616ccdad314a2ab` |
-| `package.json` | 694 | 2026-02-16 09:01:32 | `a1ea52773270dcf2bb0f6f8bd74d1bb11c50ed2de80da068a80132fbe02b8b3e` |
+| `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
+| `logs/order-intents.jsonl` | 527 | 2026-02-16 09:10:35 | `0b55dab427203c4225bf7c7da0457b53134e0e32288fc829019aeba37a25b942` |
+| `logs/reconcile-report.json` | 901 | 2026-02-16 09:09:42 | `f986871f719c9b77a42714dc634af4bb8a17baf0f95d0be58d08f9505c0a53df` |
+| `package.json` | 916 | 2026-02-16 09:08:07 | `9d31a85a9650ac785c4ca8c7cf65fc6652d54394e65ed9683f0bd810c56cd001` |
 | `package-lock.json` | 55327 | 2026-02-16 08:27:14 | `58428502cde6865e36a088f08fa24a5a4e27232a0cfee240240027cfb6dec7d3` |
 | `packages/okx-demo-adapter/package.json` | 183 | 2026-02-16 08:25:46 | `e52f527393c9a8a8bfda9431c02394f745fc500f298979ee4b7e00f5564fd2df` |
-| `packages/okx-demo-adapter/src/index.ts` | 5086 | 2026-02-16 08:58:28 | `0afec58eacc6ed634d36ae79fdd4bbc94213a76ce5f807529f13fee8c1a0c840` |
+| `packages/okx-demo-adapter/src/index.ts` | 7234 | 2026-02-16 09:06:30 | `95003ab16ba286c0141ca6c08655c5b4d0ac7342161cb4b0694dbdeee77f9019` |
 | `packages/risk-gatekeeper/package.json` | 182 | 2026-02-16 08:17:52 | `2b47fc52824541ff54e151d3bea9a0c2798ca5e47bcd1ab3f280b0b053610936` |
 | `packages/risk-gatekeeper/src/index.ts` | 5192 | 2026-02-16 08:15:17 | `231c7ee0c11a6005baccb148d74e26c4a77e0b8fd3e24925b63ecd373b2ab4d1` |
 | `packages/shared/package.json` | 163 | 2026-02-16 08:22:05 | `2f30f4e4845845ba9f2a7a29ee88fdacf2380b2bf02cbf47c7bc8e4499a85ab3` |
 | `packages/shared/src/index.ts` | 58 | 2026-02-16 08:22:19 | `3bcb2309866449a8c6fe6bb243bef2d006e0c3ee15dac3a9892d3f892678e453` |
 | `packages/shared/src/schemas.ts` | 1833 | 2026-02-16 08:22:16 | `6c92756e8f8fadaaa397f12295d9cad8e834e91e3c866bda5c94e02e2ce06e75` |
 | `packages/shared/src/types.ts` | 1541 | 2026-02-16 08:14:35 | `05029340e6c853bea2e894d9735d8f1a1e2a05a2c0d19bf7d50e93cfb2435e78` |
-| `README.md` | 3544 | 2026-02-16 09:02:45 | `cf26e952272836857ad9c0989bc7e33a7ba6a6e6f9cb65413c7427a775491e8f` |
+| `README.md` | 4313 | 2026-02-16 09:09:06 | `354dc7c3a23bfe9ea06f375baad6ce29a821df5371fe61293fcd8daf55aabc74` |
 | `scripts/install-index-hooks.ps1` | 239 | 2026-02-16 07:42:01 | `2420afd0c3aca0b6bbf968754a814003dab3ee40f81410ea97137236162633ae` |
 | `scripts/update-project-index.ps1` | 4280 | 2026-02-16 07:43:03 | `cfad26a7179677daccc8e102a741b3baa933bc3031ff7b523d4598079552e7f7` |
 | `skills/architecture.md` | 957 | 2026-02-15 08:25:39 | `4cf99efbe8c8773c23996f9c38763fb7a40c0b9e9414fe1b802d99d129ecaba6` |
@@ -144,14 +164,15 @@ Generated: 2026-02-16 09:04:06 UTC
 | `skills/trading-oracle.md` | 32746 | 2026-02-16 07:44:03 | `b248d923616037b2e5164bcbdb1ece1d8eed7dd38edf82869d667347f9ee0d21` |
 | `tests/cli-validation.spec.ts` | 2761 | 2026-02-16 08:22:57 | `f469e8e4909db02465e4936662d21d60666afd70b11d9090860b0073edc7070c` |
 | `tests/execution-service.spec.ts` | 3885 | 2026-02-16 08:34:30 | `779dbdc7c3f5347d3fe33525780c048b0d9a0b2913932a1a765230b3d023a104` |
-| `tests/fixtures/context.auto.json` | 295 | 2026-02-16 09:02:54 | `6f868e146c5b0d59a97bde0a7a8eee2680b7745391aa328771ae39a4509c0476` |
+| `tests/fixtures/context.auto.json` | 295 | 2026-02-16 09:09:53 | `cb8a7e955df9d846f6dceafcb24a2d9e814fd28d5834d393c8554a383707ac2c` |
 | `tests/fixtures/context.valid.json` | 295 | 2026-02-16 08:18:18 | `a9ebc8ee93233576c66d541f820ac5cfff2738fa155ea678a0ba23d609707c94` |
-| `tests/fixtures/proposal.auto.json` | 221 | 2026-02-16 09:02:54 | `81892ac87be9a36f5565be11e8effa72773fc197850abff21939bbadd0775657` |
+| `tests/fixtures/proposal.auto.json` | 222 | 2026-02-16 09:09:53 | `5f4ed0d687d86c6508749198d191f2bc862142a39bdb3aa83132f4b0353711db` |
 | `tests/fixtures/proposal.demo-check.json` | 190 | 2026-02-16 08:59:00 | `665aafb9ff642ef370fd47c5e6dec8c967dbe365ce6b4f51814f6d1e03b5a9a0` |
 | `tests/fixtures/proposal.invalid.json` | 90 | 2026-02-16 08:23:00 | `20d3fb277c8e22dacf26ff109c0ea4fcdf0a2b751d2b20d1f57db9908c9a7739` |
 | `tests/fixtures/proposal.valid.json` | 190 | 2026-02-16 08:18:13 | `732ac716730242de204e9e643b81f475ffd12befce0f99e805c9c5b37d3ab1ef` |
-| `tests/okx-demo-adapter.spec.ts` | 3170 | 2026-02-16 08:57:30 | `d0168dfdd786d7ea3da9f70807bc06cc5f0e3ed5eb5e81e8923dbb4d03a0aae4` |
+| `tests/okx-demo-adapter.spec.ts` | 4895 | 2026-02-16 09:08:55 | `9c248f263b42e3e84095b50ed5bc7fb3daed87a2613c1af4bf29a85fb6c91302` |
 | `tests/proposal-helper.spec.ts` | 2442 | 2026-02-16 09:02:04 | `4a3010d8af6acac630ff69c2f7bd75227d2f5ddb42b377ca49735cd9bf59a8c6` |
+| `tests/reconciliation.spec.ts` | 3445 | 2026-02-16 09:10:16 | `94d83a0fb4c1bb0ffece49834295fa4cdc4b9ef027abd74fa5f1ad4c4ac06f99` |
 | `tests/risk-gatekeeper.spec.ts` | 5156 | 2026-02-16 08:16:00 | `5d708889f2ad59de32b5152116ff4ead7302487045963bf75a607d2d922dd143` |
 | `tests/TEST_PLAN.md` | 2553 | 2026-02-16 08:16:15 | `8cc0e2a87f4e729d9d83167f38dfac40fc08c469d21234055ea01c01f25d3834` |
 | `tsconfig.json` | 405 | 2026-02-16 08:16:45 | `de4e9dd1c21de11f1aa563c84722586082daba0316a42879a09bfe9b9b16ba9d` |

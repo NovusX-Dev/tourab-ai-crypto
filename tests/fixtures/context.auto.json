@@ -1,0 +1,17 @@
+{
+  "account": {
+    "equityUsd": 50,
+    "currentDailyLossUsd": 0.2,
+    "currentWeeklyLossUsd": 0.9,
+    "currentOpenExposureUsd": 2.5
+  },
+  "instrument": {
+    "symbol": "BTC-USDT",
+    "minSz": 0.00001,
+    "lotSz": 1e-8,
+    "tickSz": 0.1
+  },
+  "market": {
+    "markPrice": 68843.7
+  }
+}

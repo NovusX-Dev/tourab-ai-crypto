@@ -21,6 +21,18 @@ interface OkxApiEnvelope<T> {
   data: T[];
 }
 
+export interface OkxBalanceDetail {
+  ccy: string;
+  availBal: string;
+  cashBal: string;
+  eq: string;
+}
+
+export interface OkxBalanceRecord {
+  totalEq: string;
+  details: OkxBalanceDetail[];
+}
+
 type FetchLike = typeof fetch;
 
 export class OkxApiError extends Error {
@@ -39,7 +51,9 @@ function toOkxSide(side: ExecutionIntent["side"]): "buy" | "sell" {
 }
 
 function makeClientOrderId(proposalId: string): string {
-  return `tourab-${proposalId}`.slice(0, 32);
+  const seed = `tourab${proposalId}`.replace(/[^a-zA-Z0-9]/g, "");
+  const normalized = seed.length > 0 ? seed : "touraborder";
+  return normalized.slice(0, 32);
 }
 
 function signRequest(timestamp: string, method: string, requestPath: string, body: string, secret: string): string {
@@ -65,6 +79,44 @@ export class OkxDemoAdapter {
     this.baseUrl = (config.baseUrl ?? "https://www.okx.com").replace(/\/+$/, "");
   }
 
+  private async privateRequest<T>(
+    method: "GET" | "POST",
+    requestPath: string,
+    body: string
+  ): Promise<OkxApiEnvelope<T>> {
+    const timestamp = this.now().toISOString();
+    const signature = signRequest(timestamp, method, requestPath, body, this.config.apiSecret);
+    const response = await this.fetchImpl(`${this.baseUrl}${requestPath}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "OK-ACCESS-KEY": this.config.apiKey,
+        "OK-ACCESS-SIGN": signature,
+        "OK-ACCESS-TIMESTAMP": timestamp,
+        "OK-ACCESS-PASSPHRASE": this.config.passphrase,
+        "x-simulated-trading": "1"
+      },
+      body: method === "POST" ? body : undefined
+    });
+
+    if (!response.ok) {
+      throw new OkxApiError("OKX_HTTP_ERROR", `OKX HTTP request failed with status ${response.status}.`, {
+        status: response.status
+      });
+    }
+
+    const envelope = (await response.json()) as OkxApiEnvelope<T>;
+    if (envelope.code !== "0") {
+      throw new OkxApiError("OKX_API_ERROR", envelope.msg || "OKX returned an error response.", {
+        code: envelope.code,
+        msg: envelope.msg,
+        data: envelope.data
+      });
+    }
+
+    return envelope;
+  }
+
   async placeSpotLimitOrder(intent: ExecutionIntent): Promise<OkxOrderResult> {
     const requestPath = "/api/v5/trade/order";
     const payload = {
@@ -77,34 +129,9 @@ export class OkxDemoAdapter {
       clOrdId: makeClientOrderId(intent.proposalId)
     };
     const body = JSON.stringify(payload);
-    const timestamp = this.now().toISOString();
-    const signature = signRequest(timestamp, "POST", requestPath, body, this.config.apiSecret);
-
-    const response = await this.fetchImpl(`${this.baseUrl}${requestPath}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "OK-ACCESS-KEY": this.config.apiKey,
-        "OK-ACCESS-SIGN": signature,
-        "OK-ACCESS-TIMESTAMP": timestamp,
-        "OK-ACCESS-PASSPHRASE": this.config.passphrase,
-        "x-simulated-trading": "1"
-      },
-      body
-    });
-
-    if (!response.ok) {
-      throw new OkxApiError("OKX_HTTP_ERROR", `OKX HTTP request failed with status ${response.status}.`, {
-        status: response.status
-      });
-    }
-
-    const envelope = (await response.json()) as OkxApiEnvelope<OkxOrderResult>;
-    if (envelope.code !== "0" || envelope.data.length === 0) {
-      throw new OkxApiError("OKX_API_ERROR", envelope.msg || "OKX returned an error response.", {
-        code: envelope.code,
-        msg: envelope.msg
-      });
+    const envelope = await this.privateRequest<OkxOrderResult>("POST", requestPath, body);
+    if (envelope.data.length === 0) {
+      throw new OkxApiError("OKX_API_ERROR", "OKX returned no order data.");
     }
 
     const result = envelope.data[0];
@@ -116,6 +143,16 @@ export class OkxDemoAdapter {
     }
 
     return result;
+  }
+
+  async getAccountBalance(ccy?: string): Promise<OkxBalanceRecord> {
+    const query = ccy ? `?ccy=${encodeURIComponent(ccy)}` : "";
+    const requestPath = `/api/v5/account/balance${query}`;
+    const envelope = await this.privateRequest<OkxBalanceRecord>("GET", requestPath, "");
+    if (envelope.data.length === 0) {
+      throw new OkxApiError("OKX_API_ERROR", "OKX returned no balance data.");
+    }
+    return envelope.data[0];
   }
 }
 

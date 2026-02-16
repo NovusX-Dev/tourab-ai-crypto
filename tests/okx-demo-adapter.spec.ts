@@ -61,4 +61,30 @@ describe("OkxDemoAdapter", () => {
       code: "OKX_ORDER_REJECTED"
     });
   });
+
+  it("calls private balance endpoint with signed demo headers", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ totalEq: "25.0", details: [{ ccy: "USDT", availBal: "25", cashBal: "25", eq: "25" }] }]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock, () => new Date("2026-02-16T00:00:00.000Z"));
+    const balance = await adapter.getAccountBalance("USDT");
+
+    expect(balance.totalEq).toBe("25.0");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe("https://www.okx.com/api/v5/account/balance?ccy=USDT");
+    expect(calls[0].init?.method).toBe("GET");
+    const headers = calls[0].init?.headers as Record<string, string>;
+    expect(headers["x-simulated-trading"]).toBe("1");
+    expect(headers["OK-ACCESS-SIGN"]).toBeTruthy();
+  });
 });

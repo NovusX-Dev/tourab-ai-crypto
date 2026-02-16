@@ -55,6 +55,24 @@ Validate proposal/context without execution:
 npm run gatekeeper:cli -- --proposal-file tests/fixtures/proposal.valid.json --context-file tests/fixtures/context.valid.json
 ```
 
+Check signed OKX demo connectivity and private balance:
+
+```powershell
+npm run okx:demo:health -- --ccy USDT
+```
+
+Auto-build a valid proposal from live ticker + instrument constraints (+ price bands when available):
+
+```powershell
+npm run okx:demo:build-proposal -- --symbol BTC-USDT --side buy --out-file tests/fixtures/proposal.auto.json
+```
+
+Optional: refresh a context file with live `instrument` + `market` values at the same time:
+
+```powershell
+npm run okx:demo:build-proposal -- --symbol BTC-USDT --side buy --out-file tests/fixtures/proposal.auto.json --context-file tests/fixtures/context.valid.json --out-context-file tests/fixtures/context.auto.json
+```
+
 Execute via OKX demo adapter (still gatekeeper-first):
 
 ```powershell

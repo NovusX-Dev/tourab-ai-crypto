@@ -1,0 +1,10 @@
+{
+  "proposalId": "1e6ee31b-d228-498c-b5b6-ef0077c1402b",
+  "symbol": "BTC-USDT",
+  "side": "buy",
+  "qtyBase": 0.00001,
+  "entryPrice": 68706,
+  "stopPrice": 67675.4,
+  "estimatedMaxLossUsd": 0.010306,
+  "leverage": 1
+}

@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gatekeeper:cli": "tsx apps/dashboard/src/cli.ts",
-    "okx:demo:execute": "tsx apps/dashboard/src/okx-demo-execute-cli.ts"
+    "okx:demo:execute": "tsx apps/dashboard/src/okx-demo-execute-cli.ts",
+    "okx:demo:health": "tsx apps/dashboard/src/okx-demo-health-cli.ts",
+    "okx:demo:build-proposal": "tsx apps/dashboard/src/okx-proposal-helper-cli.ts"
   },
   "dependencies": {
     "zod": "^4.1.5"

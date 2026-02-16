@@ -1,0 +1,11 @@
+{
+  "name": "@tourab/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/cli.ts",
+  "dependencies": {
+    "@tourab/risk-gatekeeper": "0.1.0",
+    "@tourab/shared": "0.1.0"
+  }
+}

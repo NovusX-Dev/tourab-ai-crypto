@@ -1,6 +1,6 @@
 # Project Index
 
-Generated: 2026-02-16 07:52:56 UTC
+Generated: 2026-02-16 08:08:32 UTC
 
 ## Summary
 - Root: `.`
@@ -44,12 +44,12 @@ Generated: 2026-02-16 07:52:56 UTC
     - README.md
     - risk-gatekeeper.md
     - security-api-keys.md
+    - trading-oracle.md
   - tests/
   - .env.example
   - .gitattributes
   - .gitignore
   - README.md
-  - TourabCryptoAI.sln
 ```
 
 ## File Catalog
@@ -78,7 +78,7 @@ Generated: 2026-02-16 07:52:56 UTC
 | `skills/okx/okx-overview.md` | 1279 | 2026-02-15 08:39:17 | `c88b73a17f16a9d725fc6985e75bc2cdd03d19aacadd7364d626529fb83878ae` |
 | `skills/okx/okx-rate-limits-errors.md` | 1589 | 2026-02-15 08:39:17 | `65c77852d8187c1dbff0f3d31ff9f54dfa3e04bee27e98a791f931c1b175872a` |
 | `skills/python-research-pipeline.md` | 1107 | 2026-02-15 08:25:39 | `84d4b710a9be689148a79dcf362fe2a3e9683132676744174d8b11c16907d044` |
-| `skills/README.md` | 1530 | 2026-02-15 08:45:05 | `86eb3a9090d440c56bc6b1f7782bc4e35876729d2d0e7d8e492f1565fc8b98fc` |
+| `skills/README.md` | 1552 | 2026-02-16 08:05:59 | `8641480a5817cf56492ea21ad0545859aad9d45b88ac8dffb26ade68c1e26830` |
 | `skills/risk-gatekeeper.md` | 1202 | 2026-02-15 08:33:09 | `6462052a76b16f85ab789fda220cf54aedc08ffb6c5a2fa88a20e228bbef7026` |
 | `skills/security-api-keys.md` | 1391 | 2026-02-15 08:39:17 | `f8aeac08d67b6e2c1c20105f36a6bf53c116fe37f4931201d3d2767d8fbd1019` |
-| `TourabCryptoAI.sln` | 1307 | 2026-02-16 07:52:16 | `dcb9884b7133b46d760db925ef1d804693bdbe29974c82e5d600a699db90f5bb` |
+| `skills/trading-oracle.md` | 32746 | 2026-02-16 07:44:03 | `b248d923616037b2e5164bcbdb1ece1d8eed7dd38edf82869d667347f9ee0d21` |

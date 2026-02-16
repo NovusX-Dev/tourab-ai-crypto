@@ -36,6 +36,7 @@ Each skill file should include:
 - `okx/okx-rate-limits-errors.md`
 - `security-api-keys.md`
 - `risk-gatekeeper.md`
+- `trading-oracle.md`
 - `logging-audit-replay.md`
 - `architecture.md`
 - `node-dashboard-patterns.md`

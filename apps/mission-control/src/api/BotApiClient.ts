@@ -1,6 +1,7 @@
 import type {
   ApprovalRequest,
   AlertItem,
+  DemoQueuedIntent,
   IncidentItem,
   AuditItem,
   BotEvent,
@@ -61,4 +62,5 @@ export interface DashboardData {
   exchange: ExchangeStatus;
   portfolio: PortfolioStatus;
   openOrders: OpenOrdersStatus;
+  demoQueue: DemoQueuedIntent[];
 }

@@ -1,12 +1,18 @@
-import type { BotEvent, BotStateSnapshot, TradeProposal, RiskContext } from "@tourab/shared";
+import type { BotEvent, BotStateSnapshot, ExecutionIntent, RiskContext, TradeProposal } from "@tourab/shared";
 import { evaluateTradeProposal } from "@tourab/risk-gatekeeper";
-import { buildValidSpotProposal, fetchSpotMarketInputs } from "../proposal-helper.js";
+import { buildValidSpotProposal, fetchSpotMarketInputs, SpotMarketInputs } from "../proposal-helper.js";
 import { createEvent } from "./event-factory.js";
 
 interface WorkerCallbacks {
   onEvent: (event: BotEvent) => Promise<void>;
   onStateUpdate: (next: Partial<BotStateSnapshot>) => void;
   getState: () => BotStateSnapshot;
+  queueDemoExecutionApproval: (input: {
+    symbol: string;
+    proposal: TradeProposal;
+    context: RiskContext;
+    intent: ExecutionIntent;
+  }) => Promise<{ queued: boolean; approvalId?: string; reason?: string }>;
 }
 
 export interface WorkerPolicy {
@@ -19,13 +25,18 @@ export interface WorkerPolicy {
   stopDistanceBps: number;
   retryMaxAttempts: number;
   retryBudgetPerHour: number;
+  executionMode: "proposal_only" | "demo_execution_enabled";
 }
 
 function nextSymbol(universe: string[], cycle: number): string {
   return universe[cycle % universe.length] ?? "BTC-USDT";
 }
 
-function baseRiskContext(symbol: string, markPrice: number): RiskContext {
+function baseRiskContext(
+  market: SpotMarketInputs,
+  maxNotionalUsd: number,
+  executionMode: "proposal_only" | "demo_execution_enabled"
+): RiskContext {
   const now = new Date().toISOString();
   return {
     account: {
@@ -36,13 +47,13 @@ function baseRiskContext(symbol: string, markPrice: number): RiskContext {
       asOf: now
     },
     instrument: {
-      symbol,
-      minSz: 0.0001,
-      lotSz: 0.0001,
-      tickSz: 0.1
+      symbol: market.symbol,
+      minSz: market.minSz,
+      lotSz: market.lotSz,
+      tickSz: market.tickSz
     },
     market: {
-      markPrice,
+      markPrice: market.last,
       asOf: now
     },
     ordersAsOf: now,
@@ -53,11 +64,22 @@ function baseRiskContext(symbol: string, markPrice: number): RiskContext {
       maxOpenExposureUsd: 15
     },
     policy: {
-      allowedSymbols: [symbol],
-      maxNotionalUsd: 20,
-      executionMode: "proposal_only"
+      allowedSymbols: [market.symbol],
+      maxNotionalUsd,
+      executionMode
     }
   };
+}
+
+function gatekeeperReason(decision: ReturnType<typeof evaluateTradeProposal>): string {
+  if (decision.status === "APPROVE") {
+    return "Gatekeeper approved worker proposal";
+  }
+  const violations = decision.violations.map((item) => `${item.code}: ${item.message}`);
+  if (violations.length === 0) {
+    return "Gatekeeper rejected worker proposal";
+  }
+  return `Gatekeeper rejected worker proposal: ${violations.join(" | ")}`;
 }
 
 export class RuntimeWorkerManager {
@@ -114,22 +136,37 @@ export class RuntimeWorkerManager {
         createEvent("ProposalCreated", symbol, `Worker proposal created ${built.proposal.proposalId}`, "info", ["worker_cycle"])
       );
 
-      const context = baseRiskContext(symbol, market.last);
+      const context = baseRiskContext(market, this.policy.maxNotionalUsd, this.policy.executionMode);
       const decision = evaluateTradeProposal(built.proposal as TradeProposal, context);
       await this.callbacks.onEvent(
         createEvent(
           "GatekeeperDecision",
           symbol,
-          decision.status === "APPROVE" ? "Gatekeeper approved worker proposal" : "Gatekeeper rejected worker proposal",
+          gatekeeperReason(decision),
           decision.status === "APPROVE" ? "info" : "warn",
           [decision.status === "APPROVE" ? "gatekeeper_approve" : "gatekeeper_reject"]
         )
       );
 
-      if (decision.status === "APPROVE") {
-        await this.callbacks.onEvent(
-          createEvent("ProposalApproved", symbol, "Proposal moved to approval queue (proposal-only mode)", "info", ["worker_cycle"])
-        );
+      if (decision.status === "APPROVE" && decision.executionIntent) {
+        if (this.policy.executionMode === "demo_execution_enabled") {
+          const queued = await this.callbacks.queueDemoExecutionApproval({
+            symbol,
+            proposal: built.proposal as TradeProposal,
+            context,
+            intent: decision.executionIntent
+          });
+          const message = queued.queued
+            ? `Proposal queued for human approval (${queued.approvalId}) before demo order submit`
+            : `Proposal approved but not queued for demo execution: ${queued.reason ?? "unknown reason"}`;
+          await this.callbacks.onEvent(
+            createEvent("ProposalApproved", symbol, message, queued.queued ? "info" : "warn", ["worker_cycle", "approval_created"])
+          );
+        } else {
+          await this.callbacks.onEvent(
+            createEvent("ProposalApproved", symbol, "Proposal moved to approval queue (proposal-only mode)", "info", ["worker_cycle"])
+          );
+        }
       }
 
       this.cycle += 1;

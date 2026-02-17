@@ -106,7 +106,8 @@ export class MockBotApiClient implements BotApiClient {
         orders: [],
         lastUpdatedAt: new Date().toISOString(),
         lastError: "Open orders unavailable in forced mock mode."
-      }
+      },
+      demoQueue: []
     };
   }
 
@@ -195,7 +196,8 @@ export class MockBotApiClient implements BotApiClient {
       return { ok: false, code: "UNAUTHORIZED", message: "Not authorized for this action", state: this.state.state };
     }
 
-    const critical = action === "stop" || action === "cancel_all" || action === "emergency_stop";
+    const critical =
+      action === "stop" || action === "cancel_all" || action === "emergency_stop" || action === "demo_order_submit";
     if (critical) {
       this.refreshApprovals();
       const found = this.approvals.find((item) => item.id === approvalId);
@@ -246,7 +248,7 @@ export class MockBotApiClient implements BotApiClient {
       }
     }
 
-    if (!isActionEnabled(this.state.state, action)) {
+    if (action !== "demo_order_submit" && !isActionEnabled(this.state.state, action)) {
       this.metrics.controlFailuresTotal += 1;
       return {
         ok: false,
@@ -256,15 +258,18 @@ export class MockBotApiClient implements BotApiClient {
       };
     }
 
-    this.state = applyLifecycleAction(this.state, transitionState(this.state.state, action));
+    if (action !== "demo_order_submit") {
+      this.state = applyLifecycleAction(this.state, transitionState(this.state.state, action));
+    }
     const actionEvent: BotEvent = {
       id: `evt-action-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      type: "System",
+      type: action === "demo_order_submit" ? "OrderSubmitted" : "System",
       symbol: this.state.activeSymbol,
-      message: `Control action executed: ${action}`,
+      message:
+        action === "demo_order_submit" ? "Demo order submitted via approved action" : `Control action executed: ${action}`,
       severity: "info",
-      tags: ["manual_override"]
+      tags: action === "demo_order_submit" ? ["demo_execution", "mock"] : ["manual_override"]
     };
     this.events = [actionEvent, ...this.events].slice(0, 400);
     this.logs = [

@@ -1,6 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { buildValidSpotProposal, fetchSpotMarketInputs } from "./proposal-helper.js";
 import { parseJsonPayload, validateContextPayload } from "./cli-validation.js";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
+
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 interface CliArgs {
   symbol?: string;

@@ -9,6 +9,7 @@
   --success: #23c16b;
   --warning: #f0b95a;
   --border: #1d3042;
+  --control-bg: #122131;
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
   --grid: radial-gradient(circle at 1px 1px, rgba(87, 180, 205, 0.12) 1px, transparent 0);
 }
@@ -24,6 +25,7 @@
   --success: #55cc84;
   --warning: #ffb047;
   --border: #3a4258;
+  --control-bg: #242b3b;
   --shadow: 0 10px 26px rgba(9, 8, 15, 0.34);
   --grid: radial-gradient(circle at 1px 1px, rgba(255, 154, 89, 0.14) 1px, transparent 0);
 }
@@ -55,10 +57,10 @@ select {
   min-height: 100vh;
   height: 100vh;
   display: grid;
-  grid-template-columns: 240px 1fr 360px;
+  grid-template-columns: minmax(220px, 240px) minmax(0, 1fr) minmax(320px, 360px);
   gap: 12px;
   padding: 12px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .card {
@@ -108,11 +110,17 @@ select {
 .theme-switcher select,
 input,
 select {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--control-bg);
   border: 1px solid var(--border);
   color: var(--text-primary);
   border-radius: 10px;
   padding: 8px;
+}
+
+select option,
+select optgroup {
+  background: var(--control-bg);
+  color: var(--text-primary);
 }
 
 .main-grid {
@@ -201,6 +209,60 @@ select {
   display: grid;
   gap: 6px;
   min-width: 0;
+}
+
+.readiness-card-compact {
+  padding: 10px;
+}
+
+.readiness-card-compact .panel-head {
+  align-items: center;
+}
+
+.readiness-card-compact .panel-title {
+  font-size: 0.9rem;
+}
+
+.readiness-card-compact .status-pill {
+  font-size: 0.68rem;
+  padding: 4px 8px;
+}
+
+.readiness-checklist {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.readiness-check {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.readiness-check .check-dot {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.74rem;
+  line-height: 1;
+}
+
+.readiness-check.ready .check-dot {
+  color: var(--success);
+}
+
+.readiness-check.not-ready .check-dot {
+  color: var(--warning);
 }
 
 .bot-status-card,
@@ -456,6 +518,7 @@ select {
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   min-height: 0;
+  max-width: 100%;
 }
 
 .toast-stack {
@@ -510,6 +573,23 @@ select {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   padding: 9px;
+}
+
+.queue-panel {
+  padding: 8px;
+}
+
+.queue-row {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.queue-meta {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .approval-head {
@@ -580,9 +660,12 @@ select {
 
 .tab-row {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 8px;
   padding: 10px;
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
 
 .tab {
@@ -611,8 +694,10 @@ select {
 
 .panel-content {
   padding: 12px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  min-width: 0;
 }
 
 .portfolio-list,
@@ -674,12 +759,16 @@ select {
   padding: 9px;
   overflow-wrap: anywhere;
   word-break: break-word;
+  white-space: normal;
+  min-width: 0;
 }
 
 .risk-values,
 .subhead,
 .timeline-detail {
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .subhead {
@@ -727,6 +816,52 @@ select {
   gap: 6px;
 }
 
+.ops-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ops-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 9px;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.ops-wide {
+  grid-column: 1 / -1;
+}
+
+.ops-label {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.ops-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ops-detail {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ops-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .log-row {
   display: grid;
   grid-template-columns: minmax(64px, 80px) minmax(70px, 90px) minmax(80px, 110px) minmax(0, 1fr);
@@ -755,7 +890,7 @@ select {
   }
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1540px) {
   .app-shell {
     grid-template-columns: 220px 1fr;
     grid-template-areas:
@@ -799,6 +934,10 @@ select {
   }
 
   .portfolio-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-grid {
     grid-template-columns: 1fr;
   }
 }

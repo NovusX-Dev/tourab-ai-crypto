@@ -7,6 +7,7 @@ import type {
   AuditItem,
   BotEvent,
   BotStateSnapshot,
+  DemoQueuedIntent,
   ExchangeStatus,
   IncidentItem,
   LogEntry,
@@ -64,6 +65,7 @@ const EMPTY_OPEN_ORDERS: OpenOrdersStatus = {
   lastUpdatedAt: new Date(0).toISOString(),
   lastError: "Open orders not loaded yet."
 };
+const EMPTY_DEMO_QUEUE: DemoQueuedIntent[] = [];
 
 export function useDashboardData(client: BotApiClient) {
   const [state, setState] = useState<BotStateSnapshot>(EMPTY_STATE);
@@ -77,6 +79,7 @@ export function useDashboardData(client: BotApiClient) {
   const [exchange, setExchange] = useState<ExchangeStatus>(EMPTY_EXCHANGE);
   const [portfolio, setPortfolio] = useState<PortfolioStatus>(EMPTY_PORTFOLIO);
   const [openOrders, setOpenOrders] = useState<OpenOrdersStatus>(EMPTY_OPEN_ORDERS);
+  const [demoQueue, setDemoQueue] = useState<DemoQueuedIntent[]>(EMPTY_DEMO_QUEUE);
   const [metrics, setMetrics] = useState<OpsMetrics>(EMPTY_METRICS);
   const [role, setRole] = useState<UserRole>("operator");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
@@ -105,6 +108,7 @@ export function useDashboardData(client: BotApiClient) {
       setExchange(snapshot.exchange);
       setPortfolio(snapshot.portfolio);
       setOpenOrders(snapshot.openOrders);
+      setDemoQueue(snapshot.demoQueue);
       setMetrics(snapshot.metrics);
       setEvents((prev) => {
         if (prev.length > 0) {
@@ -210,6 +214,7 @@ export function useDashboardData(client: BotApiClient) {
     exchange,
     portfolio,
     openOrders,
+    demoQueue,
     metrics,
     role,
     setRole,

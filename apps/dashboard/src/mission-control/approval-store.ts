@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ApprovalRequest, ControlAction } from "@tourab/shared";
 
-const CRITICAL_ACTIONS = new Set<ControlAction>(["stop", "cancel_all", "emergency_stop"]);
+const CRITICAL_ACTIONS = new Set<ControlAction>(["stop", "cancel_all", "emergency_stop", "demo_order_submit"]);
 
 interface CreateApprovalInput {
   action: ControlAction;

@@ -26,6 +26,9 @@ export function isActionEnabled(state: BotLifecycleState, action: ControlAction)
   if (action === "cancel_all" || action === "emergency_stop") {
     return state === "running" || state === "paused";
   }
+  if (action === "demo_order_submit") {
+    return state === "running" || state === "paused";
+  }
   return false;
 }
 

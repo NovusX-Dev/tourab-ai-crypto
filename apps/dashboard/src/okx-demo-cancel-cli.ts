@@ -1,6 +1,9 @@
 import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
 import { appendOrderLedgerRecord } from "./lifecycle-store.js";
 import { enforceHumanApproval, HumanApprovalError, parseBooleanEnv } from "./human-approval.js";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
+
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 interface CliArgs {
   symbol?: string;

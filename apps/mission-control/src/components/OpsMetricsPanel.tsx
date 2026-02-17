@@ -5,20 +5,38 @@ interface OpsMetricsPanelProps {
 }
 
 export function OpsMetricsPanel({ metrics }: OpsMetricsPanelProps) {
+  const items = [
+    { key: "controlRequestsTotal", label: "Control Requests", value: metrics.controlRequestsTotal, detail: "Total control commands received." },
+    { key: "controlFailuresTotal", label: "Control Failures", value: metrics.controlFailuresTotal, detail: "Control commands rejected or failed." },
+    { key: "wsConnectionsTotal", label: "WS Connections", value: metrics.wsConnectionsTotal, detail: "WebSocket sessions opened." },
+    { key: "wsDisconnectsTotal", label: "WS Disconnects", value: metrics.wsDisconnectsTotal, detail: "WebSocket sessions closed." },
+    { key: "gatekeeperRejectsTotal", label: "Gatekeeper Rejects", value: metrics.gatekeeperRejectsTotal, detail: "Worker proposals rejected by policy." },
+    { key: "driftEventsTotal", label: "Drift Events", value: metrics.driftEventsTotal, detail: "Reconciliation drift detections." },
+    { key: "openAlerts", label: "Open Alerts", value: metrics.openAlerts, detail: "Alerts still unresolved." },
+    { key: "openIncidents", label: "Open Incidents", value: metrics.openIncidents, detail: "Incidents still unresolved." },
+    { key: "reconcileRunsTotal", label: "Reconcile Runs", value: metrics.reconcileRunsTotal, detail: "Continuous reconciliation cycles." }
+  ] as const;
+
   return (
     <section className="panel-content" aria-label="Ops metrics panel">
       <div className="panel-title">Ops Metrics</div>
-      <div className="logs-list">
-        <article className="log-row"><span>Control req</span><span>{metrics.controlRequestsTotal}</span><span>-</span><span className="log-message">Total control requests</span></article>
-        <article className="log-row"><span>Control fail</span><span>{metrics.controlFailuresTotal}</span><span>-</span><span className="log-message">Control failures</span></article>
-        <article className="log-row"><span>WS conn</span><span>{metrics.wsConnectionsTotal}</span><span>-</span><span className="log-message">WebSocket connections</span></article>
-        <article className="log-row"><span>WS disc</span><span>{metrics.wsDisconnectsTotal}</span><span>-</span><span className="log-message">WebSocket disconnects</span></article>
-        <article className="log-row"><span>Gate reject</span><span>{metrics.gatekeeperRejectsTotal}</span><span>-</span><span className="log-message">Gatekeeper rejects</span></article>
-        <article className="log-row"><span>Drift events</span><span>{metrics.driftEventsTotal}</span><span>-</span><span className="log-message">Drift detections</span></article>
-        <article className="log-row"><span>Heartbeat gap</span><span>{metrics.heartbeatGapEventsTotal}</span><span>{metrics.lastHeartbeatGapMs}ms</span><span className="log-message">Gap detections</span></article>
-        <article className="log-row"><span>Open alerts</span><span>{metrics.openAlerts}</span><span>-</span><span className="log-message">Active alerts</span></article>
-        <article className="log-row"><span>Open incidents</span><span>{metrics.openIncidents}</span><span>-</span><span className="log-message">Active incidents</span></article>
-        <article className="log-row"><span>Recon runs</span><span>{metrics.reconcileRunsTotal}</span><span>-</span><span className="log-message">Continuous reconciliation runs</span></article>
+      <div className="ops-grid">
+        {items.map((item) => (
+          <article className="ops-card" key={item.key}>
+            <div className="ops-label">{item.label}</div>
+            <div className="ops-value">{item.value}</div>
+            <div className="ops-detail">{item.detail}</div>
+          </article>
+        ))}
+        <article className="ops-card ops-wide">
+          <div className="ops-label">Heartbeat Gap</div>
+          <div className="ops-inline">
+            <span className="ops-value">{metrics.heartbeatGapEventsTotal}</span>
+            <span className="ops-detail">events</span>
+            <span className="ops-value">{metrics.lastHeartbeatGapMs}ms</span>
+            <span className="ops-detail">latest gap</span>
+          </div>
+        </article>
       </div>
     </section>
   );

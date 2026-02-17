@@ -9,6 +9,9 @@ import { buildValidSpotProposal, fetchSpotMarketInputs } from "./proposal-helper
 import { reconcileOrderLifecycle } from "./reconciliation.js";
 import { parseJsonPayload, validateContextPayload } from "./cli-validation.js";
 import type { RiskContext } from "@tourab/shared";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
+
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 type Mode = "propose" | "execute";
 

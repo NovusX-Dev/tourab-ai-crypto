@@ -11,9 +11,12 @@ import type {
   ApprovalRequest,
   ApiErrorPayload,
   BotEvent,
+  BotMode,
   ControlAction,
   ControlActionResponse,
+  DemoQueuedIntent,
   DashboardSnapshot,
+  ExecutionIntent,
   ExchangeMode,
   ExchangeStatus,
   EventQuery,
@@ -22,6 +25,7 @@ import type {
   OpsMetrics,
   PortfolioStatus,
   ReconciliationStatus,
+  TradeProposal,
   UserRole,
   WsMessage
 } from "@tourab/shared";
@@ -36,9 +40,12 @@ import { controlRateLimiter } from "./mission-control/rate-limit.js";
 import { RuntimeLifecycleManager } from "./mission-control/runtime-lifecycle-manager.js";
 import { SqliteEventStore } from "./mission-control/sqlite-event-store.js";
 import { SqliteOpsStore } from "./mission-control/sqlite-ops-store.js";
-import { generateRuntimeEvent } from "./mission-control/runtime-events.js";
 import { RuntimeWorkerManager } from "./mission-control/worker-manager.js";
 import { createSignedAccessToken, verifySignedAccessToken } from "./mission-control/auth.js";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
+
+// Load local .env defaults for standalone `mission-control:server` runs.
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 const DEFAULT_PORT = Number(process.env.TOURAB_MISSION_CONTROL_PORT ?? "7071");
 const DEFAULT_EVENT_STORE_PATH = process.env.TOURAB_EVENT_STORE_PATH ?? "logs/mission-events.sqlite";
@@ -107,6 +114,19 @@ function resolveExchangeMode(raw: string | undefined): ExchangeMode {
     return "live";
   }
   return "unknown";
+}
+
+function resolveRuntimeMode(exchangeMode: ExchangeMode, executionMode: string | undefined): BotMode {
+  if (exchangeMode === "demo") {
+    return "demo";
+  }
+  if (exchangeMode === "live") {
+    return "live";
+  }
+  if (executionMode === "demo_execution_enabled") {
+    return "paper";
+  }
+  return "simulation";
 }
 
 function hasReconciliationDrift(state: ReconciliationStatus): boolean {
@@ -189,16 +209,30 @@ export async function startMissionControlServer(
   const driftCircuitAction = DEFAULT_DRIFT_CIRCUIT_ACTION;
   const driftMinConsecutive = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MIN_CONSECUTIVE, 2, 1, 20);
   const driftMaxGraceMs = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MAX_GRACE_MS, 90_000, 1_000, 86_400_000);
+  const exchangeMode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
+  const workerExecutionMode =
+    (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ??
+    (exchangeMode === "demo" ? "demo_execution_enabled" : "proposal_only");
+  const pendingDemoApprovalLimit = parseBoundedInt(process.env.TOURAB_DEMO_PENDING_APPROVAL_LIMIT, 1, 1, 50);
 
   const eventStore = await SqliteEventStore.open(eventStorePath);
   const alertStore = new JsonlAlertStore(alertStorePath);
   const opsStore = await SqliteOpsStore.open(opsStorePath);
   const bus = new EventBus();
-  const lifecycle = new RuntimeLifecycleManager();
+  const lifecycle = new RuntimeLifecycleManager(resolveRuntimeMode(exchangeMode, workerExecutionMode));
   const approvals = new ApprovalStore(approvalTtlMs);
+  const pendingDemoOrders = new Map<
+    string,
+    {
+      intent: ExecutionIntent;
+      proposal: TradeProposal;
+      symbol: string;
+      queuedAt: string;
+    }
+  >();
   let exchangeStatus: ExchangeStatus = {
     connected: false,
-    mode: resolveExchangeMode(process.env.OKX_TRADING_MODE),
+    mode: exchangeMode,
     source: "none",
     lastHealthCheckAt: new Date(0).toISOString(),
     lastError: "Exchange health not checked yet."
@@ -215,7 +249,20 @@ export async function startMissionControlServer(
     lastError: "Open orders health not checked yet."
   };
 
-  let eventCounter = 0;
+  function getDemoQueueSnapshot(): DemoQueuedIntent[] {
+    return [...pendingDemoOrders.entries()]
+      .map(([approvalId, queued]) => ({
+        approvalId,
+        proposalId: queued.proposal.proposalId,
+        symbol: queued.intent.symbol,
+        side: queued.intent.side,
+        qtyBase: queued.intent.qtyBase,
+        limitPrice: queued.intent.limitPrice,
+        queuedAt: queued.queuedAt
+      }))
+      .sort((a, b) => b.queuedAt.localeCompare(a.queuedAt));
+  }
+
   let inMemoryEvents = await eventStore.readAll();
   let inMemoryAlerts = await alertStore.readAll();
   let inMemoryIncidents = opsStore.listIncidents();
@@ -228,6 +275,9 @@ export async function startMissionControlServer(
   if (persistedState) {
     lifecycle.patchState(persistedState);
   }
+  lifecycle.patchState({
+    mode: resolveRuntimeMode(exchangeMode, workerExecutionMode)
+  });
   const persistedRecon = opsStore.loadReconciliation();
   if (persistedRecon) {
     lifecycle.updateReconciliation(persistedRecon);
@@ -257,7 +307,37 @@ export async function startMissionControlServer(
         const updated = lifecycle.patchState(next);
         opsStore.saveBotState(updated);
       },
-      getState: () => lifecycle.getSnapshotState()
+      getState: () => lifecycle.getSnapshotState(),
+      queueDemoExecutionApproval: async ({ symbol, proposal, intent }) => {
+        if (workerExecutionMode !== "demo_execution_enabled") {
+          return { queued: false, reason: "Execution mode is proposal_only." };
+        }
+        const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
+        if (mode !== "demo") {
+          return { queued: false, reason: "OKX_TRADING_MODE must be demo." };
+        }
+        if (pendingDemoOrders.size >= pendingDemoApprovalLimit) {
+          return { queued: false, reason: `Pending demo approval limit (${pendingDemoApprovalLimit}) reached.` };
+        }
+        const request = approvals.create({
+          action: "demo_order_submit",
+          requestedBy: "worker",
+          reason: `Auto-cycle execution request for ${intent.symbol} proposal=${proposal.proposalId}`
+        });
+        pendingDemoOrders.set(request.id, {
+          intent,
+          proposal,
+          symbol,
+          queuedAt: new Date().toISOString()
+        });
+        await appendAudit(
+          "Demo execution approval queued",
+          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol}`,
+          symbol,
+          "ProposalApproved"
+        );
+        return { queued: true, approvalId: request.id };
+      }
     },
     {
       symbolUniverse: (process.env.TOURAB_WORKER_SYMBOLS ?? "BTC-USDT,ETH-USDT,SOL-USDT")
@@ -271,7 +351,8 @@ export async function startMissionControlServer(
       entryOffsetBps: Number(process.env.TOURAB_WORKER_ENTRY_OFFSET_BPS ?? "20"),
       stopDistanceBps: Number(process.env.TOURAB_WORKER_STOP_DISTANCE_BPS ?? "150"),
       retryMaxAttempts: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_MAX_ATTEMPTS, 3, 1, 10),
-      retryBudgetPerHour: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_BUDGET_PER_HOUR, 30, 1, 1000)
+      retryBudgetPerHour: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_BUDGET_PER_HOUR, 30, 1, 1000),
+      executionMode: workerExecutionMode
     }
   );
 
@@ -363,6 +444,35 @@ export async function startMissionControlServer(
   }
   await refreshExchangeStatus();
 
+  async function cancelAllOpenDemoOrders(actor: string, correlationId?: string): Promise<number> {
+    const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
+    if (mode !== "demo") {
+      return 0;
+    }
+    const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
+    const pending = await adapter.getPendingOrders();
+    let canceled = 0;
+    for (const item of pending) {
+      if (item.state !== "live" && item.state !== "partially_filled") {
+        continue;
+      }
+      await adapter.cancelOrder({ instId: item.instId, ordId: item.ordId });
+      canceled += 1;
+      await publish(
+        createEvent(
+          "OrderCancelled",
+          item.instId,
+          `Demo pending order cancelled ordId=${item.ordId} clOrdId=${item.clOrdId} actor=${actor}`,
+          "info",
+          ["demo_execution", "okx_demo", "cancel_all"],
+          correlationId
+        )
+      );
+    }
+    await refreshExchangeStatus();
+    return canceled;
+  }
+
   async function enforceDriftCircuitBreaker(actor = "system"): Promise<void> {
     const reconciliation = lifecycle.reconciliation;
     if (!hasReconciliationDrift(reconciliation)) {
@@ -437,6 +547,7 @@ export async function startMissionControlServer(
   async function sweepExpiredApprovals(): Promise<void> {
     const expired = approvals.expirePending();
     for (const item of expired) {
+      pendingDemoOrders.delete(item.id);
       const symbol = lifecycle.getSnapshotState().activeSymbol;
       await appendAudit(
         "Approval expired",
@@ -542,9 +653,10 @@ export async function startMissionControlServer(
 
   lifecycle.startTick((message) => {
     const state = lifecycle.getSnapshotState();
-    const event = generateRuntimeEvent(eventCounter, state.activeSymbol);
-    eventCounter += 1;
-    void publish({ ...event, message });
+    if (message === "Heartbeat checkpoint") {
+      return;
+    }
+    void publish(createEvent("System", state.activeSymbol, message, "info", ["worker_cycle"]));
   });
 
   const reconcileIntervalMs = parseBoundedInt(process.env.TOURAB_RECONCILE_INTERVAL_MS, 20_000, 5_000, 120_000);
@@ -668,6 +780,7 @@ export async function startMissionControlServer(
       exchange: exchangeStatus,
       portfolio: portfolioStatus,
       openOrders: openOrdersStatus,
+      demoQueue: getDemoQueueSnapshot(),
       events: inMemoryEvents.slice(0, 200)
     };
     res.json(snapshot);
@@ -1015,6 +1128,9 @@ export async function startMissionControlServer(
       });
       return;
     }
+    if (request.action === "demo_order_submit") {
+      pendingDemoOrders.delete(request.id);
+    }
 
     await publish(
       createEvent(
@@ -1033,6 +1149,137 @@ export async function startMissionControlServer(
       "System"
     );
     res.json(request);
+  });
+
+  app.post("/demo-order-submit", controlRateLimiter, async (req, res) => {
+    await sweepExpiredApprovals();
+    const typed = req as unknown as AuthenticatedRequest;
+    metrics.controlRequestsTotal += 1;
+
+    if (!canRoleExecuteAction(typed.role as UserRole, "demo_order_submit")) {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      metrics.controlFailuresTotal += 1;
+      return;
+    }
+
+    const approvalId = req.header("x-approval-id") ?? undefined;
+    const approvalCheck = approvals.isActionApproved("demo_order_submit", approvalId);
+    if (!approvalCheck.ok) {
+      if (approvalCheck.request?.status === "expired") {
+        writeError(res, 409, {
+          ok: false,
+          code: "APPROVAL_EXPIRED",
+          message: "Approval expired for action demo_order_submit",
+          correlationId: typed.correlationId,
+          details: { approvalId: approvalCheck.request.id }
+        });
+        metrics.controlFailuresTotal += 1;
+        return;
+      }
+      if (approvalCheck.request?.status === "rejected") {
+        writeError(res, 409, {
+          ok: false,
+          code: "APPROVAL_REJECTED",
+          message: "Approval rejected for action demo_order_submit",
+          correlationId: typed.correlationId,
+          details: { approvalId: approvalCheck.request.id }
+        });
+        metrics.controlFailuresTotal += 1;
+        return;
+      }
+      writeError(res, 409, {
+        ok: false,
+        code: "APPROVAL_REQUIRED",
+        message: "Approval required for action demo_order_submit",
+        correlationId: typed.correlationId
+      });
+      metrics.controlFailuresTotal += 1;
+      return;
+    }
+
+    const approvedId = approvalCheck.request?.id;
+    const queued = approvedId ? pendingDemoOrders.get(approvedId) : undefined;
+    if (!approvedId || !queued) {
+      writeError(res, 409, {
+        ok: false,
+        code: "DEMO_ORDER_NOT_QUEUED",
+        message: "No queued demo execution intent found for this approval id.",
+        correlationId: typed.correlationId,
+        details: approvedId ? { approvalId: approvedId } : undefined
+      });
+      metrics.controlFailuresTotal += 1;
+      return;
+    }
+
+    try {
+      const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
+      if (mode !== "demo") {
+        throw new Error("OKX_TRADING_MODE must be demo for demo order submit.");
+      }
+      const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
+      const order = await adapter.placeSpotLimitOrder(queued.intent);
+      pendingDemoOrders.delete(approvedId);
+      await publish(
+        createEvent(
+          "OrderSubmitted",
+          queued.symbol,
+          `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${queued.proposal.proposalId}`,
+          "info",
+          ["demo_execution", "okx_demo"],
+          typed.correlationId
+        )
+      );
+      await appendAudit(
+        "Demo order submitted",
+        `Approval ${approvedId} executed by ${typed.userId}; ordId=${order.ordId} proposal=${queued.proposal.proposalId}`,
+        queued.symbol,
+        "OrderSubmitted"
+      );
+      await refreshExchangeStatus();
+      res.json({
+        ok: true,
+        code: "OK",
+        message: `Demo order submitted (${order.ordId})`,
+        state: lifecycle.getSnapshotState().state,
+        details: {
+          approvalId: approvedId,
+          ordId: order.ordId
+        }
+      } satisfies ControlActionResponse);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      await upsertAlert({
+        code: "DEMO_ORDER_SUBMIT_FAILED",
+        severity: "error",
+        source: "exchange",
+        title: "Demo order submit failed",
+        detail: message,
+        symbol: queued.symbol
+      });
+      await publish(
+        createEvent(
+          "Error",
+          queued.symbol,
+          `Demo order submit failed approval=${approvedId} error=${message}`,
+          "error",
+          ["demo_execution", "okx_error"],
+          typed.correlationId
+        )
+      );
+      writeError(res, 502, {
+        ok: false,
+        code: "DEMO_ORDER_SUBMIT_FAILED",
+        message,
+        correlationId: typed.correlationId,
+        details: { approvalId: approvedId }
+      });
+      metrics.controlFailuresTotal += 1;
+    }
   });
 
   app.post(["/start", "/pause", "/resume", "/stop", "/cancel-all", "/emergency-stop"], controlRateLimiter, async (req, res) => {
@@ -1180,6 +1427,7 @@ export async function startMissionControlServer(
     }
 
     const result = lifecycle.applyAction(action);
+    let canceledOrders = 0;
     if (result.ok) {
       opsStore.saveBotState(result.state);
     }
@@ -1190,6 +1438,28 @@ export async function startMissionControlServer(
         worker.pause();
       } else if (action === "stop" || action === "emergency_stop") {
         worker.stop();
+      }
+    }
+    if (result.ok && action === "cancel_all") {
+      try {
+        canceledOrders = await cancelAllOpenDemoOrders(typed.userId, typed.correlationId);
+        await appendAudit(
+          "Cancel-all executed",
+          `Cancel-all executed by ${typed.userId}; canceledOrders=${canceledOrders}`,
+          lifecycle.getSnapshotState().activeSymbol,
+          "OrderCancelled"
+        );
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        await upsertAlert({
+          code: "CANCEL_ALL_FAILED",
+          severity: "error",
+          source: "exchange",
+          title: "Cancel-all failed",
+          detail: message,
+          symbol: lifecycle.getSnapshotState().activeSymbol
+        });
+        metrics.controlFailuresTotal += 1;
       }
     }
     const controlEvents = lifecycle.createControlEvents(action, result.ok, typed.correlationId);
@@ -1219,11 +1489,13 @@ export async function startMissionControlServer(
       code: result.code,
       message: result.message,
       state: result.state.state,
-      details: approvalId
-        ? {
-            approvalId
-          }
-        : undefined
+      details:
+        approvalId || canceledOrders > 0
+          ? {
+              ...(approvalId ? { approvalId } : {}),
+              ...(canceledOrders > 0 ? { canceledOrders } : {})
+            }
+          : undefined
     };
     res.status(result.ok ? 200 : 409).json(payload);
   });
@@ -1262,6 +1534,7 @@ export async function startMissionControlServer(
       exchange: exchangeStatus,
       portfolio: portfolioStatus,
       openOrders: openOrdersStatus,
+      demoQueue: getDemoQueueSnapshot(),
       events: inMemoryEvents.slice(0, replay)
     };
 

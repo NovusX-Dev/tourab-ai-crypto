@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import type { ApprovalRequest, ControlAction } from "../types";
+import type { ApprovalRequest, ControlAction, DemoQueuedIntent } from "../types";
 
 interface ApprovalsPanelProps {
   items: ApprovalRequest[];
+  demoQueue: DemoQueuedIntent[];
   currentUserId: string;
   onRefresh: () => void;
   onApprove: (id: string) => void;
@@ -10,7 +11,15 @@ interface ApprovalsPanelProps {
   onExecute: (action: ControlAction, approvalId: string) => void;
 }
 
-export function ApprovalsPanel({ items, currentUserId, onRefresh, onApprove, onReject, onExecute }: ApprovalsPanelProps) {
+export function ApprovalsPanel({
+  items,
+  demoQueue,
+  currentUserId,
+  onRefresh,
+  onApprove,
+  onReject,
+  onExecute
+}: ApprovalsPanelProps) {
   const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
@@ -40,6 +49,21 @@ export function ApprovalsPanel({ items, currentUserId, onRefresh, onApprove, onR
       </div>
 
       <div className="approvals-list">
+        <article className="approval-card queue-panel">
+          <div className="approval-head">
+            <strong>Queued Demo Intents</strong>
+            <span className={`tag ${demoQueue.length > 0 ? "sev-info" : "sev-warn"}`}>{demoQueue.length}</span>
+          </div>
+          {demoQueue.length === 0 ? <div className="approval-meta">No queued demo intents.</div> : null}
+          {demoQueue.map((item) => (
+            <div className="approval-meta queue-row" key={item.approvalId}>
+              <strong>{item.symbol}</strong> {item.side} {item.qtyBase} @ {item.limitPrice}
+              <span className="queue-meta">proposal={item.proposalId}</span>
+              <span className="queue-meta">approval={item.approvalId}</span>
+            </div>
+          ))}
+        </article>
+
         {items.length === 0 ? <div className="hint">No approvals</div> : null}
         {items.map((item) => (
           <article key={item.id} className="approval-card">

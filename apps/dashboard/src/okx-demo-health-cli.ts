@@ -1,4 +1,7 @@
 import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
+
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 interface CliArgs {
   ccy?: string;

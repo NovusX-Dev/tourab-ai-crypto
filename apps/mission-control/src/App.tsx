@@ -342,6 +342,7 @@ export default function App() {
       return (
         <ApprovalsPanel
           items={pendingApprovals}
+          demoQueue={dashboard.demoQueue}
           currentUserId={currentUserId}
           onRefresh={() => void refreshApprovals()}
           onApprove={(id) => void approveApproval(id)}
@@ -390,6 +391,7 @@ export default function App() {
     dashboard.metrics,
     dashboard.portfolio,
     dashboard.openOrders,
+    dashboard.demoQueue,
     pendingApprovals,
     selectedAuditId,
     currentUserId,
@@ -493,6 +495,7 @@ export default function App() {
             ETH Operator
           </button>
         </div>
+        <DemoReadinessCard items={readinessItems} compact />
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </aside>
 
@@ -539,8 +542,6 @@ export default function App() {
           <ControlDeck role={dashboard.role} state={dashboard.state.state} onAction={handleAction} />
           <ReconciliationCard status={dashboard.reconciliation} role={dashboard.role} onSetStatus={(input) => void setReconciliationStatus(input)} />
         </section>
-
-        <DemoReadinessCard items={readinessItems} />
 
         <EventStream
           events={dashboard.filteredEvents}

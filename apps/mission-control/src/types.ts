@@ -10,6 +10,7 @@ export type {
   ControlAction,
   ControlActionResponse,
   DashboardSnapshot,
+  DemoQueuedIntent,
   ExchangeStatus,
   EventSeverity,
   EventType,

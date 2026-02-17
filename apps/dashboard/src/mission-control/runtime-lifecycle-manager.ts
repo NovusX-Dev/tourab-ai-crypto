@@ -1,5 +1,6 @@
 import type {
   AuditItem,
+  BotMode,
   BotStateSnapshot,
   ControlAction,
   LogEntry,
@@ -16,6 +17,11 @@ function randomItem<T>(items: T[]): T {
 }
 
 export class RuntimeLifecycleManager {
+  constructor(mode: BotMode = "simulation") {
+    this.state.mode = mode;
+    this.audit[0].detail = `Automation run started in ${mode} mode`;
+  }
+
   private state: BotStateSnapshot = {
     state: "stopped",
     cycleCount: 0,
@@ -63,8 +69,8 @@ export class RuntimeLifecycleManager {
       detail: "Automation run started in simulation mode",
       symbol: "BTC-USDT",
       relatedEventType: "ProposalCreated"
-    }
-  ];
+      }
+    ];
 
   readonly logs: LogEntry[] = [
     {

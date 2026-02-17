@@ -20,7 +20,8 @@ const ACTION_PATH: Record<ControlAction, string> = {
   resume: "/resume",
   stop: "/stop",
   cancel_all: "/cancel-all",
-  emergency_stop: "/emergency-stop"
+  emergency_stop: "/emergency-stop",
+  demo_order_submit: "/demo-order-submit"
 };
 
 export class LiveBotApiClient implements BotApiClient {

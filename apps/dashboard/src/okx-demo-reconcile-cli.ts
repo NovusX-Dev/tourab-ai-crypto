@@ -4,6 +4,9 @@ import { dirname } from "node:path";
 import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter, OkxFillRecord, OkxPendingOrder } from "@tourab/okx-demo-adapter";
 import { readOrderLedger } from "./lifecycle-store.js";
 import { reconcileOrderLifecycle } from "./reconciliation.js";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
+
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 interface CliArgs {
   symbol?: string;

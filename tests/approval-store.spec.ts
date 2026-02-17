@@ -83,4 +83,9 @@ describe("ApprovalStore", () => {
     expect(approved.some((item) => item.id === a.id)).toBe(true);
     expect(rejected.some((item) => item.id === b.id)).toBe(true);
   });
+
+  it("requires approval for demo order submit", () => {
+    const store = new ApprovalStore();
+    expect(store.isApprovalRequired("demo_order_submit")).toBe(true);
+  });
 });

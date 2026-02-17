@@ -1,5 +1,5 @@
 export type BotLifecycleState = "running" | "paused" | "stopped";
-export type BotMode = "simulation" | "live" | "backtest" | "paper";
+export type BotMode = "simulation" | "demo" | "live" | "backtest" | "paper";
 export type UserRole = "read_only" | "operator" | "admin";
 
 export type EventType =
@@ -157,7 +157,14 @@ export interface OpsMetrics {
   reconcileRunsTotal: number;
 }
 
-export type ControlAction = "start" | "pause" | "resume" | "stop" | "cancel_all" | "emergency_stop";
+export type ControlAction =
+  | "start"
+  | "pause"
+  | "resume"
+  | "stop"
+  | "cancel_all"
+  | "emergency_stop"
+  | "demo_order_submit";
 
 export type ExchangeMode = "demo" | "live" | "unknown";
 export type ExchangeSource = "okx_demo" | "none";
@@ -203,6 +210,16 @@ export interface OpenOrdersStatus {
   lastError?: string;
 }
 
+export interface DemoQueuedIntent {
+  approvalId: string;
+  proposalId: string;
+  symbol: string;
+  side: "buy" | "sell";
+  qtyBase: number;
+  limitPrice: number;
+  queuedAt: string;
+}
+
 export interface DashboardSnapshot {
   state: BotStateSnapshot;
   risk: RiskStatus;
@@ -215,6 +232,7 @@ export interface DashboardSnapshot {
   exchange: ExchangeStatus;
   portfolio: PortfolioStatus;
   openOrders: OpenOrdersStatus;
+  demoQueue: DemoQueuedIntent[];
   events: BotEvent[];
 }
 

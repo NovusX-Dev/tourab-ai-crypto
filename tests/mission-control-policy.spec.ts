@@ -13,5 +13,7 @@ describe("mission-control policy", () => {
     expect(isActionEnabled("running", "start")).toBe(false);
     expect(isActionEnabled("paused", "resume")).toBe(true);
     expect(isActionEnabled("stopped", "cancel_all")).toBe(false);
+    expect(isActionEnabled("running", "demo_order_submit")).toBe(true);
+    expect(isActionEnabled("stopped", "demo_order_submit")).toBe(false);
   });
 });

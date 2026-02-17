@@ -6,6 +6,7 @@ import { executeProposalWithGatekeeper } from "./execution-service.js";
 import { HumanApprovalError, parseBooleanEnv } from "./human-approval.js";
 import { appendOrderLedgerRecord } from "./lifecycle-store.js";
 import { fetchSpotMarketInputs } from "./proposal-helper.js";
+import { loadEnvFromProjectRoot } from "./env-loader.js";
 import {
   CliStructuredError,
   parseJsonPayload,
@@ -13,6 +14,8 @@ import {
   validateProposalPayload
 } from "./cli-validation.js";
 import { ExecutionInvariantError } from "./execution-service.js";
+
+loadEnvFromProjectRoot(process.cwd(), { override: true });
 
 interface CliArgs {
   proposalFile?: string;

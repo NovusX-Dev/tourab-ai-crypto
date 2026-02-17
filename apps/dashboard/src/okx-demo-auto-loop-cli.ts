@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { evaluateTradeProposal } from "@tourab/risk-gatekeeper";
 import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
 import { executeProposalWithGatekeeper } from "./execution-service.js";
+import { ExecutionInvariantError } from "./execution-service.js";
 import { HumanApprovalError, parseBooleanEnv } from "./human-approval.js";
 import { appendOrderLedgerRecord, readOrderLedger } from "./lifecycle-store.js";
 import { buildValidSpotProposal, fetchSpotMarketInputs } from "./proposal-helper.js";
@@ -199,9 +200,26 @@ async function runCycle(
 
   const humanApprovalEnabled = parseBooleanEnv(process.env.TOURAB_HUMAN_APPROVAL_ENABLED, true);
   const result = await executeProposalWithGatekeeper(built.proposal, context, adapter, {
+    async write(event) {
+      writeEvent({
+        ts: new Date().toISOString(),
+        cycle,
+        mode,
+        symbol,
+        proposalId: built.proposal.proposalId,
+        status: "AUDIT_EVENT",
+        details: event as unknown as Record<string, unknown>
+      });
+    }
+  }, {
     enabled: humanApprovalEnabled,
     requiredToken: process.env.TOURAB_HUMAN_APPROVAL_TOKEN,
-    providedToken: args.approvalToken
+    providedToken: args.approvalToken,
+    approvedProposalId: built.proposal.proposalId,
+    expiresAtIso: process.env.TOURAB_HUMAN_APPROVAL_EXPIRES_AT
+  }, {
+    actor: "auto-loop",
+    executionMode: (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ?? "proposal_only"
   });
 
   if (result.status === "SUBMITTED") {
@@ -267,6 +285,10 @@ async function main(): Promise<void> {
     }
     if (error instanceof HumanApprovalError) {
       writeError(error.code, error.message);
+      process.exit(1);
+    }
+    if (error instanceof ExecutionInvariantError) {
+      writeError(error.code, error.message, error.details as Record<string, unknown> | undefined);
       process.exit(1);
     }
     const message = error instanceof Error ? error.message : String(error);

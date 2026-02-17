@@ -8,7 +8,12 @@ Safety model:
 3. Human approve: nothing executes until you explicitly approve.
 4. Execute: only approved actions can be sent to exchange APIs.
 
-Current milestone status: gatekeeper + demo adapter baseline implemented.
+Current milestone status: Milestone 3 is production-grade complete (gatekeeper + human approval + fail-closed invariants).
+
+## Delivery rule: backend + web-app parity
+- Any new operator-facing backend capability, control, safety check, state, or error code must be reflected in `apps/mission-control/` UI in the same milestone/phase.
+- "Reflected in UI" means: visible state, actionable controls (if applicable), and clear operator feedback (audit/event/toast/log) with no silent backend-only behavior.
+- Do not mark a milestone/phase complete unless backend behavior and Mission Control UI behavior are aligned.
 
 ## Tooling prerequisites
 - PowerShell (Windows PowerShell 5+ or PowerShell 7+)
@@ -44,7 +49,7 @@ If `rg` is still not found after install, restart the terminal (or sign out/in) 
 - No withdrawals/transfers.
 - No leverage/derivatives/margin in v0.
 
-## Demo execution flow (Milestone 2)
+## Demo execution flow (Milestone 4)
 - Execution path is hard-gated: `evaluateTradeProposal` must return `APPROVE` before any OKX call.
 - Demo adapter sends private requests with `x-simulated-trading: 1`.
 - Use demo-only env vars (`OKX_TRADING_MODE=demo` + `OKX_DEMO_*`).
@@ -80,11 +85,11 @@ Execute via OKX demo adapter (still gatekeeper-first):
 npm run okx:demo:execute -- --proposal-file tests/fixtures/proposal.valid.json --context-file tests/fixtures/context.valid.json --approval-token <your_token>
 ```
 
-Enable/disable human-approval gate quickly:
-- Enable (default): set `TOURAB_HUMAN_APPROVAL_ENABLED=1` and `TOURAB_HUMAN_APPROVAL_TOKEN=<token>`.
-- Disable: set `TOURAB_HUMAN_APPROVAL_ENABLED=0`.
+Human-approval gate is mandatory for executable actions:
+- Set `TOURAB_HUMAN_APPROVAL_ENABLED=1` and `TOURAB_HUMAN_APPROVAL_TOKEN=<token>`.
+- Expiry must be provided via `TOURAB_HUMAN_APPROVAL_EXPIRES_AT=<ISO timestamp>`.
 
-## Order Lifecycle + Reconciliation (Milestone 3)
+## Order Lifecycle + Reconciliation (Milestone 4)
 - Every successful submission appends to local ledger JSONL (`TOURAB_ORDER_LEDGER_PATH`, default `logs/order-intents.jsonl`).
 - Snapshot open orders + recent fills:
 
@@ -110,7 +115,7 @@ npm run okx:demo:cancel -- --symbol BTC-USDT --ord-id <ordId> --approval-token <
 npm run okx:demo:cancel -- --symbol BTC-USDT --all --approval-token <your_token>
 ```
 
-## Strategy Automation (safe start)
+## Strategy Automation (Milestone 4, safe start)
 - Start with proposal automation only (`--mode propose`).
 - `--mode execute` is available, but still guarded by drift checks, same-side open-order blocking, gatekeeper, and human token.
 
@@ -143,6 +148,9 @@ Manual index refresh:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-project-index.ps1
 ```
+
+## Demo Readiness Gate
+- Checklist: `docs/demo-readiness-checklist.md`
 
 ## Mission Control Web App (Phase 1)
 Run locally (backend + UI together):

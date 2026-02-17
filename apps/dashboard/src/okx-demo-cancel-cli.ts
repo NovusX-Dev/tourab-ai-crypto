@@ -48,7 +48,8 @@ async function run(): Promise<void> {
   enforceHumanApproval({
     enabled: humanApprovalEnabled,
     requiredToken: process.env.TOURAB_HUMAN_APPROVAL_TOKEN,
-    providedToken: args.approvalToken
+    providedToken: args.approvalToken,
+    expiresAtIso: process.env.TOURAB_HUMAN_APPROVAL_EXPIRES_AT
   });
 
   const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));

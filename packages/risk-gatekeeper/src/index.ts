@@ -1,6 +1,7 @@
 import {
   DEFAULT_RISK_LIMITS,
   ExecutionIntent,
+  RiskPolicyConfig,
   RiskContext,
   RiskDecision,
   RiskLimits,
@@ -29,6 +30,18 @@ function effectiveLimits(context: RiskContext): RiskLimits {
   };
 }
 
+function hasPolicyConfig(policy: RiskContext["policy"]): policy is RiskPolicyConfig {
+  if (!policy) {
+    return false;
+  }
+  return (
+    Array.isArray(policy.allowedSymbols) &&
+    policy.allowedSymbols.length > 0 &&
+    Number.isFinite(policy.maxNotionalUsd) &&
+    policy.maxNotionalUsd > 0
+  );
+}
+
 function projectOpenExposure(proposal: TradeProposal, currentExposure: number): number {
   const notional = proposal.qtyBase * proposal.entryPrice;
   if (proposal.side === "buy") {
@@ -53,9 +66,43 @@ function violation(code: string, message: string, details?: RiskViolation["detai
 }
 
 export function evaluateTradeProposal(proposal: TradeProposal, context: RiskContext): RiskDecision {
+  /**
+   * Milestone 3 invariant (deterministic policy engine):
+   * For identical `proposal` + `context`, this function must always return the same decision payload.
+   * No random/time/env/global mutable state may influence output.
+   */
   const violations: RiskViolation[] = [];
   const limits = effectiveLimits(context);
   const leverage = proposal.leverage ?? 1;
+
+  if (proposal.symbol !== context.instrument.symbol) {
+    violations.push(
+      violation("INSTRUMENT_SYMBOL_MISMATCH", "Proposal symbol must match instrument symbol context.", {
+        proposalSymbol: proposal.symbol,
+        instrumentSymbol: context.instrument.symbol
+      })
+    );
+  }
+
+  if (hasPolicyConfig(context.policy)) {
+    if (!context.policy.allowedSymbols.includes(proposal.symbol)) {
+      violations.push(
+        violation("INSTRUMENT_NOT_ALLOWED", "Proposal symbol is not in allowed symbol policy.", {
+          symbol: proposal.symbol
+        })
+      );
+    }
+
+    const notional = proposal.qtyBase * proposal.entryPrice;
+    if (notional > context.policy.maxNotionalUsd) {
+      violations.push(
+        violation("MAX_NOTIONAL_EXCEEDED", "Order notional exceeds configured maxNotionalUsd.", {
+          notionalUsd: notional,
+          maxNotionalUsd: context.policy.maxNotionalUsd
+        })
+      );
+    }
+  }
 
   if (leverage > 1) {
     violations.push(violation("LEVERAGE_DISABLED", "Leverage is disabled in v0.", { leverage }));

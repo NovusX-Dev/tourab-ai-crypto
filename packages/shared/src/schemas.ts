@@ -46,6 +46,13 @@ export const RiskContextSchema: z.ZodType<RiskContext> = z.object({
       maxOpenExposureUsd: positiveFiniteNumber
     })
     .partial()
+    .optional(),
+  policy: z
+    .object({
+      allowedSymbols: z.array(z.string().min(1)).min(1),
+      maxNotionalUsd: positiveFiniteNumber,
+      executionMode: z.enum(["proposal_only", "demo_execution_enabled"])
+    })
     .optional()
 });
 

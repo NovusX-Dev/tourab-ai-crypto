@@ -443,6 +443,14 @@ export async function startMissionControlServer(
     for (const event of controlEvents) {
       await publish(event);
     }
+    if (!result.ok) {
+      appendAudit(
+        "Invalid state transition",
+        `Action ${action} rejected in state ${result.state.state}; actor=${typed.userId}`,
+        lifecycle.getSnapshotState().activeSymbol,
+        "ControlCommandRejected"
+      );
+    }
 
     const payload: ControlActionResponse = {
       ok: result.ok,

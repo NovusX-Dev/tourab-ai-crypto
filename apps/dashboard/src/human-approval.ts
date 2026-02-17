@@ -2,14 +2,22 @@ export interface HumanApprovalOptions {
   enabled: boolean;
   requiredToken?: string;
   providedToken?: string;
+  approvedProposalId?: string;
+  proposalId?: string;
+  expiresAtIso?: string;
+  nowEpochMs?: number;
 }
 
 export class HumanApprovalError extends Error {
   constructor(
     public readonly code:
+      | "HUMAN_APPROVAL_REQUIRED"
       | "HUMAN_APPROVAL_TOKEN_NOT_CONFIGURED"
       | "HUMAN_APPROVAL_TOKEN_REQUIRED"
-      | "HUMAN_APPROVAL_TOKEN_INVALID",
+      | "HUMAN_APPROVAL_TOKEN_INVALID"
+      | "HUMAN_APPROVAL_EXPIRES_AT_REQUIRED"
+      | "HUMAN_APPROVAL_EXPIRED"
+      | "HUMAN_APPROVAL_FOR_DIFFERENT_PROPOSAL",
     message: string
   ) {
     super(message);
@@ -19,7 +27,10 @@ export class HumanApprovalError extends Error {
 
 export function enforceHumanApproval(options?: HumanApprovalOptions): void {
   if (!options?.enabled) {
-    return;
+    throw new HumanApprovalError(
+      "HUMAN_APPROVAL_REQUIRED",
+      "Human approval is required and cannot be disabled for executable actions."
+    );
   }
   if (!options.requiredToken) {
     throw new HumanApprovalError(
@@ -37,6 +48,32 @@ export function enforceHumanApproval(options?: HumanApprovalOptions): void {
     throw new HumanApprovalError(
       "HUMAN_APPROVAL_TOKEN_INVALID",
       "Human approval token is invalid."
+    );
+  }
+  if (!options.expiresAtIso) {
+    throw new HumanApprovalError(
+      "HUMAN_APPROVAL_EXPIRES_AT_REQUIRED",
+      "Human approval expiresAt timestamp is required."
+    );
+  }
+  const expiresAtEpoch = Date.parse(options.expiresAtIso);
+  if (!Number.isFinite(expiresAtEpoch)) {
+    throw new HumanApprovalError(
+      "HUMAN_APPROVAL_EXPIRES_AT_REQUIRED",
+      "Human approval expiresAt timestamp is invalid."
+    );
+  }
+  const nowEpoch = options.nowEpochMs ?? Date.now();
+  if (nowEpoch > expiresAtEpoch) {
+    throw new HumanApprovalError(
+      "HUMAN_APPROVAL_EXPIRED",
+      "Human approval has expired."
+    );
+  }
+  if (options.proposalId && options.approvedProposalId && options.proposalId !== options.approvedProposalId) {
+    throw new HumanApprovalError(
+      "HUMAN_APPROVAL_FOR_DIFFERENT_PROPOSAL",
+      "Human approval was granted for a different proposal."
     );
   }
 }

@@ -42,12 +42,19 @@ export interface RiskLimits {
   maxOpenExposureUsd: number;
 }
 
+export interface RiskPolicyConfig {
+  allowedSymbols: string[];
+  maxNotionalUsd: number;
+  executionMode: "proposal_only" | "demo_execution_enabled";
+}
+
 export interface RiskContext {
   account: AccountState;
   instrument: OrderConstraints;
   market: MarketState;
   position?: PositionState;
   limits?: Partial<RiskLimits>;
+  policy?: RiskPolicyConfig;
 }
 
 export interface RiskViolation {

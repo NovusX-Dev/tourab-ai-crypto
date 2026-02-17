@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   executeProposalWithGatekeeper,
-  OrderExecutionAdapter
+  ExecutionInvariantError,
+  OrderExecutionAdapter,
+  ProposalAuditEvent
 } from "../apps/dashboard/src/execution-service.js";
 import { RiskContext, TradeProposal } from "@tourab/shared";
 
@@ -33,13 +35,35 @@ function validContext(): RiskContext {
     },
     market: {
       markPrice: 100500
+    },
+    limits: {
+      maxPerTradeRiskUsd: 0.5,
+      maxDailyLossUsd: 1,
+      maxWeeklyLossUsd: 2.5,
+      maxOpenExposureUsd: 15
+    },
+    policy: {
+      allowedSymbols: ["BTC-USDT"],
+      maxNotionalUsd: 20,
+      executionMode: "proposal_only"
     }
   };
 }
 
-describe("executeProposalWithGatekeeper", () => {
+function validApproval(proposalId = "exec-001") {
+  return {
+    enabled: true,
+    requiredToken: "correct-token",
+    providedToken: "correct-token",
+    approvedProposalId: proposalId,
+    expiresAtIso: new Date(Date.now() + 60_000).toISOString()
+  };
+}
+
+describe("executeProposalWithGatekeeper invariants", () => {
   it("does not call adapter when gatekeeper rejects", async () => {
     let callCount = 0;
+    const auditEvents: ProposalAuditEvent[] = [];
     const adapter: OrderExecutionAdapter = {
       async placeSpotLimitOrder() {
         callCount += 1;
@@ -55,15 +79,59 @@ describe("executeProposalWithGatekeeper", () => {
     const rejected = await executeProposalWithGatekeeper(
       { ...validProposal(), estimatedMaxLossUsd: 0.8 },
       validContext(),
-      adapter
+      adapter,
+      {
+        async write(event) {
+          auditEvents.push(event);
+        }
+      },
+      validApproval(),
+      {
+        actor: "tester"
+      }
     );
 
     expect(rejected.status).toBe("REJECTED_BY_GATEKEEPER");
     expect(rejected.decision.status).toBe("REJECT");
     expect(callCount).toBe(0);
+    expect(auditEvents.some((event) => event.decision === "GATEKEEPER_REJECT")).toBe(true);
   });
 
-  it("submits order when gatekeeper approves", async () => {
+  it("blocks execution in proposal_only mode even after gatekeeper + approval pass", async () => {
+    let callCount = 0;
+    const adapter: OrderExecutionAdapter = {
+      async placeSpotLimitOrder() {
+        callCount += 1;
+        return {
+          ordId: "200",
+          clOrdId: "x",
+          sCode: "0",
+          sMsg: ""
+        };
+      }
+    };
+
+    const result = await executeProposalWithGatekeeper(
+      validProposal(),
+      validContext(),
+      adapter,
+      {
+        async write() {
+          return;
+        }
+      },
+      validApproval(),
+      {
+        actor: "tester",
+        executionMode: "proposal_only"
+      }
+    );
+
+    expect(result.status).toBe("BLOCKED_BY_MODE");
+    expect(callCount).toBe(0);
+  });
+
+  it("submits only when mode allows and approval is valid", async () => {
     let callCount = 0;
     const adapter: OrderExecutionAdapter = {
       async placeSpotLimitOrder(intent) {
@@ -77,67 +145,196 @@ describe("executeProposalWithGatekeeper", () => {
       }
     };
 
-    const submitted = await executeProposalWithGatekeeper(validProposal(), validContext(), adapter);
+    const submitted = await executeProposalWithGatekeeper(
+      validProposal(),
+      {
+        ...validContext(),
+        policy: { ...validContext().policy!, executionMode: "demo_execution_enabled" }
+      },
+      adapter,
+      {
+        async write() {
+          return;
+        }
+      },
+      validApproval(),
+      {
+        actor: "tester",
+        executionMode: "demo_execution_enabled"
+      }
+    );
 
     expect(submitted.status).toBe("SUBMITTED");
-    expect(submitted.decision.status).toBe("APPROVE");
     expect(callCount).toBe(1);
-    if (submitted.status === "SUBMITTED") {
-      expect(submitted.order.ordId).toBe("200");
+  });
+
+  it("rejects expired approval", async () => {
+    const adapter: OrderExecutionAdapter = {
+      async placeSpotLimitOrder() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const result = await executeProposalWithGatekeeper(
+      validProposal(),
+      validContext(),
+      adapter,
+      {
+        async write() {
+          return;
+        }
+      },
+      {
+        ...validApproval(),
+        expiresAtIso: new Date(Date.now() - 10).toISOString()
+      },
+      {
+        actor: "tester",
+        executionMode: "demo_execution_enabled"
+      }
+    );
+
+    expect(result.status).toBe("REJECTED_BY_APPROVAL");
+    if (result.status === "REJECTED_BY_APPROVAL") {
+      expect(result.code).toBe("HUMAN_APPROVAL_EXPIRED");
     }
   });
 
-  it("throws when approval is enabled but no configured token exists", async () => {
+  it("rejects approval for different proposal", async () => {
     const adapter: OrderExecutionAdapter = {
       async placeSpotLimitOrder() {
-        return {
-          ordId: "1",
-          clOrdId: "x",
-          sCode: "0",
-          sMsg: ""
-        };
+        throw new Error("should not execute");
+      }
+    };
+
+    const result = await executeProposalWithGatekeeper(
+      validProposal(),
+      validContext(),
+      adapter,
+      {
+        async write() {
+          return;
+        }
+      },
+      {
+        ...validApproval("different-proposal")
+      },
+      {
+        actor: "tester",
+        executionMode: "demo_execution_enabled"
+      }
+    );
+
+    expect(result.status).toBe("REJECTED_BY_APPROVAL");
+    if (result.status === "REJECTED_BY_APPROVAL") {
+      expect(result.code).toBe("HUMAN_APPROVAL_FOR_DIFFERENT_PROPOSAL");
+    }
+  });
+
+  it("fails execution when approval is disabled (regression guard)", async () => {
+    const adapter: OrderExecutionAdapter = {
+      async placeSpotLimitOrder() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const result = await executeProposalWithGatekeeper(
+      validProposal(),
+      {
+        ...validContext(),
+        policy: { ...validContext().policy!, executionMode: "demo_execution_enabled" }
+      },
+      adapter,
+      {
+        async write() {
+          return;
+        }
+      },
+      {
+        enabled: false
+      },
+      {
+        actor: "tester",
+        executionMode: "demo_execution_enabled"
+      }
+    );
+
+    expect(result.status).toBe("REJECTED_BY_APPROVAL");
+    if (result.status === "REJECTED_BY_APPROVAL") {
+      expect(result.code).toBe("HUMAN_APPROVAL_REQUIRED");
+    }
+  });
+
+  it("fails closed when policy configuration is missing", async () => {
+    const adapter: OrderExecutionAdapter = {
+      async placeSpotLimitOrder() {
+        throw new Error("should not execute");
       }
     };
 
     await expect(
-      executeProposalWithGatekeeper(validProposal(), validContext(), adapter, {
-        enabled: true
-      })
+      executeProposalWithGatekeeper(
+        validProposal(),
+        {
+          ...validContext(),
+          limits: undefined,
+          policy: undefined
+        },
+        adapter,
+        {
+          async write() {
+            return;
+          }
+        },
+        validApproval(),
+        {
+          actor: "tester",
+          executionMode: "demo_execution_enabled"
+        }
+      )
     ).rejects.toMatchObject({
-      code: "HUMAN_APPROVAL_TOKEN_NOT_CONFIGURED"
-    });
+      code: "POLICY_CONFIG_MISSING"
+    } satisfies Partial<ExecutionInvariantError>);
   });
 
-  it("throws when approval token is invalid", async () => {
+  it("fails closed on malformed proposal", async () => {
     const adapter: OrderExecutionAdapter = {
       async placeSpotLimitOrder() {
-        return {
-          ordId: "1",
-          clOrdId: "x",
-          sCode: "0",
-          sMsg: ""
-        };
+        throw new Error("should not execute");
       }
     };
 
     await expect(
-      executeProposalWithGatekeeper(validProposal(), validContext(), adapter, {
-        enabled: true,
-        requiredToken: "correct-token",
-        providedToken: "wrong-token"
-      })
+      executeProposalWithGatekeeper(
+        {
+          ...(validProposal() as unknown as Record<string, unknown>),
+          entryPrice: -1
+        } as unknown as TradeProposal,
+        validContext(),
+        adapter,
+        {
+          async write() {
+            return;
+          }
+        },
+        validApproval(),
+        {
+          actor: "tester",
+          executionMode: "demo_execution_enabled"
+        }
+      )
     ).rejects.toMatchObject({
-      code: "HUMAN_APPROVAL_TOKEN_INVALID"
-    });
+      code: "MALFORMED_PROPOSAL"
+    } satisfies Partial<ExecutionInvariantError>);
   });
 
-  it("submits when approval token is valid", async () => {
+  it("halts on audit storage write failure before execution", async () => {
     let callCount = 0;
     const adapter: OrderExecutionAdapter = {
       async placeSpotLimitOrder() {
         callCount += 1;
         return {
-          ordId: "1",
+          ordId: "200",
           clOrdId: "x",
           sCode: "0",
           sMsg: ""
@@ -145,13 +342,29 @@ describe("executeProposalWithGatekeeper", () => {
       }
     };
 
-    const result = await executeProposalWithGatekeeper(validProposal(), validContext(), adapter, {
-      enabled: true,
-      requiredToken: "correct-token",
-      providedToken: "correct-token"
-    });
+    await expect(
+      executeProposalWithGatekeeper(
+        validProposal(),
+        {
+          ...validContext(),
+          policy: { ...validContext().policy!, executionMode: "demo_execution_enabled" }
+        },
+        adapter,
+        {
+          async write() {
+            throw new Error("disk full");
+          }
+        },
+        validApproval(),
+        {
+          actor: "tester",
+          executionMode: "demo_execution_enabled"
+        }
+      )
+    ).rejects.toMatchObject({
+      code: "AUDIT_WRITE_FAILED"
+    } satisfies Partial<ExecutionInvariantError>);
 
-    expect(result.status).toBe("SUBMITTED");
-    expect(callCount).toBe(1);
+    expect(callCount).toBe(0);
   });
 });

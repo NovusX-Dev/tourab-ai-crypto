@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
 import { executeProposalWithGatekeeper } from "./execution-service.js";
 import { HumanApprovalError, parseBooleanEnv } from "./human-approval.js";
@@ -9,6 +11,7 @@ import {
   validateContextPayload,
   validateProposalPayload
 } from "./cli-validation.js";
+import { ExecutionInvariantError } from "./execution-service.js";
 
 interface CliArgs {
   proposalFile?: string;
@@ -82,9 +85,20 @@ async function run(): Promise<void> {
   const humanApprovalEnabled = parseBooleanEnv(process.env.TOURAB_HUMAN_APPROVAL_ENABLED, true);
   const requiredApprovalToken = process.env.TOURAB_HUMAN_APPROVAL_TOKEN;
   const result = await executeProposalWithGatekeeper(proposal, context, adapter, {
+    async write(event) {
+      const auditPath = process.env.TOURAB_PROPOSAL_AUDIT_PATH ?? "logs/proposal-audit.jsonl";
+      await mkdir(dirname(auditPath), { recursive: true });
+      await appendFile(auditPath, `${JSON.stringify(event)}\n`, "utf-8");
+    }
+  }, {
     enabled: humanApprovalEnabled,
     requiredToken: requiredApprovalToken,
-    providedToken: args.approvalToken
+    providedToken: args.approvalToken,
+    approvedProposalId: proposal.proposalId,
+    expiresAtIso: process.env.TOURAB_HUMAN_APPROVAL_EXPIRES_AT
+  }, {
+    actor: "cli-operator",
+    executionMode: (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ?? "proposal_only"
   });
   if (result.status === "SUBMITTED") {
     const ledgerPath = process.env.TOURAB_ORDER_LEDGER_PATH ?? "logs/order-intents.jsonl";
@@ -119,6 +133,14 @@ async function main(): Promise<void> {
       writeError({
         code: error.code,
         message: error.message
+      });
+      process.exit(1);
+    }
+    if (error instanceof ExecutionInvariantError) {
+      writeError({
+        code: error.code,
+        message: error.message,
+        details: error.details
       });
       process.exit(1);
     }

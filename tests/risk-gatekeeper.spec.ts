@@ -31,6 +31,11 @@ function baseContext(): RiskContext {
     },
     market: {
       markPrice: 100500
+    },
+    policy: {
+      allowedSymbols: ["BTC-USDT"],
+      maxNotionalUsd: 20,
+      executionMode: "proposal_only"
     }
   };
 }
@@ -142,5 +147,36 @@ describe("evaluateTradeProposal", () => {
     const decision = evaluateTradeProposal(proposal, baseContext());
     expect(decision.status).toBe("REJECT");
     expect(decision.violations.some((v) => v.code === "INVALIDATION_MISSING")).toBe(true);
+  });
+
+  it("rejects invalid stop placement for sell orders", () => {
+    const proposal = { ...baseProposal(), side: "sell" as const, stopPrice: 99500 };
+    const decision = evaluateTradeProposal(proposal, baseContext());
+    expect(decision.status).toBe("REJECT");
+    expect(decision.violations.some((v) => v.code === "INVALIDATION_MISSING")).toBe(true);
+  });
+
+  it("rejects symbols outside allowlist", () => {
+    const proposal = { ...baseProposal(), symbol: "DOGE-USDT" };
+    const decision = evaluateTradeProposal(proposal, baseContext());
+    expect(decision.status).toBe("REJECT");
+    expect(decision.violations.some((v) => v.code === "INSTRUMENT_NOT_ALLOWED")).toBe(true);
+  });
+
+  it("rejects notional above policy max", () => {
+    const proposal = { ...baseProposal(), qtyBase: 0.0005 };
+    const decision = evaluateTradeProposal(proposal, baseContext());
+    expect(decision.status).toBe("REJECT");
+    expect(decision.violations.some((v) => v.code === "MAX_NOTIONAL_EXCEEDED")).toBe(true);
+  });
+
+  it("rejects instrument symbol mismatch", () => {
+    const context: RiskContext = {
+      ...baseContext(),
+      instrument: { ...baseContext().instrument, symbol: "ETH-USDT" }
+    };
+    const decision = evaluateTradeProposal(baseProposal(), context);
+    expect(decision.status).toBe("REJECT");
+    expect(decision.violations.some((v) => v.code === "INSTRUMENT_SYMBOL_MISMATCH")).toBe(true);
   });
 });

@@ -314,4 +314,24 @@ describe("mission-control contract", () => {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("emits audit entry on invalid state transition", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, logRequests: false });
+
+    try {
+      const invalidPause = await postControlRaw(handle.baseHttpUrl, "/pause", {
+        "x-user-id": "state-tester"
+      });
+      expect(invalidPause.status).toBe(409);
+
+      const snapshotRes = await fetch(`${handle.baseHttpUrl}/snapshot`);
+      const snapshot = (await snapshotRes.json()) as SnapshotResponse;
+      expect(snapshot.audit.some((item) => item.title === "Invalid state transition")).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

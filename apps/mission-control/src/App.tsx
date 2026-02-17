@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createDefaultBotApiClient } from "./api/LiveBotApiClient";
+import { ApprovalsPanel } from "./components/ApprovalsPanel";
 import { AuditTimeline } from "./components/AuditTimeline";
 import { BotStatusCard } from "./components/BotStatusCard";
 import { ControlDeck } from "./components/ControlDeck";
@@ -10,12 +11,12 @@ import { RiskPanel } from "./components/RiskPanel";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { applyTheme, getInitialTheme, type ThemeName } from "./theme";
 import { useDashboardData } from "./state/useDashboardData";
-import type { AuditItem, ControlAction, EventType } from "./types";
+import type { ApprovalRequest, AuditItem, ControlAction, EventType } from "./types";
 
 const client = createDefaultBotApiClient();
 
-type RightTab = "risk" | "audit" | "logs";
-type ToastTone = "success" | "error";
+type RightTab = "risk" | "audit" | "logs" | "approvals";
+type ToastTone = "success" | "error" | "warning";
 
 interface ToastItem {
   id: string;
@@ -36,6 +37,8 @@ export default function App() {
   const [highlightedEventType, setHighlightedEventType] = useState<EventType | undefined>(undefined);
   const [highlightedSymbol, setHighlightedSymbol] = useState<string | undefined>(undefined);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("operator-1");
 
   const dashboard = useDashboardData(client);
 
@@ -72,21 +75,55 @@ export default function App() {
     previousConnectionHealthRef.current = next;
   }, [dashboard.connectionHealth]);
 
-  async function handleAction(action: ControlAction) {
+  async function refreshApprovals() {
+    const items = await client.listApprovals();
+    setPendingApprovals(items);
+  }
+
+  async function approveApproval(id: string) {
+    const updated = await client.approveApproval(id, currentUserId);
+    pushToast(
+      updated.status === "approved" ? "success" : "warning",
+      "APPROVAL_UPDATED",
+      `${updated.id}: ${updated.approvalCount}/${updated.requiredApprovals}`
+    );
+    await refreshApprovals();
+  }
+
+  async function rejectApproval(id: string) {
+    const updated = await client.rejectApproval(id, currentUserId, "Rejected by operator");
+    pushToast("warning", "APPROVAL_REJECTED", `${updated.id} rejected by ${currentUserId}`);
+    await refreshApprovals();
+  }
+
+  async function handleAction(action: ControlAction, approvalId?: string) {
     const destructive = action === "stop" || action === "cancel_all" || action === "emergency_stop";
-    if (destructive) {
+    if (destructive && !approvalId) {
       const confirmed = window.confirm(`Confirm action: ${action.replace("_", " ")}?`);
       if (!confirmed) {
         return;
       }
     }
-    const result = await client.performAction(action, dashboard.role);
+    const result = await client.performAction(action, dashboard.role, currentUserId, approvalId);
     if (!result.ok) {
+      if (result.code === "APPROVAL_REQUIRED") {
+        setTab("approvals");
+        await refreshApprovals();
+        pushToast("warning", "APPROVAL_REQUIRED", result.message);
+        return;
+      }
+      if (result.code === "APPROVAL_EXPIRED" || result.code === "APPROVAL_REJECTED") {
+        setTab("approvals");
+        await refreshApprovals();
+        pushToast("warning", result.code, result.message);
+        return;
+      }
       pushToast("error", `${result.code}`, result.message);
       return;
     }
     dashboard.setState((prev) => ({ ...prev, state: result.state }));
     pushToast("success", `${result.code}`, result.message);
+    await refreshApprovals();
   }
 
   function onSelectAudit(item: AuditItem) {
@@ -100,6 +137,19 @@ export default function App() {
     setHighlightedEventType(undefined);
     setHighlightedSymbol(undefined);
   }
+
+  useEffect(() => {
+    void refreshApprovals();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void refreshApprovals();
+    }, 5000);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
 
   const rightPanel = useMemo(() => {
     if (tab === "risk") {
@@ -115,8 +165,20 @@ export default function App() {
         />
       );
     }
+    if (tab === "approvals") {
+      return (
+        <ApprovalsPanel
+          items={pendingApprovals}
+          currentUserId={currentUserId}
+          onRefresh={() => void refreshApprovals()}
+          onApprove={(id) => void approveApproval(id)}
+          onReject={(id) => void rejectApproval(id)}
+          onExecute={(action, approvalId) => void handleAction(action, approvalId)}
+        />
+      );
+    }
     return <LogsPanel logs={dashboard.logs} />;
-  }, [tab, dashboard.risk, dashboard.audit, dashboard.logs, selectedAuditId]);
+  }, [tab, dashboard.risk, dashboard.audit, dashboard.logs, pendingApprovals, selectedAuditId, currentUserId]);
 
   return (
     <div className="app-shell">
@@ -140,6 +202,13 @@ export default function App() {
               <option value="operator">Operator</option>
               <option value="admin">Admin</option>
             </select>
+            <input
+              value={currentUserId}
+              onChange={(event) => setCurrentUserId(event.target.value)}
+              placeholder="user id"
+              aria-label="User identity"
+              style={{ width: 120 }}
+            />
             <span
               className={`conn-badge ${
                 dashboard.streamPaused || dashboard.connectionHealth === "degraded" ? "warn" : "ok"
@@ -167,9 +236,7 @@ export default function App() {
           eventTypeFilter={dashboard.eventTypeFilter}
           onEventTypeFilterChange={dashboard.setEventTypeFilter}
           pinnedSymbol={dashboard.pinnedSymbol}
-          onPinSymbol={(symbol) =>
-            dashboard.setPinnedSymbol((current) => (current === symbol ? "" : symbol))
-          }
+          onPinSymbol={(symbol) => dashboard.setPinnedSymbol((current) => (current === symbol ? "" : symbol))}
           streamPaused={dashboard.streamPaused}
           onToggleStreamPaused={() => dashboard.setStreamPaused((prev) => !prev)}
           autoScroll={autoScroll}
@@ -184,6 +251,7 @@ export default function App() {
           <button className={`tab ${tab === "risk" ? "tab-active" : ""}`} onClick={() => setTab("risk")}>Risk</button>
           <button className={`tab ${tab === "audit" ? "tab-active" : ""}`} onClick={() => setTab("audit")}>Audit</button>
           <button className={`tab ${tab === "logs" ? "tab-active" : ""}`} onClick={() => setTab("logs")}>Logs</button>
+          <button className={`tab ${tab === "approvals" ? "tab-active" : ""}`} onClick={() => setTab("approvals")}>Approvals</button>
         </div>
         {rightPanel}
       </aside>

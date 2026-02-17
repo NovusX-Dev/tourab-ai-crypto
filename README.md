@@ -145,15 +145,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-project-index
 ```
 
 ## Mission Control Web App (Phase 1)
-Run locally:
+Run locally (backend + UI together):
+
+```powershell
+npm run mission-control:start
+```
+
+You can still run them separately when debugging:
 
 ```powershell
 npm run mission-control:dev
-```
-
-Start Phase 2 backend (REST + WS):
-
-```powershell
 npm run mission-control:server
 ```
 
@@ -173,4 +174,11 @@ Phase 2 defaults:
 - API base: `http://localhost:7071`
 - WS base: `ws://localhost:7071`
 - Role header for controls: `x-tourab-role` (`read_only`, `operator`, `admin`)
+- User identity header (Phase 3): `x-user-id` (attributed approvals/audit)
 - Event store JSONL: `logs/mission-events.jsonl` (override via `TOURAB_EVENT_STORE_PATH`)
+- Approval endpoints (Phase 3 start):
+  - `GET /approvals?status=pending|approved|rejected|expired`
+  - `POST /approvals` with body `{ "action": "stop|cancel_all|emergency_stop", "reason": "..." }`
+  - `POST /approvals/:id/approve`
+  - `POST /approvals/:id/reject`
+  - Expiry: approvals auto-expire based on `TOURAB_APPROVAL_TTL_MS` (default `300000`)

@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-16 17:50:08 UTC
+Generated: 2026-02-17 06:58:14 UTC
 
 ## Summary
 - Root: `.`
 - Directories indexed: 37
-- Files indexed: 128
+- Files indexed: 130
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -19,6 +19,7 @@ Generated: 2026-02-16 17:50:08 UTC
     - dashboard/
       - src/
         - mission-control/
+          - approval-store.ts
           - auth.ts
           - event-bus.ts
           - event-factory.ts
@@ -46,8 +47,8 @@ Generated: 2026-02-16 17:50:08 UTC
     - mission-control/
       - dist/
         - assets/
-          - index-B75ABdau.js
-          - index-DMiqwC1J.css
+          - index-D7BvYx65.js
+          - index-Q3rhUYKd.css
         - index.html
       - node_modules/
         - .vite/
@@ -61,6 +62,7 @@ Generated: 2026-02-16 17:50:08 UTC
           - LiveBotApiClient.ts
           - MockBotApiClient.ts
         - components/
+          - ApprovalsPanel.tsx
           - AuditTimeline.tsx
           - BotStatusCard.tsx
           - ControlDeck.tsx
@@ -193,7 +195,8 @@ Generated: 2026-02-16 17:50:08 UTC
 | `apps/dashboard/src/execution-service.ts` | 1218 | 2026-02-16 09:05:50 | `d5bd4670bc3df63d1ccb486a6faf6bc5bfad27dcc7fc74e2378499ef61d826cc` |
 | `apps/dashboard/src/human-approval.ts` | 1510 | 2026-02-16 09:05:29 | `1bfa540e680e7b3ee14f93c0e0e84cfc60afdca358cc34f83d964a25df69e52b` |
 | `apps/dashboard/src/lifecycle-store.ts` | 1135 | 2026-02-16 09:06:05 | `d836bad7d35bb5ba19d65b4a9625bb40838261f599332bae7bcfc80d30dda38d` |
-| `apps/dashboard/src/mission-control/auth.ts` | 739 | 2026-02-16 17:33:05 | `aadfb55b5eb1440354edfafc683b9f644777ee67b5ff7819eed7f674cf6fd517` |
+| `apps/dashboard/src/mission-control/approval-store.ts` | 4182 | 2026-02-17 06:53:24 | `a5bceb2239adc99ac5297435cfe53b40777fda9c3cbe85a7b5babb7031c8b9df` |
+| `apps/dashboard/src/mission-control/auth.ts` | 814 | 2026-02-16 19:22:10 | `ae9b77cce3b5939875f44a17d5bdfd17b988e774c3325e433d74e557dcdef7c0` |
 | `apps/dashboard/src/mission-control/event-bus.ts` | 437 | 2026-02-16 17:31:37 | `c3ecaad332d8fb3f15223daf611846d01487b2561d971072b9dc3593434b4354` |
 | `apps/dashboard/src/mission-control/event-factory.ts` | 512 | 2026-02-16 17:31:37 | `9e03c058e7a01ba7c791df03d6d4aae88470903d0987565949557824c8524553` |
 | `apps/dashboard/src/mission-control/jsonl-event-store.ts` | 2000 | 2026-02-16 17:38:27 | `19326a5855984e101e777c1daa80644cf4110b988310b6ade897177c2c13a23c` |
@@ -201,7 +204,7 @@ Generated: 2026-02-16 17:50:08 UTC
 | `apps/dashboard/src/mission-control/rate-limit.ts` | 785 | 2026-02-16 17:31:55 | `0f947e591afbb854c2233d260a6734f7228125ff124baa5d24dc7cb336d6da06` |
 | `apps/dashboard/src/mission-control/runtime-events.ts` | 1463 | 2026-02-16 17:32:25 | `e5a3f33b7f5ef9570fff92188ff47b76643468c02e5122f095460dfc5bb78c3f` |
 | `apps/dashboard/src/mission-control/runtime-lifecycle-manager.ts` | 4641 | 2026-02-16 17:32:25 | `1e6b2262eb162686a93192100fbc82aead045e84a8faf7f7478c6cd416a8a6d3` |
-| `apps/dashboard/src/mission-control-server.ts` | 9009 | 2026-02-16 17:39:08 | `eb906bc37cdacad3d370b2d1d2e8f1def8c82ee2be928ca459d1fb90557f9620` |
+| `apps/dashboard/src/mission-control-server.ts` | 17332 | 2026-02-17 06:55:27 | `7c37d86a1b8a62fa54f51fdf55b8a35013b2ea98735cfb32162a3cee8a23579b` |
 | `apps/dashboard/src/okx-demo-auto-loop-cli.ts` | 8364 | 2026-02-16 09:13:49 | `ac0bc2288fafb95dc5563966263950717588d0b6befcbb8ae8429262ea28f2b5` |
 | `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4122 | 2026-02-16 09:07:52 | `3ea968a0d4fd17495f87bcdfc8d2fd07da0067bfe182a6460a6c14a6f1308577` |
 | `apps/dashboard/src/okx-demo-execute-cli.ts` | 4218 | 2026-02-16 09:06:14 | `fd227bcccfbafe734eed97f8178faee4cd96296f3cf4fe2a06c7908a10027665` |
@@ -211,17 +214,18 @@ Generated: 2026-02-16 17:50:08 UTC
 | `apps/dashboard/src/okx-proposal-helper-cli.ts` | 4686 | 2026-02-16 09:02:41 | `5eed40d512c301142b91deb77e25d164cc22244255bd489a6cb685da7c0dccf0` |
 | `apps/dashboard/src/proposal-helper.ts` | 6727 | 2026-02-16 09:01:09 | `c7904f9d9d4031626eae07d84e2c13fde3aeee8e158eb86af36e45834033e306` |
 | `apps/dashboard/src/reconciliation.ts` | 6040 | 2026-02-16 09:10:08 | `e5f55769e0e1138f12facf33e0575cf932b4237298f02e58439f36490e7e8ee4` |
-| `apps/mission-control/dist/assets/index-B75ABdau.js` | 215864 | 2026-02-16 17:48:24 | `418b8fd0c3a3ae3619915dd268b077a5c6604dec355eafbde8bb455768b58a14` |
-| `apps/mission-control/dist/assets/index-DMiqwC1J.css` | 7440 | 2026-02-16 17:48:24 | `769a2602bf398c3a8ee15b33f66d97c4e6fbe99e03f5c30bfb9bc75b6dc12d27` |
-| `apps/mission-control/dist/index.html` | 408 | 2026-02-16 17:48:24 | `0adb7bc6d5fc71d67267a51339ad399674e1d64ebf0aada134e04feb0a51ee1e` |
+| `apps/mission-control/dist/assets/index-D7BvYx65.js` | 223059 | 2026-02-17 06:55:44 | `da0606730dcf60e5840b25ee69d22971579f6e2c3fb0ce17ea7217847a0805e7` |
+| `apps/mission-control/dist/assets/index-Q3rhUYKd.css` | 7846 | 2026-02-17 06:55:44 | `ec4d30d4880c9479da7ebcb3e8a9e3377c43b4f0687a69e5ad36dfff04e7b459` |
+| `apps/mission-control/dist/index.html` | 408 | 2026-02-17 06:55:44 | `56ccfcf252eb92e27b5572899e18c3d409170981174adadad13fa5153150adad` |
 | `apps/mission-control/index.html` | 310 | 2026-02-16 17:06:38 | `08590a3a9a172d25533738243d7ead030a850e32d52ab09543d150a4ddec4253` |
 | `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 282 | 2026-02-16 17:48:25 | `0368e9ab0bf75516297eb5d54462ec8c8f0d2b382ee82cc70b416cf84ddb8675` |
 | `apps/mission-control/package.json` | 669 | 2026-02-16 17:42:43 | `3024c620c459bc2e3913d4089b1595f968279f16f76d94c51d93ade2b841ce8e` |
-| `apps/mission-control/README.md` | 1459 | 2026-02-16 17:34:10 | `269426834ecaba7711d27ff72cc8ed202a8055bfdd2b8481dc16e68a9db292c1` |
-| `apps/mission-control/src/api/BotApiClient.ts` | 755 | 2026-02-16 17:47:35 | `44124d31d0acbea8adae9878a4afd8f06362f1334b6d3b41fd52bcfae8121562` |
-| `apps/mission-control/src/api/LiveBotApiClient.ts` | 4586 | 2026-02-16 17:47:53 | `85260730c35a818c5f03d87f206fbdbd68a71502f5acdb13990319d014c5743f` |
-| `apps/mission-control/src/api/MockBotApiClient.ts` | 3643 | 2026-02-16 17:47:39 | `4da184c93ad26cbc58e7ccc78c62ec6ddde5f3be7d38775a82a8b194b93afefe` |
-| `apps/mission-control/src/App.tsx` | 7785 | 2026-02-16 17:48:10 | `1cce9b30d70a1a3a34ba37d5c5ce463ec8ef35f1fae9d3cb6ecb3f47fdeed143` |
+| `apps/mission-control/README.md` | 2190 | 2026-02-17 06:55:51 | `3a8a3b3646aad10ca4fa8dc5a06ddba9dd50366b88afa534d62b12fc39a7b1a1` |
+| `apps/mission-control/src/api/BotApiClient.ts` | 1076 | 2026-02-16 19:30:14 | `c96037aadd2b4cda0a221838dcfb9d26005d695be1fe35d7d33413efb07e6a89` |
+| `apps/mission-control/src/api/LiveBotApiClient.ts` | 6665 | 2026-02-16 19:30:43 | `e259dcfbb3ec29af6848f21b4702632e803b06fa59f5789a964bd8f76d0ffdab` |
+| `apps/mission-control/src/api/MockBotApiClient.ts` | 7610 | 2026-02-16 19:30:36 | `5cac58a387d202af85ca2e3a83794544e3c93ac346ff85a67b3349a74e3601bf` |
+| `apps/mission-control/src/App.tsx` | 10341 | 2026-02-17 06:54:35 | `d5fbdcb8854a06ddee291445214514864ba9dd17fb6de6562f14b62dca09b618` |
+| `apps/mission-control/src/components/ApprovalsPanel.tsx` | 3882 | 2026-02-17 06:54:08 | `b379f6655c7c926f1d98c40e9664567c011111b5a36482ee87d4560efd8b440c` |
 | `apps/mission-control/src/components/AuditTimeline.tsx` | 1307 | 2026-02-16 17:05:08 | `4b7dce32b967dd32649ec3395eefc00800bda128404c5335da450528aaa3b6ea` |
 | `apps/mission-control/src/components/BotStatusCard.tsx` | 1480 | 2026-02-16 17:04:22 | `8e20b77c5543d8d4d8d2656fe82eae10c976b9a105ee5062d172db5c6099fadf` |
 | `apps/mission-control/src/components/ControlDeck.tsx` | 1610 | 2026-02-16 17:04:22 | `eb3c9bc99165976a7ecaa3dcb7489e336df8a315d8dbf908b97ad32a17afa159` |
@@ -235,14 +239,14 @@ Generated: 2026-02-16 17:50:08 UTC
 | `apps/mission-control/src/logic/eventFilters.ts` | 1743 | 2026-02-16 17:34:21 | `82adc811a7d2838f41805609311bc10b8c5699f37658e9db5e923aca183a1776` |
 | `apps/mission-control/src/main.tsx` | 232 | 2026-02-16 17:06:38 | `adbc6a19142a0e6bfd6289063814cda1d9748df74d8f6dfc04d0d810f218a6ee` |
 | `apps/mission-control/src/mock/mockData.ts` | 6054 | 2026-02-16 17:43:47 | `0de386d7f19a8d5db8ad9e34d8c8c700f8fabbbb82e64e9cd177db2ef36a550a` |
-| `apps/mission-control/src/state/useDashboardData.ts` | 3773 | 2026-02-16 17:48:02 | `dafbf8fca5a3a3f4f2947d206f0b0fc17d9d74129248f60f57ef591a138674fa` |
-| `apps/mission-control/src/styles.css` | 9345 | 2026-02-16 17:40:26 | `4168494b0cef425d32790493b949db39437b3377c5e0fcdf0d0b2562279a2f6e` |
+| `apps/mission-control/src/state/useDashboardData.ts` | 4655 | 2026-02-17 06:55:06 | `808d655fde0c39d33d15e8ec8b1e7c665173ee1f98390e06075a707d235aaf85` |
+| `apps/mission-control/src/styles.css` | 9866 | 2026-02-16 17:54:18 | `873847898e33c3b67836b699f8c4955d1ab90ab8cb51841969595f9d6f8d2a42` |
 | `apps/mission-control/src/test/control-availability.spec.ts` | 628 | 2026-02-16 17:06:56 | `f19d2b619f4bf956bb0e9763be060fa3c11f02de6f6e292d881fa53ef0d39560` |
 | `apps/mission-control/src/test/event-filters.spec.ts` | 1221 | 2026-02-16 17:06:56 | `e39b0758d48483a9fe3d35d7302cc60d33a48c46d1ed523f2d76534b88a3a8a5` |
 | `apps/mission-control/src/test/role-gating.spec.ts` | 535 | 2026-02-16 17:06:56 | `ca39f817f2980ceac531cd3d4fffd1a2fff448b8e5ea742ea406fa205fe025e4` |
 | `apps/mission-control/src/test/setup.ts` | 44 | 2026-02-16 17:06:56 | `60aa525f7ffa6bfd3045d22710d4eeef3a5ff2074ecc3dbcef99374badebad17` |
 | `apps/mission-control/src/theme.ts` | 692 | 2026-02-16 17:02:33 | `dc8c55efbfffe4573575285c142021e013f38c985a02cba371af5b785917c7a3` |
-| `apps/mission-control/src/types.ts` | 271 | 2026-02-16 17:42:36 | `7842963118a2151ede65988d6f352afd33fd1b89f5f3faa15b83722c70189126` |
+| `apps/mission-control/src/types.ts` | 290 | 2026-02-16 17:52:26 | `56bcf86506965aad17becd8bae456cea8bb0b71aa6007539f316549679894948` |
 | `apps/mission-control/tsconfig.json` | 393 | 2026-02-16 17:43:04 | `11b5b470f0b39ee4262c5e0eded1137103c0bdd16970fcd1c353c403c2eb1b28` |
 | `apps/mission-control/vite.config.ts` | 136 | 2026-02-16 17:02:09 | `d2d053ba4043a83d1a93e2c22a7aeb72b67535791d5113e6bfe843335439e5ed` |
 | `apps/mission-control/vitest.config.ts` | 283 | 2026-02-16 17:02:09 | `e4fe2d7c27ea8c681ebbabaf1f9a363bb1bd79c6f997a1bf565741bee6de4163` |
@@ -257,18 +261,18 @@ Generated: 2026-02-16 17:50:08 UTC
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 527 | 2026-02-16 09:10:35 | `0b55dab427203c4225bf7c7da0457b53134e0e32288fc829019aeba37a25b942` |
 | `logs/reconcile-report.json` | 901 | 2026-02-16 09:09:42 | `f986871f719c9b77a42714dc634af4bb8a17baf0f95d0be58d08f9505c0a53df` |
-| `package.json` | 1406 | 2026-02-16 17:42:49 | `e40decd1aaa69354efbc3eb8369659a97e3bd83a92d00c6edf0321762e71ad48` |
-| `package-lock.json` | 139016 | 2026-02-16 17:35:14 | `4fff006ecc8f43fd2e091396a4ba0ab3303f792f929300f0a426cc1c603e0df3` |
+| `package.json` | 1564 | 2026-02-17 06:57:22 | `3de428c62f440e80abc4ef3293da40e2910bd059b6be8dd5ea6c5a26fc46bf04` |
+| `package-lock.json` | 149738 | 2026-02-17 06:57:39 | `11f27f300ecde94a4ea95b8edbdb38000a8ae79df51f6c291058d08538a5e124` |
 | `packages/okx-demo-adapter/package.json` | 183 | 2026-02-16 08:25:46 | `e52f527393c9a8a8bfda9431c02394f745fc500f298979ee4b7e00f5564fd2df` |
 | `packages/okx-demo-adapter/src/index.ts` | 7234 | 2026-02-16 09:06:30 | `95003ab16ba286c0141ca6c08655c5b4d0ac7342161cb4b0694dbdeee77f9019` |
 | `packages/risk-gatekeeper/package.json` | 182 | 2026-02-16 08:17:52 | `2b47fc52824541ff54e151d3bea9a0c2798ca5e47bcd1ab3f280b0b053610936` |
 | `packages/risk-gatekeeper/src/index.ts` | 5192 | 2026-02-16 08:15:17 | `231c7ee0c11a6005baccb148d74e26c4a77e0b8fd3e24925b63ecd373b2ab4d1` |
 | `packages/shared/package.json` | 163 | 2026-02-16 08:22:05 | `2f30f4e4845845ba9f2a7a29ee88fdacf2380b2bf02cbf47c7bc8e4499a85ab3` |
 | `packages/shared/src/index.ts` | 96 | 2026-02-16 17:31:00 | `ec4236dd133b7a1ead687ecf23f68c9303b9d4ccf8952eeafeeb6729b6867613` |
-| `packages/shared/src/mission-control.ts` | 2687 | 2026-02-16 17:30:56 | `46d6b3c9c55d61772e9fce61114d5acbc29ce2a95b4ce48189930829e7c90394` |
+| `packages/shared/src/mission-control.ts` | 3215 | 2026-02-16 19:26:28 | `6c5b463adb9f5cd6cc0bef958369096f1b8a419c8714bfb0b05267edced53b20` |
 | `packages/shared/src/schemas.ts` | 1833 | 2026-02-16 08:22:16 | `6c92756e8f8fadaaa397f12295d9cad8e834e91e3c866bda5c94e02e2ce06e75` |
 | `packages/shared/src/types.ts` | 1541 | 2026-02-16 08:14:35 | `05029340e6c853bea2e894d9735d8f1a1e2a05a2c0d19bf7d50e93cfb2435e78` |
-| `README.md` | 5582 | 2026-02-16 17:34:04 | `d2c79204ea8a82fd14b2f4707c0ab8b97900fe557f86fe7c7547fa4b88611792` |
+| `README.md` | 6078 | 2026-02-17 06:57:28 | `f890c0aa166fde82912cf0e44273605d1c2c4a77d76e67e082ead19b265ece32` |
 | `scripts/install-index-hooks.ps1` | 239 | 2026-02-16 07:42:01 | `2420afd0c3aca0b6bbf968754a814003dab3ee40f81410ea97137236162633ae` |
 | `scripts/update-project-index.ps1` | 4280 | 2026-02-16 07:43:03 | `cfad26a7179677daccc8e102a741b3baa933bc3031ff7b523d4598079552e7f7` |
 | `skills/architecture.md` | 957 | 2026-02-15 08:25:39 | `4cf99efbe8c8773c23996f9c38763fb7a40c0b9e9414fe1b802d99d129ecaba6` |
@@ -297,7 +301,7 @@ Generated: 2026-02-16 17:50:08 UTC
 | `tests/fixtures/proposal.demo-check.json` | 190 | 2026-02-16 08:59:00 | `665aafb9ff642ef370fd47c5e6dec8c967dbe365ce6b4f51814f6d1e03b5a9a0` |
 | `tests/fixtures/proposal.invalid.json` | 90 | 2026-02-16 08:23:00 | `20d3fb277c8e22dacf26ff109c0ea4fcdf0a2b751d2b20d1f57db9908c9a7739` |
 | `tests/fixtures/proposal.valid.json` | 190 | 2026-02-16 08:18:13 | `732ac716730242de204e9e643b81f475ffd12befce0f99e805c9c5b37d3ab1ef` |
-| `tests/mission-control-contract.spec.ts` | 4711 | 2026-02-16 17:41:59 | `90692eee2573f5aea04a6f3fd09a292753cd99e6442dc3a4ba43efffa56095f5` |
+| `tests/mission-control-contract.spec.ts` | 11816 | 2026-02-17 06:54:47 | `e8d615a2bc16b9bc009a14cdb9c73b7c983850ddc251a222ca9e6ad8c20e4b2f` |
 | `tests/mission-control-policy.spec.ts` | 751 | 2026-02-16 17:33:52 | `13a2675953da633895710666d0c4beb8aeff2e1448b4979c30639beb3d52b66b` |
 | `tests/mission-control-runtime.spec.ts` | 695 | 2026-02-16 17:33:52 | `aefbdd2825497fc8d9411989202274238d06235796b100a6c62bb682d9975219` |
 | `tests/okx-demo-adapter.spec.ts` | 4895 | 2026-02-16 09:08:55 | `9c248f263b42e3e84095b50ed5bc7fb3daed87a2613c1af4bf29a85fb6c91302` |

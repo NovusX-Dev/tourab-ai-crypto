@@ -1,4 +1,5 @@
 export type {
+  ApprovalRequest,
   AuditItem,
   BotEvent,
   BotLifecycleState,

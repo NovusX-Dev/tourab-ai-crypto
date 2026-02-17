@@ -5,6 +5,8 @@ import { pathToFileURL } from "node:url";
 import express, { type Request, type Response } from "express";
 import { WebSocketServer, type WebSocket } from "ws";
 import type {
+  AuditItem,
+  ApprovalRequest,
   ApiErrorPayload,
   BotEvent,
   ControlAction,
@@ -15,6 +17,7 @@ import type {
   WsMessage
 } from "@tourab/shared";
 import { authRoleMiddleware, type AuthenticatedRequest } from "./mission-control/auth.js";
+import { ApprovalStore } from "./mission-control/approval-store.js";
 import { EventBus } from "./mission-control/event-bus.js";
 import { createEvent } from "./mission-control/event-factory.js";
 import { JsonlEventStore } from "./mission-control/jsonl-event-store.js";
@@ -32,6 +35,7 @@ export interface MissionControlServerOptions {
   eventStorePath?: string;
   replayDefault?: number;
   logRequests?: boolean;
+  approvalTtlMs?: number;
 }
 
 export interface MissionControlServerHandle {
@@ -78,13 +82,51 @@ export async function startMissionControlServer(
   const eventStorePath = options.eventStorePath ?? DEFAULT_EVENT_STORE_PATH;
   const replayDefault = options.replayDefault ?? REPLAY_DEFAULT;
   const logRequests = options.logRequests ?? true;
+  const approvalTtlMs = options.approvalTtlMs ?? Number(process.env.TOURAB_APPROVAL_TTL_MS ?? 5 * 60_000);
 
   const eventStore = new JsonlEventStore(eventStorePath);
   const bus = new EventBus();
   const lifecycle = new RuntimeLifecycleManager();
+  const approvals = new ApprovalStore(approvalTtlMs);
 
   let eventCounter = 0;
   let inMemoryEvents = await eventStore.readAll();
+
+  function appendAudit(title: string, detail: string, symbol: string, relatedEventType?: AuditItem["relatedEventType"]): void {
+    lifecycle.audit.unshift({
+      id: `audit-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      at: new Date().toISOString(),
+      title,
+      detail,
+      symbol,
+      relatedEventType
+    });
+    if (lifecycle.audit.length > 300) {
+      lifecycle.audit.length = 300;
+    }
+  }
+
+  async function sweepExpiredApprovals(): Promise<void> {
+    const expired = approvals.expirePending();
+    for (const item of expired) {
+      const symbol = lifecycle.getSnapshotState().activeSymbol;
+      appendAudit(
+        "Approval expired",
+        `Approval ${item.id} expired for ${item.action}; actor=system requester=${item.requestedBy}`,
+        symbol,
+        "System"
+      );
+      await publish(
+        createEvent(
+          "System",
+          symbol,
+          `Approval expired: ${item.id} (${item.action}) actor=system requester=${item.requestedBy}`,
+          "warn",
+          ["approval_expired"]
+        )
+      );
+    }
+  }
 
   async function publish(event: BotEvent): Promise<void> {
     inMemoryEvents = [event, ...inMemoryEvents].slice(0, 500);
@@ -106,7 +148,7 @@ export async function startMissionControlServer(
   app.use(express.json());
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Content-Type, x-tourab-role, x-correlation-id");
+    res.header("Access-Control-Allow-Headers", "Content-Type, x-tourab-role, x-correlation-id, x-user-id, x-actor-id, x-approval-id");
     res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     if (req.method === "OPTIONS") {
       res.status(204).end();
@@ -147,8 +189,144 @@ export async function startMissionControlServer(
     res.json({ items: events, nextCursor: events.at(-1)?.id ?? null });
   });
 
+  app.get("/approvals", async (req, res) => {
+    await sweepExpiredApprovals();
+    const statusRaw = String(req.query.status ?? "");
+    const status =
+      statusRaw === "pending" || statusRaw === "approved" || statusRaw === "rejected" || statusRaw === "expired"
+        ? statusRaw
+        : undefined;
+    const items = approvals.list(status);
+    res.json({ items });
+  });
+
+  app.post("/approvals", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    const action = req.body?.action as ControlAction | undefined;
+    const reason = typeof req.body?.reason === "string" ? req.body.reason : undefined;
+
+    if (!action) {
+      writeError(res, 400, {
+        ok: false,
+        code: "INVALID_APPROVAL_ACTION",
+        message: "Approval action is required",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+
+    if (!approvals.isApprovalRequired(action)) {
+      writeError(res, 400, {
+        ok: false,
+        code: "APPROVAL_NOT_REQUIRED",
+        message: `Action ${action} does not require approval`,
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+
+    const request = approvals.create({
+      action,
+      requestedBy: typed.userId,
+      reason
+    });
+    const symbol = lifecycle.getSnapshotState().activeSymbol;
+    appendAudit(
+      "Approval created",
+      `Approval ${request.id} created for ${action} by ${typed.userId}`,
+      symbol,
+      "System"
+    );
+
+    await publish(
+      createEvent(
+        "System",
+        symbol,
+        `Approval requested for ${action} (${request.id}) actor=${typed.userId}`,
+        "warn",
+        ["approval_created"],
+        typed.correlationId
+      )
+    );
+
+    res.status(201).json(request satisfies ApprovalRequest);
+  });
+
+  app.post("/approvals/:id/approve", async (req, res) => {
+    await sweepExpiredApprovals();
+    const typed = req as unknown as AuthenticatedRequest;
+    const approvalId = req.params.id;
+    const actor = String(req.header("x-actor-id") ?? typed.userId);
+    const request = approvals.approve(approvalId, actor);
+    if (!request) {
+      writeError(res, 404, {
+        ok: false,
+        code: "APPROVAL_NOT_FOUND",
+        message: `Approval ${approvalId} not found`,
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Approval ${request.id} updated by ${actor}: ${request.approvalCount}/${request.requiredApprovals}`,
+        request.status === "approved" ? "info" : "warn",
+        [request.status === "approved" ? "approval_approved" : "approval_progress"],
+        typed.correlationId
+      )
+    );
+    appendAudit(
+      request.status === "approved" ? "Approval approved" : "Approval updated",
+      `Approval ${request.id} action=${request.action} actor=${actor} ${request.approvalCount}/${request.requiredApprovals}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+
+    res.json(request);
+  });
+
+  app.post("/approvals/:id/reject", async (req, res) => {
+    await sweepExpiredApprovals();
+    const typed = req as unknown as AuthenticatedRequest;
+    const approvalId = req.params.id;
+    const actor = typed.userId;
+    const reason = typeof req.body?.reason === "string" ? req.body.reason : undefined;
+    const request = approvals.reject(approvalId, actor, reason);
+    if (!request) {
+      writeError(res, 404, {
+        ok: false,
+        code: "APPROVAL_NOT_FOUND",
+        message: `Approval ${approvalId} not found`,
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Approval ${request.id} rejected by ${actor}`,
+        "warn",
+        ["approval_rejected"],
+        typed.correlationId
+      )
+    );
+    appendAudit(
+      "Approval rejected",
+      `Approval ${request.id} action=${request.action} rejected by ${actor}${reason ? ` reason=${reason}` : ""}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    res.json(request);
+  });
+
   app.post(["/start", "/pause", "/resume", "/stop", "/cancel-all", "/emergency-stop"], controlRateLimiter, async (req, res) => {
-    const typed = req as AuthenticatedRequest;
+    await sweepExpiredApprovals();
+    const typed = req as unknown as AuthenticatedRequest;
     const action = controlActionFromPath(req.path);
     if (!action) {
       writeError(res, 400, {
@@ -180,6 +358,86 @@ export async function startMissionControlServer(
       return;
     }
 
+    const approvalId = req.header("x-approval-id") ?? undefined;
+    const approvalCheck = approvals.isActionApproved(action, approvalId);
+    if (!approvalCheck.ok) {
+      if (approvalCheck.request?.status === "expired") {
+        appendAudit(
+          "Approval expired",
+          `Approval ${approvalCheck.request.id} expired for ${action}; requester=${approvalCheck.request.requestedBy}`,
+          lifecycle.getSnapshotState().activeSymbol,
+          "System"
+        );
+        writeError(res, 409, {
+          ok: false,
+          code: "APPROVAL_EXPIRED",
+          message: `Approval expired for action ${action}`,
+          correlationId: typed.correlationId,
+          details: {
+            approvalId: approvalCheck.request.id
+          }
+        });
+        return;
+      }
+
+      if (approvalCheck.request?.status === "rejected") {
+        appendAudit(
+          "Approval rejected",
+          `Rejected approval ${approvalCheck.request.id} blocked ${action}; rejectedBy=${approvalCheck.request.rejectedBy ?? "unknown"}`,
+          lifecycle.getSnapshotState().activeSymbol,
+          "System"
+        );
+        writeError(res, 409, {
+          ok: false,
+          code: "APPROVAL_REJECTED",
+          message: `Approval rejected for action ${action}`,
+          correlationId: typed.correlationId,
+          details: {
+            approvalId: approvalCheck.request.id,
+            rejectedBy: approvalCheck.request.rejectedBy ?? "unknown"
+          }
+        });
+        return;
+      }
+
+      const request =
+        approvalCheck.request ??
+        approvals.create({
+          action,
+          requestedBy: typed.userId
+        });
+      if (!approvalCheck.request) {
+        appendAudit(
+          "Approval created",
+          `Approval ${request.id} created for ${action} by ${typed.userId}`,
+          lifecycle.getSnapshotState().activeSymbol,
+          "System"
+        );
+      }
+      await publish(
+        createEvent(
+          "ControlCommandRejected",
+          lifecycle.getSnapshotState().activeSymbol,
+          `Approval required before ${action} (${request.id}) actor=${typed.userId}`,
+          "warn",
+          ["approval_created"],
+          typed.correlationId
+        )
+      );
+      writeError(res, 409, {
+        ok: false,
+        code: "APPROVAL_REQUIRED",
+        message: `Approval required for action ${action}`,
+        correlationId: typed.correlationId,
+        details: {
+          approvalId: request.id,
+          requiredApprovals: request.requiredApprovals,
+          approvalCount: request.approvalCount
+        }
+      });
+      return;
+    }
+
     const result = lifecycle.applyAction(action);
     const controlEvents = lifecycle.createControlEvents(action, result.ok, typed.correlationId);
     for (const event of controlEvents) {
@@ -190,7 +448,12 @@ export async function startMissionControlServer(
       ok: result.ok,
       code: result.code,
       message: result.message,
-      state: result.state.state
+      state: result.state.state,
+      details: approvalId
+        ? {
+            approvalId
+          }
+        : undefined
     };
     res.status(result.ok ? 200 : 409).json(payload);
   });

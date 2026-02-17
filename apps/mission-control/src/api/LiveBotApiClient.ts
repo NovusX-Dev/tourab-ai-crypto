@@ -2,6 +2,7 @@ import type { BotApiClient } from "./BotApiClient";
 import { mockBotApiClient } from "./MockBotApiClient";
 import type { ConnectionHealth } from "./BotApiClient";
 import type {
+  ApprovalRequest,
   ApiErrorPayload,
   BotEvent,
   ControlAction,
@@ -139,13 +140,15 @@ export class LiveBotApiClient implements BotApiClient {
     };
   }
 
-  async performAction(action: ControlAction, role: UserRole): Promise<ControlActionResponse> {
+  async performAction(action: ControlAction, role: UserRole, userId: string, approvalId?: string): Promise<ControlActionResponse> {
     try {
       const path = ACTION_PATH[action];
       const res = await fetch(`${this.baseHttpUrl}${path}`, {
         method: "POST",
         headers: {
-          "x-tourab-role": role
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(approvalId ? { "x-approval-id": approvalId } : {})
         }
       });
       if (res.ok) {
@@ -158,13 +161,73 @@ export class LiveBotApiClient implements BotApiClient {
         ok: false,
         code: errorPayload.code ?? "REQUEST_FAILED",
         message: errorPayload.message ?? "Control request failed",
-        state
+        state,
+        details: errorPayload.details
       };
     } catch (error: unknown) {
       if (!this.allowFallback) {
         throw error;
       }
-      return mockBotApiClient.performAction(action, role);
+      return mockBotApiClient.performAction(action, role, userId, approvalId);
+    }
+  }
+
+  async listApprovals(status?: "pending" | "approved" | "rejected" | "expired"): Promise<ApprovalRequest[]> {
+    try {
+      const query = status ? `?status=${status}` : "";
+      const res = await fetch(`${this.baseHttpUrl}/approvals${query}`);
+      if (!res.ok) {
+        throw new Error(`Approval list failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { items: ApprovalRequest[] };
+      return payload.items;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.listApprovals(status);
+    }
+  }
+
+  async approveApproval(id: string, userId: string): Promise<ApprovalRequest> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/approvals/${id}/approve`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Approval update failed: ${res.status}`);
+      }
+      return (await res.json()) as ApprovalRequest;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.approveApproval(id, userId);
+    }
+  }
+
+  async rejectApproval(id: string, userId: string, reason?: string): Promise<ApprovalRequest> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/approvals/${id}/reject`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(reason ? { reason } : {})
+      });
+      if (!res.ok) {
+        throw new Error(`Approval reject failed: ${res.status}`);
+      }
+      return (await res.json()) as ApprovalRequest;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.rejectApproval(id, userId, reason);
     }
   }
 }

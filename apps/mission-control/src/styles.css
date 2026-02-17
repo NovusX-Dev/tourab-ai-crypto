@@ -444,6 +444,41 @@ select {
   color: var(--danger);
 }
 
+.toast-warning .toast-title {
+  color: var(--warning);
+}
+
+.approvals-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.approval-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 9px;
+}
+
+.approval-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.approval-meta {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.approval-actions {
+  margin-top: 9px;
+  display: flex;
+  gap: 8px;
+}
+
 .tab-row {
   display: flex;
   gap: 8px;

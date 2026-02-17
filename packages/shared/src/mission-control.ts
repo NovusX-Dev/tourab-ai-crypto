@@ -108,6 +108,7 @@ export interface ControlActionResponse {
   code: string;
   message: string;
   state: BotLifecycleState;
+  details?: Record<string, string | number | boolean>;
 }
 
 export interface ApiErrorPayload {
@@ -115,6 +116,7 @@ export interface ApiErrorPayload {
   code: string;
   message: string;
   correlationId?: string;
+  details?: Record<string, string | number | boolean>;
 }
 
 export interface EventQuery {
@@ -129,3 +131,21 @@ export type WsMessage =
   | { kind: "snapshot"; data: DashboardSnapshot }
   | { kind: "event"; data: BotEvent }
   | { kind: "error"; code: string; message: string };
+
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";
+
+export interface ApprovalRequest {
+  id: string;
+  action: ControlAction;
+  status: ApprovalStatus;
+  reason?: string;
+  requestedAt: string;
+  expiresAt: string;
+  decidedAt?: string;
+  requestedBy: string;
+  requiredApprovals: number;
+  approvalCount: number;
+  approvedBy: string[];
+  rejectedBy?: string;
+  rejectedReason?: string;
+}

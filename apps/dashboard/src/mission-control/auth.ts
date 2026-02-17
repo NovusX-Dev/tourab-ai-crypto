@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 export interface AuthenticatedRequest extends Request {
   role: UserRole;
   correlationId: string;
+  userId: string;
 }
 
 export function extractRole(value: string | undefined): UserRole {
@@ -18,5 +19,6 @@ export function authRoleMiddleware(req: Request, _res: Response, next: NextFunct
   const typed = req as AuthenticatedRequest;
   typed.role = extractRole(req.header("x-tourab-role") ?? undefined);
   typed.correlationId = req.header("x-correlation-id") ?? randomUUID();
+  typed.userId = req.header("x-user-id") ?? "anonymous";
   next();
 }

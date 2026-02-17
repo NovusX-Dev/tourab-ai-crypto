@@ -53,6 +53,30 @@ export function useDashboardData(client: BotApiClient) {
           return;
         }
         setEvents((prev) => [event, ...prev].slice(0, 400));
+        const approvalTag = (event.tags || []).find((tag) => tag.startsWith("approval_"));
+        if (approvalTag) {
+          const title =
+            approvalTag === "approval_created"
+              ? "Approval created"
+              : approvalTag === "approval_approved"
+                ? "Approval approved"
+                : approvalTag === "approval_rejected"
+                  ? "Approval rejected"
+                  : approvalTag === "approval_expired"
+                    ? "Approval expired"
+                    : "Approval lifecycle";
+          setAudit((prev) => [
+            {
+              id: `audit-live-${event.id}`,
+              at: event.timestamp,
+              title,
+              detail: event.message,
+              symbol: event.symbol,
+              relatedEventType: event.type
+            },
+            ...prev
+          ].slice(0, 300));
+        }
         setState((prev) => ({ ...prev, lastHeartbeatAt: event.timestamp }));
         if (event.type === "Error") {
           setLogs((prev) => [

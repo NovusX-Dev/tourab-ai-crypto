@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "mission-control:start": "concurrently -k -n server,ui \"npm run mission-control:server\" \"npm run mission-control:dev\"",
     "mission-control:dev": "npm run dev --workspace @tourab/mission-control",
     "mission-control:build": "npm run build --workspace @tourab/mission-control",
     "mission-control:typecheck": "npm run typecheck --workspace @tourab/mission-control",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.18.1",
+    "concurrently": "^9.2.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

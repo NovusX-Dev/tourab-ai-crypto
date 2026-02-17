@@ -1,4 +1,5 @@
 import type {
+  ApprovalRequest,
   AuditItem,
   BotEvent,
   BotStateSnapshot,
@@ -19,7 +20,10 @@ export interface BotApiClient {
     onEvent: (event: BotEvent) => void,
     onConnectionHealthChange?: (health: ConnectionHealth) => void
   ): () => void;
-  performAction(action: ControlAction, role: UserRole): Promise<ControlActionResponse>;
+  performAction(action: ControlAction, role: UserRole, userId: string, approvalId?: string): Promise<ControlActionResponse>;
+  listApprovals(status?: "pending" | "approved" | "rejected" | "expired"): Promise<ApprovalRequest[]>;
+  approveApproval(id: string, userId: string): Promise<ApprovalRequest>;
+  rejectApproval(id: string, userId: string, reason?: string): Promise<ApprovalRequest>;
 }
 
 export interface DashboardData {

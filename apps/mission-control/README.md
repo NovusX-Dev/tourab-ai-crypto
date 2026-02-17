@@ -55,3 +55,17 @@ Env flags:
   - logs
 - Real-time event stream delivering typed events used in `src/types.ts`.
 - Role-aware control command responses with clear error codes for invalid transitions/authorization failures.
+
+## Phase 3 start: approval workflow
+
+- Critical controls may return `APPROVAL_REQUIRED`.
+- Emergency stop requires two distinct user approvals.
+- Use approvals API:
+  - `GET /approvals?status=pending`
+  - `POST /approvals`
+  - `POST /approvals/:id/approve`
+- The dashboard includes an `Approvals` tab to approve and execute pending critical actions.
+- Set current operator identity in the top bar `user id` field; this is sent as `x-user-id`.
+- Approval states are explicit in UI: `pending`, `approved`, `rejected`, `expired`.
+- Pending approvals show a live expiry countdown; approval list auto-refreshes every 5 seconds.
+- Audit timeline now records approval lifecycle entries (created/approved/rejected/expired) with actor IDs.

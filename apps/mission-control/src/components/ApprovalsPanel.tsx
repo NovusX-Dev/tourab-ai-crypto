@@ -6,9 +6,8 @@ interface ApprovalsPanelProps {
   demoQueue: DemoQueuedIntent[];
   currentUserId: string;
   onRefresh: () => void;
-  onApprove: (id: string) => void;
+  onApproveExecute: (action: ControlAction, id: string) => void;
   onReject: (id: string) => void;
-  onExecute: (action: ControlAction, approvalId: string) => void;
 }
 
 export function ApprovalsPanel({
@@ -16,9 +15,8 @@ export function ApprovalsPanel({
   demoQueue,
   currentUserId,
   onRefresh,
-  onApprove,
+  onApproveExecute,
   onReject,
-  onExecute
 }: ApprovalsPanelProps) {
   const [nowMs, setNowMs] = useState(Date.now());
 
@@ -100,20 +98,13 @@ export function ApprovalsPanel({
             <div className="approval-actions">
               <button
                 className="btn btn-primary"
-                onClick={() => onApprove(item.id)}
-                disabled={item.status !== "pending" || item.approvedBy.includes(currentUserId)}
+                onClick={() => onApproveExecute(item.action, item.id)}
+                disabled={item.status === "rejected" || item.status === "expired" || (item.status === "pending" && item.approvedBy.includes(currentUserId))}
               >
-                Approve
+                {item.status === "approved" ? "Execute" : "Approve & Execute"}
               </button>
               <button className="btn btn-ghost" onClick={() => onReject(item.id)} disabled={item.status !== "pending"}>
                 Reject
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={() => onExecute(item.action, item.id)}
-                disabled={item.status !== "approved"}
-              >
-                Execute
               </button>
             </div>
           </article>

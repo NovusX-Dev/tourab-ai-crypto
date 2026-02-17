@@ -100,7 +100,25 @@ export class MockBotApiClient implements BotApiClient {
         totalEq: "0",
         balances: [],
         lastUpdatedAt: new Date().toISOString(),
-        lastError: "Portfolio unavailable in forced mock mode."
+        lastError: "Portfolio unavailable in forced mock mode.",
+        performance: {
+          sessionStartEqUsd: 0,
+          currentEqUsd: 0,
+          deltaUsd: 0,
+          deltaPct: 0,
+          timeline: [],
+          trades: [],
+          daily: {
+            day: new Date().toISOString().slice(0, 10),
+            realizedPnlUsd: 0,
+            unrealizedPnlUsd: 0,
+            feesUsd: 0,
+            winRate: 0,
+            wins: 0,
+            losses: 0,
+            closedTrades: 0
+          }
+        }
       },
       openOrders: {
         orders: [],
@@ -338,7 +356,7 @@ export class MockBotApiClient implements BotApiClient {
     return this.alerts.filter((item) => item.status === status);
   }
 
-  async acknowledgeAlert(id: string, userId: string): Promise<AlertItem> {
+  async acknowledgeAlert(id: string, _role: UserRole, userId: string): Promise<AlertItem> {
     const existing = this.alerts.find((item) => item.id === id);
     if (!existing) {
       throw new Error(`Alert not found: ${id}`);
@@ -353,7 +371,7 @@ export class MockBotApiClient implements BotApiClient {
     return updated;
   }
 
-  async resolveAlert(id: string, userId: string): Promise<AlertItem> {
+  async resolveAlert(id: string, _role: UserRole, userId: string): Promise<AlertItem> {
     const existing = this.alerts.find((item) => item.id === id);
     if (!existing) {
       throw new Error(`Alert not found: ${id}`);
@@ -409,6 +427,43 @@ export class MockBotApiClient implements BotApiClient {
     return this.reconciliation;
   }
 
+  async clearEventStreamsAndLogs(role: UserRole, _userId: string): Promise<{
+    ok: boolean;
+    code: string;
+    message: string;
+    state: BotLifecycleState;
+    details?: Record<string, string | number | boolean>;
+  }> {
+    if (role === "read_only") {
+      return {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Not authorized for this action",
+        state: this.state.state
+      };
+    }
+    const eventsDeleted = this.events.length;
+    const logsCleared = this.logs.length;
+    const auditDeleted = this.audit.length;
+    const incidentsDeleted = this.incidents.length;
+    this.events = [];
+    this.logs = [];
+    this.audit = [];
+    this.incidents = [];
+    return {
+      ok: true,
+      code: "OK",
+      message: "Event streams and logs cleared",
+      state: this.state.state,
+      details: {
+        eventsDeleted,
+        logsCleared,
+        auditDeleted,
+        incidentsDeleted
+      }
+    };
+  }
+
   async listIncidents(status?: "open" | "acknowledged" | "resolved"): Promise<IncidentItem[]> {
     if (!status) {
       return [...this.incidents];
@@ -416,7 +471,7 @@ export class MockBotApiClient implements BotApiClient {
     return this.incidents.filter((item) => item.status === status);
   }
 
-  async acknowledgeIncident(id: string, userId: string): Promise<IncidentItem> {
+  async acknowledgeIncident(id: string, _role: UserRole, userId: string): Promise<IncidentItem> {
     const existing = this.incidents.find((item) => item.id === id);
     if (!existing) {
       throw new Error(`Incident not found: ${id}`);
@@ -432,7 +487,7 @@ export class MockBotApiClient implements BotApiClient {
     return updated;
   }
 
-  async resolveIncident(id: string, userId: string): Promise<IncidentItem> {
+  async resolveIncident(id: string, _role: UserRole, userId: string): Promise<IncidentItem> {
     const existing = this.incidents.find((item) => item.id === id);
     if (!existing) {
       throw new Error(`Incident not found: ${id}`);

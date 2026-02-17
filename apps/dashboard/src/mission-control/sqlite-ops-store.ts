@@ -154,6 +154,25 @@ export class SqliteOpsStore {
       .run();
   }
 
+  deleteAuditOlderThan(cutoffIso: string): number {
+    const result = this.db.prepare(`DELETE FROM audit_entries WHERE at < ?`).run(cutoffIso) as { changes?: number };
+    return result.changes ?? 0;
+  }
+
+  deleteIncidentsOlderThan(cutoffIso: string): number {
+    const result = this.db.prepare(`DELETE FROM incidents WHERE updated_at < ?`).run(cutoffIso) as { changes?: number };
+    return result.changes ?? 0;
+  }
+
+  clearAllOps(): { auditDeleted: number; incidentsDeleted: number } {
+    const auditResult = this.db.prepare(`DELETE FROM audit_entries`).run() as { changes?: number };
+    const incidentResult = this.db.prepare(`DELETE FROM incidents`).run() as { changes?: number };
+    return {
+      auditDeleted: auditResult.changes ?? 0,
+      incidentsDeleted: incidentResult.changes ?? 0
+    };
+  }
+
   listIncidents(status?: IncidentStatus, limit = 300): IncidentItem[] {
     const rows = (status
       ? this.db

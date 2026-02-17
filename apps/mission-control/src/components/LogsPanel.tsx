@@ -4,9 +4,10 @@ import type { LogEntry } from "../types";
 
 interface LogsPanelProps {
   logs: LogEntry[];
+  onClearStreamsAndLogs: () => void;
 }
 
-export function LogsPanel({ logs }: LogsPanelProps) {
+export function LogsPanel({ logs, onClearStreamsAndLogs }: LogsPanelProps) {
   const [query, setQuery] = useState("");
   const [severity, setSeverity] = useState<"all" | "info" | "warn" | "error">("all");
   const [symbol, setSymbol] = useState("");
@@ -27,8 +28,13 @@ export function LogsPanel({ logs }: LogsPanelProps) {
   }, [logs, query, severity, symbol]);
 
   return (
-    <section className="panel-content" aria-label="Logs panel">
-      <div className="panel-title">Logs</div>
+    <section className="panel-content logs-panel" aria-label="Logs panel">
+      <div className="panel-head">
+        <div className="panel-title">Logs</div>
+        <button className="btn btn-danger" onClick={onClearStreamsAndLogs}>
+          Clear Streams + Logs
+        </button>
+      </div>
       <div className="log-filters">
         <input placeholder="Search logs" value={query} onChange={(event) => setQuery(event.target.value)} />
         <select value={severity} onChange={(event) => setSeverity(event.target.value as typeof severity)}>
@@ -46,9 +52,9 @@ export function LogsPanel({ logs }: LogsPanelProps) {
       <div className="logs-list">
         {filtered.map((log) => (
           <article className="log-row" key={log.id}>
-            <span>{formatTime(log.at)}</span>
-            <span className={`tag sev-${log.severity}`}>{log.severity.toUpperCase()}</span>
-            <span>{log.symbol || "-"}</span>
+            <span className="log-time">{formatTime(log.at)}</span>
+            <span className={`tag log-severity sev-${log.severity}`}>{log.severity.toUpperCase()}</span>
+            <span className="log-symbol">{log.symbol || "-"}</span>
             <span className="log-message">{log.message}</span>
           </article>
         ))}

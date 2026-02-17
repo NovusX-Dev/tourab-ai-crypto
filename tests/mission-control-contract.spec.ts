@@ -514,4 +514,101 @@ describe("mission-control contract", () => {
       await rm(tempDir, { recursive: true, force: true });
     }
   });
+
+  it("auto-starts worker on boot when persisted state is running", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+
+    const first = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      await postControl(first.baseHttpUrl, "/start");
+    } finally {
+      await first.close();
+    }
+
+    const second = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const eventsRes = await fetch(`${second.baseHttpUrl}/events?limit=30`);
+      expect(eventsRes.ok).toBe(true);
+      const eventsPayload = (await eventsRes.json()) as { items: Array<{ message: string }> };
+      expect(eventsPayload.items.some((item) => item.message.includes("Worker auto-started from persisted running state"))).toBe(true);
+    } finally {
+      await second.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("raises a stall alert when running worker produces no ProposalCreated events", async () => {
+    const previousInterval = process.env.TOURAB_WORKER_INTERVAL_MS;
+    const previousGap = process.env.TOURAB_WORKER_PROPOSAL_GAP_MS;
+    const previousCheck = process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS;
+    process.env.TOURAB_WORKER_INTERVAL_MS = "120000";
+    process.env.TOURAB_WORKER_PROPOSAL_GAP_MS = "1500";
+    process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS = "500";
+
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+
+    const first = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      await postControl(first.baseHttpUrl, "/start");
+    } finally {
+      await first.close();
+    }
+
+    const second = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      await delay(2400);
+      const alertsRes = await fetch(`${second.baseHttpUrl}/alerts?status=open`);
+      expect(alertsRes.ok).toBe(true);
+      const alertsPayload = (await alertsRes.json()) as { items: Array<{ code: string }> };
+      expect(alertsPayload.items.some((item) => item.code === "WORKER_STALLED_NO_PROPOSAL")).toBe(true);
+    } finally {
+      await second.close();
+      await rm(tempDir, { recursive: true, force: true });
+      if (previousInterval === undefined) {
+        delete process.env.TOURAB_WORKER_INTERVAL_MS;
+      } else {
+        process.env.TOURAB_WORKER_INTERVAL_MS = previousInterval;
+      }
+      if (previousGap === undefined) {
+        delete process.env.TOURAB_WORKER_PROPOSAL_GAP_MS;
+      } else {
+        process.env.TOURAB_WORKER_PROPOSAL_GAP_MS = previousGap;
+      }
+      if (previousCheck === undefined) {
+        delete process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS;
+      } else {
+        process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS = previousCheck;
+      }
+    }
+  });
 });

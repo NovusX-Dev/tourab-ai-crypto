@@ -56,6 +56,7 @@ export default function App() {
     return window.localStorage.getItem("tourab_auth_token") ?? "";
   });
   const [approvalsAttention, setApprovalsAttention] = useState(false);
+  const [alertsAttention, setAlertsAttention] = useState(false);
   const [approvalSoundMuted, setApprovalSoundMuted] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       return false;
@@ -63,6 +64,7 @@ export default function App() {
     return window.localStorage.getItem("tourab_approval_sound_muted") === "1";
   });
   const previousPendingApprovalIdsRef = useRef<string[]>([]);
+  const previousOpenAlertIdsRef = useRef<string[]>([]);
 
   const dashboard = useDashboardData(client);
 
@@ -133,6 +135,35 @@ export default function App() {
     }, totalDurationMs);
   }
 
+  function playAlertChime() {
+    if (approvalSoundMuted || typeof window === "undefined") {
+      return;
+    }
+    const audioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!audioContextCtor) {
+      return;
+    }
+    const ctx = new audioContextCtor();
+    const start = ctx.currentTime + 0.02;
+    const notes = [392, 330, 262];
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start + index * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.09, start + index * 0.12 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + index * 0.12 + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start + index * 0.12);
+      osc.stop(start + index * 0.12 + 0.1);
+    });
+    setTimeout(() => {
+      void ctx.close();
+    }, 500);
+  }
+
   function handleTheme(next: ThemeName) {
     setTheme(next);
     applyTheme(next);
@@ -197,6 +228,24 @@ export default function App() {
     }
   }, [tab]);
 
+  useEffect(() => {
+    const openAlerts = alerts.filter((item) => item.status === "open");
+    const nextOpenIds = openAlerts.map((item) => item.id).sort();
+    const previousOpenIds = previousOpenAlertIdsRef.current;
+    const newOpenAlertExists = nextOpenIds.some((id) => !previousOpenIds.includes(id));
+    if (newOpenAlertExists && tab !== "alerts") {
+      setAlertsAttention(true);
+      playAlertChime();
+    }
+    previousOpenAlertIdsRef.current = nextOpenIds;
+  }, [alerts, tab]);
+
+  useEffect(() => {
+    if (tab === "alerts") {
+      setAlertsAttention(false);
+    }
+  }, [tab]);
+
   async function refreshApprovals() {
     const items = await client.listApprovals();
     setPendingApprovals(items);
@@ -212,14 +261,29 @@ export default function App() {
     setIncidents(items);
   }
 
-  async function approveApproval(id: string) {
-    const updated = await client.approveApproval(id, currentUserId);
-    pushToast(
-      updated.status === "approved" ? "success" : "warning",
-      "APPROVAL_UPDATED",
-      `${updated.id}: ${updated.approvalCount}/${updated.requiredApprovals}`
-    );
-    await refreshApprovals();
+  async function approveAndExecuteApproval(action: ControlAction, id: string) {
+    const existing = pendingApprovals.find((item) => item.id === id);
+    if (!existing) {
+      await refreshApprovals();
+      return;
+    }
+    if (existing.status === "pending") {
+      if (existing.approvedBy.includes(currentUserId)) {
+        pushToast("warning", "APPROVAL_WAITING", `Approval ${id} already signed by ${currentUserId}. Waiting for other signer(s).`);
+        return;
+      }
+      const updated = await client.approveApproval(id, currentUserId);
+      pushToast(
+        updated.status === "approved" ? "success" : "warning",
+        "APPROVAL_UPDATED",
+        `${updated.id}: ${updated.approvalCount}/${updated.requiredApprovals}`
+      );
+      if (updated.status !== "approved") {
+        await refreshApprovals();
+        return;
+      }
+    }
+    await handleAction(action, id);
   }
 
   async function rejectApproval(id: string) {
@@ -229,25 +293,72 @@ export default function App() {
   }
 
   async function acknowledgeAlert(id: string) {
-    const updated = await client.acknowledgeAlert(id, currentUserId);
-    pushToast("warning", "ALERT_ACKNOWLEDGED", `${updated.code} acknowledged by ${currentUserId}`);
-    await refreshAlerts();
+    try {
+      const updated = await client.acknowledgeAlert(id, dashboard.role, currentUserId);
+      pushToast("warning", "ALERT_ACKNOWLEDGED", `${updated.code} acknowledged by ${currentUserId}`);
+      await refreshAlerts();
+    } catch (_error: unknown) {
+      pushToast("error", "ALERT_ACK_FAILED", "Failed to acknowledge alert. Check role/permissions.");
+    }
   }
 
   async function resolveAlert(id: string) {
-    const updated = await client.resolveAlert(id, currentUserId);
-    pushToast("success", "ALERT_RESOLVED", `${updated.code} resolved by ${currentUserId}`);
+    try {
+      const updated = await client.resolveAlert(id, dashboard.role, currentUserId);
+      pushToast("success", "ALERT_RESOLVED", `${updated.code} resolved by ${currentUserId}`);
+      await refreshAlerts();
+    } catch (_error: unknown) {
+      pushToast("error", "ALERT_RESOLVE_FAILED", "Failed to resolve alert. Check role/permissions.");
+    }
+  }
+
+  async function clearErrorAlerts() {
+    if (dashboard.role === "read_only") {
+      pushToast("warning", "UNAUTHORIZED", "Read-only role cannot clear alerts.");
+      return;
+    }
+    const clearable = alerts.filter(
+      (item) => item.status !== "resolved" && (item.severity === "warn" || item.severity === "error" || item.severity === "critical")
+    );
+    if (clearable.length === 0) {
+      return;
+    }
+    const results = await Promise.allSettled(clearable.map((item) => client.resolveAlert(item.id, dashboard.role, currentUserId)));
+    const resolved = results.filter((result) => result.status === "fulfilled").length;
+    const failed = results.length - resolved;
+    if (resolved > 0) {
+      pushToast("success", "ALERTS_CLEARED", `${resolved} warn/error alert(s) resolved by ${currentUserId}.`);
+    }
+    if (failed > 0) {
+      pushToast("warning", "ALERT_CLEAR_PARTIAL", `${failed} alert(s) could not be cleared.`);
+    }
     await refreshAlerts();
   }
 
+  async function clearStreamsAndLogs() {
+    const confirmed = window.confirm("Clear event streams and logs older/current data now?");
+    if (!confirmed) {
+      return;
+    }
+    const result = await client.clearEventStreamsAndLogs(dashboard.role, currentUserId);
+    if (!result.ok) {
+      pushToast("error", result.code, result.message);
+      return;
+    }
+    pushToast("success", "STREAMS_CLEARED", result.message);
+    await refreshApprovals();
+    await refreshAlerts();
+    await refreshIncidents();
+  }
+
   async function acknowledgeIncident(id: string) {
-    const updated = await client.acknowledgeIncident(id, currentUserId);
+    const updated = await client.acknowledgeIncident(id, dashboard.role, currentUserId);
     pushToast("warning", "INCIDENT_ACKNOWLEDGED", `${updated.id} acknowledged by ${currentUserId}`);
     await refreshIncidents();
   }
 
   async function resolveIncident(id: string) {
-    const updated = await client.resolveIncident(id, currentUserId);
+    const updated = await client.resolveIncident(id, dashboard.role, currentUserId);
     pushToast("success", "INCIDENT_RESOLVED", `${updated.id} resolved by ${currentUserId}`);
     await refreshIncidents();
   }
@@ -345,9 +456,8 @@ export default function App() {
           demoQueue={dashboard.demoQueue}
           currentUserId={currentUserId}
           onRefresh={() => void refreshApprovals()}
-          onApprove={(id) => void approveApproval(id)}
+          onApproveExecute={(action, id) => void approveAndExecuteApproval(action, id)}
           onReject={(id) => void rejectApproval(id)}
-          onExecute={(action, approvalId) => void handleAction(action, approvalId)}
         />
       );
     }
@@ -356,7 +466,9 @@ export default function App() {
         <AlertsPanel
           items={alerts}
           currentUserId={currentUserId}
+          canManageAlerts={dashboard.role !== "read_only"}
           onRefresh={() => void refreshAlerts()}
+          onClearErrors={() => void clearErrorAlerts()}
           onAcknowledge={(id) => void acknowledgeAlert(id)}
           onResolve={(id) => void resolveAlert(id)}
         />
@@ -382,7 +494,7 @@ export default function App() {
     if (tab === "ops") {
       return <OpsMetricsPanel metrics={dashboard.metrics} />;
     }
-    return <LogsPanel logs={dashboard.logs} />;
+    return <LogsPanel logs={dashboard.logs} onClearStreamsAndLogs={() => void clearStreamsAndLogs()} />;
   }, [
     tab,
     dashboard.risk,
@@ -576,7 +688,12 @@ export default function App() {
           >
             Approvals
           </button>
-          <button className={`tab ${tab === "alerts" ? "tab-active" : ""}`} onClick={() => setTab("alerts")}>Alerts</button>
+          <button
+            className={`tab ${tab === "alerts" ? "tab-active" : ""} ${alertsAttention && tab !== "alerts" ? "tab-attention" : ""}`}
+            onClick={() => setTab("alerts")}
+          >
+            Alerts
+          </button>
           <button className={`tab ${tab === "incidents" ? "tab-active" : ""}`} onClick={() => setTab("incidents")}>Incidents</button>
           <button className={`tab ${tab === "portfolio" ? "tab-active" : ""}`} onClick={() => setTab("portfolio")}>Portfolio</button>
           <button className={`tab ${tab === "orders" ? "tab-active" : ""}`} onClick={() => setTab("orders")}>Orders</button>

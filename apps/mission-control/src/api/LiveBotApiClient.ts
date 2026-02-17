@@ -311,11 +311,12 @@ export class LiveBotApiClient implements BotApiClient {
     }
   }
 
-  async acknowledgeAlert(id: string, userId: string): Promise<AlertItem> {
+  async acknowledgeAlert(id: string, role: UserRole, userId: string): Promise<AlertItem> {
     try {
       const res = await fetch(`${this.baseHttpUrl}/alerts/${id}/ack`, {
         method: "POST",
         headers: {
+          "x-tourab-role": role,
           "x-user-id": userId,
           ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
         }
@@ -329,15 +330,16 @@ export class LiveBotApiClient implements BotApiClient {
         throw error;
       }
       this.setDataSource("mock_fallback");
-      return mockBotApiClient.acknowledgeAlert(id, userId);
+      return mockBotApiClient.acknowledgeAlert(id, role, userId);
     }
   }
 
-  async resolveAlert(id: string, userId: string): Promise<AlertItem> {
+  async resolveAlert(id: string, role: UserRole, userId: string): Promise<AlertItem> {
     try {
       const res = await fetch(`${this.baseHttpUrl}/alerts/${id}/resolve`, {
         method: "POST",
         headers: {
+          "x-tourab-role": role,
           "x-user-id": userId,
           ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
         }
@@ -351,7 +353,7 @@ export class LiveBotApiClient implements BotApiClient {
         throw error;
       }
       this.setDataSource("mock_fallback");
-      return mockBotApiClient.resolveAlert(id, userId);
+      return mockBotApiClient.resolveAlert(id, role, userId);
     }
   }
 
@@ -407,11 +409,12 @@ export class LiveBotApiClient implements BotApiClient {
     }
   }
 
-  async acknowledgeIncident(id: string, userId: string): Promise<IncidentItem> {
+  async acknowledgeIncident(id: string, role: UserRole, userId: string): Promise<IncidentItem> {
     try {
       const res = await fetch(`${this.baseHttpUrl}/incidents/${id}/ack`, {
         method: "POST",
         headers: {
+          "x-tourab-role": role,
           "x-user-id": userId,
           ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
         }
@@ -425,15 +428,16 @@ export class LiveBotApiClient implements BotApiClient {
         throw error;
       }
       this.setDataSource("mock_fallback");
-      return mockBotApiClient.acknowledgeIncident(id, userId);
+      return mockBotApiClient.acknowledgeIncident(id, role, userId);
     }
   }
 
-  async resolveIncident(id: string, userId: string): Promise<IncidentItem> {
+  async resolveIncident(id: string, role: UserRole, userId: string): Promise<IncidentItem> {
     try {
       const res = await fetch(`${this.baseHttpUrl}/incidents/${id}/resolve`, {
         method: "POST",
         headers: {
+          "x-tourab-role": role,
           "x-user-id": userId,
           ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
         }
@@ -447,7 +451,38 @@ export class LiveBotApiClient implements BotApiClient {
         throw error;
       }
       this.setDataSource("mock_fallback");
-      return mockBotApiClient.resolveIncident(id, userId);
+      return mockBotApiClient.resolveIncident(id, role, userId);
+    }
+  }
+
+  async clearEventStreamsAndLogs(role: UserRole, userId: string): Promise<ControlActionResponse> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/maintenance/clear-streams`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (res.ok) {
+        return (await res.json()) as ControlActionResponse;
+      }
+      const errorPayload = (await res.json()) as ApiErrorPayload;
+      const state = (await this.getSnapshot()).state.state;
+      return {
+        ok: false,
+        code: errorPayload.code ?? "REQUEST_FAILED",
+        message: errorPayload.message ?? "Clear streams request failed",
+        state,
+        details: errorPayload.details
+      };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.clearEventStreamsAndLogs(role, userId);
     }
   }
 }

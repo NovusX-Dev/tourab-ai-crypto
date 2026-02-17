@@ -60,6 +60,16 @@ export class SqliteEventStore {
       );
   }
 
+  deleteOlderThan(cutoffIso: string): number {
+    const result = this.db.prepare(`DELETE FROM bot_events WHERE timestamp < ?`).run(cutoffIso) as { changes?: number };
+    return result.changes ?? 0;
+  }
+
+  clearAll(): number {
+    const result = this.db.prepare(`DELETE FROM bot_events`).run() as { changes?: number };
+    return result.changes ?? 0;
+  }
+
   async readAll(limit = 500): Promise<BotEvent[]> {
     const rows = this.db
       .prepare(
@@ -153,4 +163,3 @@ export class SqliteEventStore {
     this.db.close();
   }
 }
-

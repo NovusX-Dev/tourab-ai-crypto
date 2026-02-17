@@ -184,11 +184,60 @@ export interface PortfolioBalance {
   eq: string;
 }
 
+export interface EquityTimelinePoint {
+  at: string;
+  equityUsd: number;
+  drawdownPct: number;
+}
+
+export interface TradePnlItem {
+  tradeId: string;
+  ordId: string;
+  clOrdId: string;
+  symbol: string;
+  side: "buy" | "sell";
+  qtyBase: number;
+  price: number;
+  notionalUsd: number;
+  realizedPnlUsd: number;
+  feeUsd: number;
+  netPnlUsd: number;
+  ts: string;
+}
+
+export interface DailyPnlSummary {
+  day: string;
+  realizedPnlUsd: number;
+  unrealizedPnlUsd: number;
+  feesUsd: number;
+  winRate: number;
+  wins: number;
+  losses: number;
+  closedTrades: number;
+}
+
+export interface PortfolioPerformance {
+  sessionStartEqUsd: number;
+  currentEqUsd: number;
+  deltaUsd: number;
+  deltaPct: number;
+  timeline: EquityTimelinePoint[];
+  trades: TradePnlItem[];
+  daily: DailyPnlSummary;
+  dailyByBasis?: {
+    utc: DailyPnlSummary;
+    exchange: DailyPnlSummary;
+  };
+  exchangeTimezoneOffsetMinutes?: number;
+  exchangeTimezoneLabel?: string;
+}
+
 export interface PortfolioStatus {
   totalEq: string;
   balances: PortfolioBalance[];
   lastUpdatedAt: string;
   lastError?: string;
+  performance: PortfolioPerformance;
 }
 
 export interface OpenOrderItem {

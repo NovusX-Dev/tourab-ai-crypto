@@ -58,7 +58,25 @@ const EMPTY_PORTFOLIO: PortfolioStatus = {
   totalEq: "0",
   balances: [],
   lastUpdatedAt: new Date(0).toISOString(),
-  lastError: "Portfolio not loaded yet."
+  lastError: "Portfolio not loaded yet.",
+  performance: {
+    sessionStartEqUsd: 0,
+    currentEqUsd: 0,
+    deltaUsd: 0,
+    deltaPct: 0,
+    timeline: [],
+    trades: [],
+    daily: {
+      day: new Date().toISOString().slice(0, 10),
+      realizedPnlUsd: 0,
+      unrealizedPnlUsd: 0,
+      feesUsd: 0,
+      winRate: 0,
+      wins: 0,
+      losses: 0,
+      closedTrades: 0
+    }
+  }
 };
 const EMPTY_OPEN_ORDERS: OpenOrdersStatus = {
   orders: [],

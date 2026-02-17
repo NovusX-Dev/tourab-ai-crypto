@@ -24,12 +24,14 @@ import type {
   OpenOrdersStatus,
   OpsMetrics,
   PortfolioStatus,
+  PortfolioPerformance,
   ReconciliationStatus,
+  TradePnlItem,
   TradeProposal,
   UserRole,
   WsMessage
 } from "@tourab/shared";
-import { loadOkxDemoConfigFromEnv, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
+import { loadOkxDemoConfigFromEnv, OkxDemoAdapter, type OkxFillRecord } from "@tourab/okx-demo-adapter";
 import { authRoleMiddleware, type AuthenticatedRequest } from "./mission-control/auth.js";
 import { ApprovalStore } from "./mission-control/approval-store.js";
 import { EventBus } from "./mission-control/event-bus.js";
@@ -53,6 +55,32 @@ const DEFAULT_ALERT_STORE_PATH = process.env.TOURAB_ALERT_STORE_PATH ?? "logs/mi
 const DEFAULT_OPS_STORE_PATH = process.env.TOURAB_OPS_STORE_PATH ?? "logs/mission-ops.sqlite";
 const REPLAY_DEFAULT = 200;
 const DEFAULT_DRIFT_CIRCUIT_ACTION = (process.env.TOURAB_DRIFT_CIRCUIT_ACTION ?? "pause") as "pause" | "stop";
+const DEFAULT_STREAM_RETENTION_MS = 15 * 60_000;
+const DEFAULT_STREAM_RETENTION_SWEEP_MS = 60_000;
+const HEARTBEAT_CHECKPOINT_MESSAGE = "Heartbeat checkpoint";
+const WORKER_STALL_ALERT_CODE = "WORKER_STALLED_NO_PROPOSAL";
+const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
+  "ProposalCreated",
+  "GatekeeperDecision",
+  "ProposalApproved",
+  "OrderSubmitted",
+  "OrderFilled",
+  "OrderCancelled",
+  "RiskLimitHit",
+  "Error"
+]);
+
+export function normalizeHeartbeatEventSemantics(event: BotEvent): BotEvent {
+  if (event.message !== HEARTBEAT_CHECKPOINT_MESSAGE || !EXECUTION_EVENT_TYPES.has(event.type)) {
+    return event;
+  }
+  return {
+    ...event,
+    type: "System",
+    severity: "info",
+    tags: [...(event.tags ?? []), "heartbeat", "semantic_sanitized", `original_type:${event.type}`]
+  };
+}
 
 function parseBoundedInt(raw: string | undefined, fallback: number, min: number, max: number): number {
   const value = Number(raw);
@@ -61,6 +89,181 @@ function parseBoundedInt(raw: string | undefined, fallback: number, min: number,
   }
   const rounded = Math.floor(value);
   return Math.max(min, Math.min(max, rounded));
+}
+
+function toFiniteNumber(raw: string | number | undefined): number {
+  const value = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function round6(value: number): number {
+  return Number(value.toFixed(6));
+}
+
+interface PositionAccumulator {
+  qty: number;
+  avgPrice: number;
+}
+
+interface PerformanceBuildInput {
+  fills: OkxFillRecord[];
+  marksBySymbol: Map<string, number>;
+  feeRateBps: number;
+  sessionStartEqUsd: number;
+  currentEqUsd: number;
+  exchangeTimezoneOffsetMinutes: number;
+}
+
+function dayKeyAtOffset(isoTs: string, offsetMinutes: number): string {
+  const epoch = Date.parse(isoTs);
+  if (!Number.isFinite(epoch)) {
+    return new Date().toISOString().slice(0, 10);
+  }
+  const shifted = epoch + offsetMinutes * 60_000;
+  return new Date(shifted).toISOString().slice(0, 10);
+}
+
+function formatUtcOffsetLabel(offsetMinutes: number): string {
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMinutes);
+  const hours = Math.floor(abs / 60);
+  const minutes = abs % 60;
+  return `UTC${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function summarizeDailyFromTrades(
+  trades: TradePnlItem[],
+  dayKey: string,
+  offsetMinutes: number,
+  unrealizedPnlUsd: number
+): PortfolioPerformance["daily"] {
+  let realizedPnlUsd = 0;
+  let feesUsd = 0;
+  let wins = 0;
+  let losses = 0;
+  for (const trade of trades) {
+    if (dayKeyAtOffset(trade.ts, offsetMinutes) !== dayKey) {
+      continue;
+    }
+    realizedPnlUsd += trade.realizedPnlUsd;
+    feesUsd += trade.feeUsd;
+    if (trade.realizedPnlUsd > 0) {
+      wins += 1;
+    } else if (trade.realizedPnlUsd < 0) {
+      losses += 1;
+    }
+  }
+  const closedTrades = wins + losses;
+  return {
+    day: dayKey,
+    realizedPnlUsd: round6(realizedPnlUsd),
+    unrealizedPnlUsd: round6(unrealizedPnlUsd),
+    feesUsd: round6(feesUsd),
+    winRate: closedTrades > 0 ? round6((wins / closedTrades) * 100) : 0,
+    wins,
+    losses,
+    closedTrades
+  };
+}
+
+function buildPerformanceFromFills(input: PerformanceBuildInput): {
+  trades: TradePnlItem[];
+  dailyUtc: PortfolioPerformance["daily"];
+  dailyExchange: PortfolioPerformance["daily"];
+  exchangeTimezoneLabel: string;
+} {
+  const fills = [...input.fills].sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+  const positions = new Map<string, PositionAccumulator>();
+  const trades: TradePnlItem[] = [];
+
+  for (const fill of fills) {
+    const qty = Math.max(0, toFiniteNumber(fill.fillSz));
+    const price = Math.max(0, toFiniteNumber(fill.fillPx));
+    if (qty <= 0 || price <= 0) {
+      continue;
+    }
+    const signedQty = fill.side === "buy" ? qty : -qty;
+    const notionalUsd = qty * price;
+    const feeUsd = notionalUsd * (input.feeRateBps / 10_000);
+    const current = positions.get(fill.instId) ?? { qty: 0, avgPrice: 0 };
+    let realizedPnlUsd = 0;
+
+    if (current.qty > 0 && signedQty < 0) {
+      const closeQty = Math.min(current.qty, Math.abs(signedQty));
+      realizedPnlUsd = (price - current.avgPrice) * closeQty;
+      const remainingQty = current.qty - closeQty;
+      positions.set(fill.instId, {
+        qty: remainingQty,
+        avgPrice: remainingQty > 0 ? current.avgPrice : 0
+      });
+      const openShortQty = Math.abs(signedQty) - closeQty;
+      if (openShortQty > 0) {
+        positions.set(fill.instId, { qty: -openShortQty, avgPrice: price });
+      }
+    } else if (current.qty < 0 && signedQty > 0) {
+      const closeQty = Math.min(Math.abs(current.qty), signedQty);
+      realizedPnlUsd = (current.avgPrice - price) * closeQty;
+      const remainingQty = Math.abs(current.qty) - closeQty;
+      positions.set(fill.instId, {
+        qty: remainingQty > 0 ? -remainingQty : 0,
+        avgPrice: remainingQty > 0 ? current.avgPrice : 0
+      });
+      const openLongQty = signedQty - closeQty;
+      if (openLongQty > 0) {
+        positions.set(fill.instId, { qty: openLongQty, avgPrice: price });
+      }
+    } else {
+      const nextQty = current.qty + signedQty;
+      const weightedNotional = current.avgPrice * Math.abs(current.qty) + price * Math.abs(signedQty);
+      const avgPrice = Math.abs(nextQty) > 0 ? weightedNotional / Math.abs(nextQty) : 0;
+      positions.set(fill.instId, { qty: nextQty, avgPrice });
+    }
+
+    const netPnlUsd = realizedPnlUsd - feeUsd;
+    const item: TradePnlItem = {
+      tradeId: fill.tradeId,
+      ordId: fill.ordId,
+      clOrdId: fill.clOrdId,
+      symbol: fill.instId,
+      side: fill.side,
+      qtyBase: qty,
+      price,
+      notionalUsd,
+      realizedPnlUsd: round6(realizedPnlUsd),
+      feeUsd: round6(feeUsd),
+      netPnlUsd: round6(netPnlUsd),
+      ts: fill.ts
+    };
+    trades.push(item);
+
+  }
+
+  let unrealizedPnlUsd = 0;
+  for (const [symbol, position] of positions.entries()) {
+    if (position.qty === 0) {
+      continue;
+    }
+    const mark = input.marksBySymbol.get(symbol) ?? position.avgPrice;
+    unrealizedPnlUsd += (mark - position.avgPrice) * position.qty;
+  }
+  const nowIso = new Date().toISOString();
+  const utcDay = nowIso.slice(0, 10);
+  const exchangeDay = dayKeyAtOffset(nowIso, input.exchangeTimezoneOffsetMinutes);
+  const sortedTrades = trades.sort((a, b) => b.ts.localeCompare(a.ts));
+  const dailyUtc = summarizeDailyFromTrades(sortedTrades, utcDay, 0, unrealizedPnlUsd);
+  const dailyExchange = summarizeDailyFromTrades(
+    sortedTrades,
+    exchangeDay,
+    input.exchangeTimezoneOffsetMinutes,
+    unrealizedPnlUsd
+  );
+
+  return {
+    trades: sortedTrades,
+    dailyUtc,
+    dailyExchange,
+    exchangeTimezoneLabel: formatUtcOffsetLabel(input.exchangeTimezoneOffsetMinutes)
+  };
 }
 
 export interface MissionControlServerOptions {
@@ -79,6 +282,13 @@ export interface MissionControlServerHandle {
   baseWsUrl: string;
   close: () => Promise<void>;
   server: Server;
+}
+
+interface ClearStreamsResult {
+  eventsDeleted: number;
+  auditDeleted: number;
+  incidentsDeleted: number;
+  logsCleared: number;
 }
 
 function controlActionFromPath(path: string): ControlAction | undefined {
@@ -185,6 +395,13 @@ function incidentTemplateFromAlert(alert: AlertItem): Pick<IncidentItem, "taxono
       runbookRef: "docs/runbooks/exchange-reliability.md"
     };
   }
+  if (alert.code === WORKER_STALL_ALERT_CODE) {
+    return {
+      taxonomy: "stream_health",
+      severity: "sev2",
+      runbookRef: "docs/runbooks/control-plane-incident.md"
+    };
+  }
   return {
     taxonomy: "control_plane",
     severity: alert.severity === "critical" ? "sev1" : "sev3",
@@ -207,6 +424,18 @@ export async function startMissionControlServer(
   const logRequests = options.logRequests ?? true;
   const approvalTtlMs = options.approvalTtlMs ?? Number(process.env.TOURAB_APPROVAL_TTL_MS ?? 5 * 60_000);
   const driftCircuitAction = DEFAULT_DRIFT_CIRCUIT_ACTION;
+  const streamRetentionMs = parseBoundedInt(
+    process.env.TOURAB_STREAM_RETENTION_MS,
+    DEFAULT_STREAM_RETENTION_MS,
+    60_000,
+    24 * 60 * 60_000
+  );
+  const streamRetentionSweepMs = parseBoundedInt(
+    process.env.TOURAB_STREAM_RETENTION_SWEEP_MS,
+    DEFAULT_STREAM_RETENTION_SWEEP_MS,
+    5_000,
+    10 * 60_000
+  );
   const driftMinConsecutive = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MIN_CONSECUTIVE, 2, 1, 20);
   const driftMaxGraceMs = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MAX_GRACE_MS, 90_000, 1_000, 86_400_000);
   const exchangeMode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
@@ -237,11 +466,61 @@ export async function startMissionControlServer(
     lastHealthCheckAt: new Date(0).toISOString(),
     lastError: "Exchange health not checked yet."
   };
+  const performanceTimelineMaxPoints = parseBoundedInt(process.env.TOURAB_PERF_TIMELINE_MAX_POINTS, 500, 50, 5000);
+  const performanceTradeLimit = parseBoundedInt(process.env.TOURAB_PERF_TRADE_LIMIT, 200, 20, 2000);
+  const performanceFillLimit = parseBoundedInt(process.env.TOURAB_PERF_FILLS_LIMIT, 300, 20, 2000);
+  const performanceFeeRateBps = Math.max(0, Number(process.env.TOURAB_PERF_FEE_RATE_BPS ?? "8"));
+  const exchangeTimezoneOffsetMinutes = parseBoundedInt(process.env.TOURAB_EXCHANGE_TIMEZONE_OFFSET_MINUTES, 480, -840, 840);
+  const exchangeTimezoneLabel = formatUtcOffsetLabel(exchangeTimezoneOffsetMinutes);
+  const equityTimeline: PortfolioPerformance["timeline"] = [];
+  let sessionStartEqUsd: number | undefined;
   let portfolioStatus: PortfolioStatus = {
     totalEq: "0",
     balances: [],
     lastUpdatedAt: new Date(0).toISOString(),
-    lastError: "Portfolio health not checked yet."
+    lastError: "Portfolio health not checked yet.",
+    performance: {
+      sessionStartEqUsd: 0,
+      currentEqUsd: 0,
+      deltaUsd: 0,
+      deltaPct: 0,
+      timeline: [],
+      trades: [],
+      daily: {
+        day: new Date().toISOString().slice(0, 10),
+        realizedPnlUsd: 0,
+        unrealizedPnlUsd: 0,
+        feesUsd: 0,
+        winRate: 0,
+        wins: 0,
+        losses: 0,
+        closedTrades: 0
+      },
+      dailyByBasis: {
+        utc: {
+          day: new Date().toISOString().slice(0, 10),
+          realizedPnlUsd: 0,
+          unrealizedPnlUsd: 0,
+          feesUsd: 0,
+          winRate: 0,
+          wins: 0,
+          losses: 0,
+          closedTrades: 0
+        },
+        exchange: {
+          day: dayKeyAtOffset(new Date().toISOString(), exchangeTimezoneOffsetMinutes),
+          realizedPnlUsd: 0,
+          unrealizedPnlUsd: 0,
+          feesUsd: 0,
+          winRate: 0,
+          wins: 0,
+          losses: 0,
+          closedTrades: 0
+        }
+      },
+      exchangeTimezoneOffsetMinutes,
+      exchangeTimezoneLabel
+    }
   };
   let openOrdersStatus: OpenOrdersStatus = {
     orders: [],
@@ -281,6 +560,11 @@ export async function startMissionControlServer(
   const persistedRecon = opsStore.loadReconciliation();
   if (persistedRecon) {
     lifecycle.updateReconciliation(persistedRecon);
+  }
+  const latestProposalEvent = inMemoryEvents.find((event) => event.type === "ProposalCreated");
+  let lastProposalCreatedAtEpoch = latestProposalEvent?.timestamp ? Date.parse(latestProposalEvent.timestamp) : Number.NaN;
+  if (!Number.isFinite(lastProposalCreatedAtEpoch)) {
+    lastProposalCreatedAtEpoch = Date.now();
   }
 
   const metrics: OpsMetrics = {
@@ -360,6 +644,18 @@ export async function startMissionControlServer(
     const now = new Date().toISOString();
     const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
     if (mode !== "demo") {
+      const currentEqUsd = 0;
+      if (sessionStartEqUsd === undefined) {
+        sessionStartEqUsd = currentEqUsd;
+      }
+      equityTimeline.push({
+        at: now,
+        equityUsd: currentEqUsd,
+        drawdownPct: 0
+      });
+      if (equityTimeline.length > performanceTimelineMaxPoints) {
+        equityTimeline.splice(0, equityTimeline.length - performanceTimelineMaxPoints);
+      }
       exchangeStatus = {
         connected: false,
         mode,
@@ -374,7 +670,49 @@ export async function startMissionControlServer(
         totalEq: "0",
         balances: [],
         lastUpdatedAt: now,
-        lastError: exchangeStatus.lastError
+        lastError: exchangeStatus.lastError,
+        performance: {
+          sessionStartEqUsd: sessionStartEqUsd,
+          currentEqUsd,
+          deltaUsd: round6(currentEqUsd - sessionStartEqUsd),
+          deltaPct: 0,
+          timeline: [...equityTimeline],
+          trades: [],
+          daily: {
+            day: now.slice(0, 10),
+            realizedPnlUsd: 0,
+            unrealizedPnlUsd: 0,
+            feesUsd: 0,
+            winRate: 0,
+            wins: 0,
+            losses: 0,
+            closedTrades: 0
+          },
+          dailyByBasis: {
+            utc: {
+              day: now.slice(0, 10),
+              realizedPnlUsd: 0,
+              unrealizedPnlUsd: 0,
+              feesUsd: 0,
+              winRate: 0,
+              wins: 0,
+              losses: 0,
+              closedTrades: 0
+            },
+            exchange: {
+              day: dayKeyAtOffset(now, exchangeTimezoneOffsetMinutes),
+              realizedPnlUsd: 0,
+              unrealizedPnlUsd: 0,
+              feesUsd: 0,
+              winRate: 0,
+              wins: 0,
+              losses: 0,
+              closedTrades: 0
+            }
+          },
+          exchangeTimezoneOffsetMinutes,
+          exchangeTimezoneLabel
+        }
       };
       openOrdersStatus = {
         orders: [],
@@ -385,10 +723,42 @@ export async function startMissionControlServer(
     }
     try {
       const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
-      const [balance, pendingOrders] = await Promise.all([
+      const [balance, pendingOrders, fills] = await Promise.all([
         adapter.getAccountBalance(),
-        adapter.getPendingOrders()
+        adapter.getPendingOrders(),
+        adapter.getFills(undefined, performanceFillLimit)
       ]);
+      const currentEqUsd = Math.max(0, toFiniteNumber(balance.totalEq));
+      if (sessionStartEqUsd === undefined) {
+        sessionStartEqUsd = currentEqUsd;
+      }
+      equityTimeline.push({
+        at: now,
+        equityUsd: currentEqUsd,
+        drawdownPct: 0
+      });
+      if (equityTimeline.length > performanceTimelineMaxPoints) {
+        equityTimeline.splice(0, equityTimeline.length - performanceTimelineMaxPoints);
+      }
+      let peak = 0;
+      for (const point of equityTimeline) {
+        peak = Math.max(peak, point.equityUsd);
+        point.drawdownPct = peak > 0 ? round6(((point.equityUsd - peak) / peak) * 100) : 0;
+      }
+      const deltaUsd = currentEqUsd - sessionStartEqUsd;
+      const deltaPct = sessionStartEqUsd > 0 ? (deltaUsd / sessionStartEqUsd) * 100 : 0;
+      const marksBySymbol = new Map<string, number>();
+      for (const fill of fills) {
+        marksBySymbol.set(fill.instId, toFiniteNumber(fill.fillPx));
+      }
+      const perf = buildPerformanceFromFills({
+        fills,
+        marksBySymbol,
+        feeRateBps: performanceFeeRateBps,
+        sessionStartEqUsd,
+        currentEqUsd,
+        exchangeTimezoneOffsetMinutes
+      });
       exchangeStatus = {
         connected: true,
         mode,
@@ -403,7 +773,22 @@ export async function startMissionControlServer(
           cashBal: item.cashBal,
           eq: item.eq
         })),
-        lastUpdatedAt: now
+        lastUpdatedAt: now,
+        performance: {
+          sessionStartEqUsd: round6(sessionStartEqUsd),
+          currentEqUsd: round6(currentEqUsd),
+          deltaUsd: round6(deltaUsd),
+          deltaPct: round6(deltaPct),
+          timeline: [...equityTimeline],
+          trades: perf.trades.slice(0, performanceTradeLimit),
+          daily: perf.dailyUtc,
+          dailyByBasis: {
+            utc: perf.dailyUtc,
+            exchange: perf.dailyExchange
+          },
+          exchangeTimezoneOffsetMinutes,
+          exchangeTimezoneLabel: perf.exchangeTimezoneLabel
+        }
       };
       openOrdersStatus = {
         orders: pendingOrders.map((item) => ({
@@ -422,6 +807,10 @@ export async function startMissionControlServer(
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
+      const currentEqUsd = Math.max(0, toFiniteNumber(portfolioStatus.totalEq));
+      if (sessionStartEqUsd === undefined) {
+        sessionStartEqUsd = currentEqUsd;
+      }
       exchangeStatus = {
         connected: false,
         mode,
@@ -430,10 +819,16 @@ export async function startMissionControlServer(
         lastError: message
       };
       portfolioStatus = {
-        totalEq: "0",
+        totalEq: portfolioStatus.totalEq,
         balances: [],
         lastUpdatedAt: now,
-        lastError: message
+        lastError: message,
+        performance: {
+          ...portfolioStatus.performance,
+          currentEqUsd: round6(currentEqUsd),
+          deltaUsd: round6(currentEqUsd - sessionStartEqUsd),
+          deltaPct: sessionStartEqUsd > 0 ? round6(((currentEqUsd - sessionStartEqUsd) / sessionStartEqUsd) * 100) : 0
+        }
       };
       openOrdersStatus = {
         orders: [],
@@ -544,6 +939,39 @@ export async function startMissionControlServer(
     }
   }
 
+  async function pruneRetentionData(): Promise<void> {
+    const cutoffIso = new Date(Date.now() - streamRetentionMs).toISOString();
+    const eventsDeleted = eventStore.deleteOlderThan(cutoffIso);
+    const auditDeleted = opsStore.deleteAuditOlderThan(cutoffIso);
+    const incidentsDeleted = opsStore.deleteIncidentsOlderThan(cutoffIso);
+    if (eventsDeleted === 0 && auditDeleted === 0 && incidentsDeleted === 0) {
+      return;
+    }
+    inMemoryEvents = await eventStore.readAll();
+    const latestAudit = opsStore.listAudit(300);
+    lifecycle.audit.length = 0;
+    lifecycle.audit.push(...latestAudit);
+    inMemoryIncidents = opsStore.listIncidents();
+    metrics.openIncidents = inMemoryIncidents.filter((item) => item.status !== "resolved").length;
+  }
+
+  async function clearStreamsAndLogs(): Promise<ClearStreamsResult> {
+    const eventsDeleted = eventStore.clearAll();
+    const { auditDeleted, incidentsDeleted } = opsStore.clearAllOps();
+    const logsCleared = lifecycle.logs.length;
+    lifecycle.logs.length = 0;
+    lifecycle.audit.length = 0;
+    inMemoryEvents = [];
+    inMemoryIncidents = [];
+    metrics.openIncidents = 0;
+    return {
+      eventsDeleted,
+      auditDeleted,
+      incidentsDeleted,
+      logsCleared
+    };
+  }
+
   async function sweepExpiredApprovals(): Promise<void> {
     const expired = approvals.expirePending();
     for (const item of expired) {
@@ -568,23 +996,32 @@ export async function startMissionControlServer(
   }
 
   async function publish(event: BotEvent): Promise<void> {
-    inMemoryEvents = [event, ...inMemoryEvents].slice(0, 500);
-    bus.publish(event);
-    await eventStore.append(event);
-    if (event.tags?.includes("gatekeeper_reject")) {
+    const normalized = normalizeHeartbeatEventSemantics(event);
+    if (normalized.type === "ProposalCreated") {
+      const epoch = Date.parse(normalized.timestamp);
+      if (Number.isFinite(epoch)) {
+        lastProposalCreatedAtEpoch = epoch;
+      } else {
+        lastProposalCreatedAtEpoch = Date.now();
+      }
+    }
+    inMemoryEvents = [normalized, ...inMemoryEvents].slice(0, 500);
+    bus.publish(normalized);
+    await eventStore.append(normalized);
+    if (normalized.tags?.includes("gatekeeper_reject")) {
       metrics.gatekeeperRejectsTotal += 1;
     }
-    if (event.tags?.includes("reconciliation_drift")) {
+    if (normalized.tags?.includes("reconciliation_drift")) {
       metrics.driftEventsTotal += 1;
     }
-    if (event.severity === "error" || event.type === "Error") {
+    if (normalized.severity === "error" || normalized.type === "Error") {
       await upsertAlert({
         code: "RUNTIME_ERROR_EVENT",
         severity: "error",
         source: "system",
         title: "Runtime error event",
-        detail: event.message,
-        symbol: event.symbol
+        detail: normalized.message,
+        symbol: normalized.symbol
       });
     }
   }
@@ -653,14 +1090,28 @@ export async function startMissionControlServer(
 
   lifecycle.startTick((message) => {
     const state = lifecycle.getSnapshotState();
-    if (message === "Heartbeat checkpoint") {
+    if (message === HEARTBEAT_CHECKPOINT_MESSAGE) {
       return;
     }
     void publish(createEvent("System", state.activeSymbol, message, "info", ["worker_cycle"]));
   });
+  if (lifecycle.getSnapshotState().state === "running") {
+    worker.start();
+    void publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        "Worker auto-started from persisted running state",
+        "info",
+        ["bootstrap", "worker_autostart"]
+      )
+    );
+  }
 
   const reconcileIntervalMs = parseBoundedInt(process.env.TOURAB_RECONCILE_INTERVAL_MS, 20_000, 5_000, 120_000);
   const heartbeatGapMs = parseBoundedInt(process.env.TOURAB_HEARTBEAT_GAP_MS, 30_000, 5_000, 300_000);
+  const workerProposalGapMs = parseBoundedInt(process.env.TOURAB_WORKER_PROPOSAL_GAP_MS, 60_000, 1_000, 3_600_000);
+  const workerStallCheckIntervalMs = parseBoundedInt(process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS, 5_000, 500, 60_000);
   const exchangeHealthIntervalMs = parseBoundedInt(process.env.TOURAB_EXCHANGE_HEALTH_INTERVAL_MS, 15_000, 5_000, 300_000);
   const reconcileTimer = setInterval(() => {
     const state = lifecycle.getSnapshotState();
@@ -703,9 +1154,41 @@ export async function startMissionControlServer(
       });
     }
   }, 5_000);
+  const workerStallTimer = setInterval(() => {
+    const state = lifecycle.getSnapshotState();
+    if (state.state !== "running") {
+      return;
+    }
+    const now = Date.now();
+    const proposalGap = now - lastProposalCreatedAtEpoch;
+    if (!Number.isFinite(proposalGap) || proposalGap > workerProposalGapMs) {
+      void upsertAlert({
+        code: WORKER_STALL_ALERT_CODE,
+        severity: "warn",
+        source: "system",
+        title: "Worker proposal stream stalled",
+        detail: `No ProposalCreated event for ${Number.isFinite(proposalGap) ? proposalGap : "unknown"}ms while state=running (threshold=${workerProposalGapMs}ms).`,
+        symbol: undefined
+      });
+      return;
+    }
+    void (async () => {
+      const open = await alertStore.findByFingerprint(WORKER_STALL_ALERT_CODE, undefined);
+      if (!open) {
+        return;
+      }
+      await alertStore.updateStatus(open.id, "resolved", "system");
+      inMemoryAlerts = await alertStore.readAll();
+      metrics.openAlerts = inMemoryAlerts.filter((item) => item.status === "open").length;
+    })();
+  }, workerStallCheckIntervalMs);
   const exchangeHealthTimer = setInterval(() => {
     void refreshExchangeStatus();
   }, exchangeHealthIntervalMs);
+  const retentionTimer = setInterval(() => {
+    void pruneRetentionData();
+  }, streamRetentionSweepMs);
+  await pruneRetentionData();
 
   app.use(express.json());
   app.use((req, res, next) => {
@@ -919,6 +1402,32 @@ export async function startMissionControlServer(
     inMemoryAlerts = await alertStore.readAll();
     metrics.openAlerts = inMemoryAlerts.filter((entry) => entry.status === "open").length;
     res.json(item);
+  });
+
+  app.post("/maintenance/clear-streams", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const cleared = await clearStreamsAndLogs();
+    res.json({
+      ok: true,
+      code: "OK",
+      message: "Event streams and logs cleared",
+      state: lifecycle.getSnapshotState().state,
+      details: {
+        eventsDeleted: cleared.eventsDeleted,
+        auditDeleted: cleared.auditDeleted,
+        incidentsDeleted: cleared.incidentsDeleted,
+        logsCleared: cleared.logsCleared
+      }
+    } satisfies ControlActionResponse);
   });
 
   app.get("/incidents", async (req, res) => {
@@ -1571,7 +2080,9 @@ export async function startMissionControlServer(
       worker.stop();
       clearInterval(reconcileTimer);
       clearInterval(heartbeatTimer);
+      clearInterval(workerStallTimer);
       clearInterval(exchangeHealthTimer);
+      clearInterval(retentionTimer);
       wsServer.clients.forEach((client: WebSocket) => {
         client.close();
       });

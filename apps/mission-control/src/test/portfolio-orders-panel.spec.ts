@@ -5,6 +5,30 @@ import { OrdersPanel } from "../components/OrdersPanel";
 import { PortfolioPanel } from "../components/PortfolioPanel";
 import type { OpenOrdersStatus, PortfolioStatus } from "../types";
 
+function emptyPerformance() {
+  return {
+    sessionStartEqUsd: 1000,
+    currentEqUsd: 1000,
+    deltaUsd: 0,
+    deltaPct: 0,
+    timeline: [
+      { at: new Date(Date.now() - 60_000).toISOString(), equityUsd: 1000, drawdownPct: 0 },
+      { at: new Date().toISOString(), equityUsd: 1000, drawdownPct: 0 }
+    ],
+    trades: [],
+    daily: {
+      day: new Date().toISOString().slice(0, 10),
+      realizedPnlUsd: 0,
+      unrealizedPnlUsd: 0,
+      feesUsd: 0,
+      winRate: 0,
+      wins: 0,
+      losses: 0,
+      closedTrades: 0
+    }
+  } satisfies PortfolioStatus["performance"];
+}
+
 describe("PortfolioPanel", () => {
   it("renders balances sorted by equity descending", () => {
     const portfolio: PortfolioStatus = {
@@ -14,7 +38,8 @@ describe("PortfolioPanel", () => {
         { ccy: "USDT", eq: "900", availBal: "900", cashBal: "900" },
         { ccy: "BTC", eq: "214.56", availBal: "0.002", cashBal: "0.002" }
       ],
-      lastUpdatedAt: new Date().toISOString()
+      lastUpdatedAt: new Date().toISOString(),
+      performance: emptyPerformance()
     };
 
     const view = render(React.createElement(PortfolioPanel, { portfolio }));
@@ -31,7 +56,8 @@ describe("PortfolioPanel", () => {
       totalEq: "0",
       balances: [],
       lastUpdatedAt: new Date().toISOString(),
-      lastError: "Portfolio unavailable"
+      lastError: "Portfolio unavailable",
+      performance: emptyPerformance()
     };
 
     render(React.createElement(PortfolioPanel, { portfolio }));

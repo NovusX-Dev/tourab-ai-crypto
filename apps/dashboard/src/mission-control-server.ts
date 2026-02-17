@@ -14,13 +14,18 @@ import type {
   ControlAction,
   ControlActionResponse,
   DashboardSnapshot,
+  ExchangeMode,
+  ExchangeStatus,
   EventQuery,
   IncidentItem,
+  OpenOrdersStatus,
   OpsMetrics,
+  PortfolioStatus,
   ReconciliationStatus,
   UserRole,
   WsMessage
 } from "@tourab/shared";
+import { loadOkxDemoConfigFromEnv, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
 import { authRoleMiddleware, type AuthenticatedRequest } from "./mission-control/auth.js";
 import { ApprovalStore } from "./mission-control/approval-store.js";
 import { EventBus } from "./mission-control/event-bus.js";
@@ -92,6 +97,16 @@ function parseEventQuery(req: Request): EventQuery {
 
 function writeError(res: Response, status: number, payload: ApiErrorPayload): void {
   res.status(status).json(payload);
+}
+
+function resolveExchangeMode(raw: string | undefined): ExchangeMode {
+  if (raw === "demo") {
+    return "demo";
+  }
+  if (raw === "live") {
+    return "live";
+  }
+  return "unknown";
 }
 
 function hasReconciliationDrift(state: ReconciliationStatus): boolean {
@@ -181,6 +196,24 @@ export async function startMissionControlServer(
   const bus = new EventBus();
   const lifecycle = new RuntimeLifecycleManager();
   const approvals = new ApprovalStore(approvalTtlMs);
+  let exchangeStatus: ExchangeStatus = {
+    connected: false,
+    mode: resolveExchangeMode(process.env.OKX_TRADING_MODE),
+    source: "none",
+    lastHealthCheckAt: new Date(0).toISOString(),
+    lastError: "Exchange health not checked yet."
+  };
+  let portfolioStatus: PortfolioStatus = {
+    totalEq: "0",
+    balances: [],
+    lastUpdatedAt: new Date(0).toISOString(),
+    lastError: "Portfolio health not checked yet."
+  };
+  let openOrdersStatus: OpenOrdersStatus = {
+    orders: [],
+    lastUpdatedAt: new Date(0).toISOString(),
+    lastError: "Open orders health not checked yet."
+  };
 
   let eventCounter = 0;
   let inMemoryEvents = await eventStore.readAll();
@@ -241,6 +274,94 @@ export async function startMissionControlServer(
       retryBudgetPerHour: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_BUDGET_PER_HOUR, 30, 1, 1000)
     }
   );
+
+  async function refreshExchangeStatus(): Promise<void> {
+    const now = new Date().toISOString();
+    const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
+    if (mode !== "demo") {
+      exchangeStatus = {
+        connected: false,
+        mode,
+        source: "none",
+        lastHealthCheckAt: now,
+        lastError:
+          mode === "live"
+            ? "Live mode connectivity checks are not wired in Mission Control yet."
+            : "Set OKX_TRADING_MODE=demo to enable Mission Control demo exchange checks."
+      };
+      portfolioStatus = {
+        totalEq: "0",
+        balances: [],
+        lastUpdatedAt: now,
+        lastError: exchangeStatus.lastError
+      };
+      openOrdersStatus = {
+        orders: [],
+        lastUpdatedAt: now,
+        lastError: exchangeStatus.lastError
+      };
+      return;
+    }
+    try {
+      const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
+      const [balance, pendingOrders] = await Promise.all([
+        adapter.getAccountBalance(),
+        adapter.getPendingOrders()
+      ]);
+      exchangeStatus = {
+        connected: true,
+        mode,
+        source: "okx_demo",
+        lastHealthCheckAt: now
+      };
+      portfolioStatus = {
+        totalEq: balance.totalEq,
+        balances: balance.details.map((item) => ({
+          ccy: item.ccy,
+          availBal: item.availBal,
+          cashBal: item.cashBal,
+          eq: item.eq
+        })),
+        lastUpdatedAt: now
+      };
+      openOrdersStatus = {
+        orders: pendingOrders.map((item) => ({
+          ordId: item.ordId,
+          clOrdId: item.clOrdId,
+          instId: item.instId,
+          side: item.side,
+          px: item.px,
+          sz: item.sz,
+          accFillSz: item.accFillSz,
+          state: item.state,
+          cTime: item.cTime,
+          uTime: item.uTime
+        })),
+        lastUpdatedAt: now
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      exchangeStatus = {
+        connected: false,
+        mode,
+        source: "okx_demo",
+        lastHealthCheckAt: now,
+        lastError: message
+      };
+      portfolioStatus = {
+        totalEq: "0",
+        balances: [],
+        lastUpdatedAt: now,
+        lastError: message
+      };
+      openOrdersStatus = {
+        orders: [],
+        lastUpdatedAt: now,
+        lastError: message
+      };
+    }
+  }
+  await refreshExchangeStatus();
 
   async function enforceDriftCircuitBreaker(actor = "system"): Promise<void> {
     const reconciliation = lifecycle.reconciliation;
@@ -428,6 +549,7 @@ export async function startMissionControlServer(
 
   const reconcileIntervalMs = parseBoundedInt(process.env.TOURAB_RECONCILE_INTERVAL_MS, 20_000, 5_000, 120_000);
   const heartbeatGapMs = parseBoundedInt(process.env.TOURAB_HEARTBEAT_GAP_MS, 30_000, 5_000, 300_000);
+  const exchangeHealthIntervalMs = parseBoundedInt(process.env.TOURAB_EXCHANGE_HEALTH_INTERVAL_MS, 15_000, 5_000, 300_000);
   const reconcileTimer = setInterval(() => {
     const state = lifecycle.getSnapshotState();
     const nowIso = new Date().toISOString();
@@ -469,6 +591,9 @@ export async function startMissionControlServer(
       });
     }
   }, 5_000);
+  const exchangeHealthTimer = setInterval(() => {
+    void refreshExchangeStatus();
+  }, exchangeHealthIntervalMs);
 
   app.use(express.json());
   app.use((req, res, next) => {
@@ -493,7 +618,13 @@ export async function startMissionControlServer(
   }
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, service: "mission-control", state: lifecycle.getSnapshotState().state });
+    res.json({
+      ok: true,
+      service: "mission-control",
+      state: lifecycle.getSnapshotState().state,
+      exchangeConnected: exchangeStatus.connected,
+      exchangeMode: exchangeStatus.mode
+    });
   });
 
   app.post("/auth/dev-token", async (req, res) => {
@@ -534,6 +665,9 @@ export async function startMissionControlServer(
       alerts: inMemoryAlerts,
       incidents: inMemoryIncidents,
       metrics,
+      exchange: exchangeStatus,
+      portfolio: portfolioStatus,
+      openOrders: openOrdersStatus,
       events: inMemoryEvents.slice(0, 200)
     };
     res.json(snapshot);
@@ -1125,6 +1259,9 @@ export async function startMissionControlServer(
       alerts: inMemoryAlerts,
       incidents: inMemoryIncidents,
       metrics,
+      exchange: exchangeStatus,
+      portfolio: portfolioStatus,
+      openOrders: openOrdersStatus,
       events: inMemoryEvents.slice(0, replay)
     };
 
@@ -1161,6 +1298,7 @@ export async function startMissionControlServer(
       worker.stop();
       clearInterval(reconcileTimer);
       clearInterval(heartbeatTimer);
+      clearInterval(exchangeHealthTimer);
       wsServer.clients.forEach((client: WebSocket) => {
         client.close();
       });

@@ -5,10 +5,13 @@ import { AlertsPanel } from "./components/AlertsPanel";
 import { AuditTimeline } from "./components/AuditTimeline";
 import { BotStatusCard } from "./components/BotStatusCard";
 import { ControlDeck } from "./components/ControlDeck";
+import { DemoReadinessCard } from "./components/DemoReadinessCard";
 import { EventStream } from "./components/EventStream";
 import { LogsPanel } from "./components/LogsPanel";
 import { IncidentsPanel } from "./components/IncidentsPanel";
 import { OpsMetricsPanel } from "./components/OpsMetricsPanel";
+import { OrdersPanel } from "./components/OrdersPanel";
+import { PortfolioPanel } from "./components/PortfolioPanel";
 import { ReconciliationCard } from "./components/ReconciliationCard";
 import { RiskPanel } from "./components/RiskPanel";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
@@ -18,8 +21,9 @@ import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, I
 
 const client = createDefaultBotApiClient();
 
-type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "ops";
+type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops";
 type ToastTone = "success" | "error" | "warning";
+type OperatorScope = "primary" | "btc" | "eth";
 
 interface ToastItem {
   id: string;
@@ -35,6 +39,7 @@ export default function App() {
     return initial;
   });
   const [tab, setTab] = useState<RightTab>("risk");
+  const [operatorScope, setOperatorScope] = useState<OperatorScope>("primary");
   const [autoScroll, setAutoScroll] = useState(true);
   const [selectedAuditId, setSelectedAuditId] = useState<string>("");
   const [highlightedEventType, setHighlightedEventType] = useState<EventType | undefined>(undefined);
@@ -50,6 +55,14 @@ export default function App() {
     }
     return window.localStorage.getItem("tourab_auth_token") ?? "";
   });
+  const [approvalsAttention, setApprovalsAttention] = useState(false);
+  const [approvalSoundMuted, setApprovalSoundMuted] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return window.localStorage.getItem("tourab_approval_sound_muted") === "1";
+  });
+  const previousPendingApprovalIdsRef = useRef<string[]>([]);
 
   const dashboard = useDashboardData(client);
 
@@ -64,11 +77,61 @@ export default function App() {
     }
   }, [authToken]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem("tourab_approval_sound_muted", approvalSoundMuted ? "1" : "0");
+  }, [approvalSoundMuted]);
+
   const connectionLabel = dashboard.streamPaused
     ? "Paused"
     : dashboard.connectionHealth === "degraded"
       ? "Degraded"
       : "Live";
+  const sourceLabel =
+    dashboard.dataSource === "live"
+      ? "LIVE_BACKEND"
+      : dashboard.dataSource === "mock_fallback"
+        ? "MOCK_FALLBACK"
+        : "MOCK_FORCED";
+  const exchangeLabel = dashboard.exchange.connected
+    ? `EXCHANGE_${dashboard.exchange.mode.toUpperCase()}_OK`
+    : "EXCHANGE_AUTH_FAIL";
+  const equityLabel = `EQ ${dashboard.portfolio.totalEq || "0"} USD`;
+  const openOrdersLabel = `OPEN ORDERS ${dashboard.openOrders.orders.length}`;
+
+  const scopedSymbol = operatorScope === "btc" ? "BTC-USDT" : operatorScope === "eth" ? "ETH-USDT" : "";
+
+  function playApprovalChime() {
+    if (approvalSoundMuted || typeof window === "undefined") {
+      return;
+    }
+    const audioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!audioContextCtor) {
+      return;
+    }
+    const ctx = new audioContextCtor();
+    const start = ctx.currentTime + 0.02;
+    const notes = [740, 988];
+    notes.forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start + index * 0.14);
+      gain.gain.exponentialRampToValueAtTime(0.08, start + index * 0.14 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + index * 0.14 + 0.11);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start + index * 0.14);
+      osc.stop(start + index * 0.14 + 0.12);
+    });
+    const totalDurationMs = 500;
+    setTimeout(() => {
+      void ctx.close();
+    }, totalDurationMs);
+  }
 
   function handleTheme(next: ThemeName) {
     setTheme(next);
@@ -97,6 +160,11 @@ export default function App() {
     previousConnectionHealthRef.current = next;
   }, [dashboard.connectionHealth]);
 
+  useEffect(() => {
+    dashboard.setSymbolFilter(scopedSymbol);
+    dashboard.setPinnedSymbol("");
+  }, [scopedSymbol]);
+
   const lastCircuitEventRef = useRef<string>("");
   useEffect(() => {
     const latest = dashboard.events[0];
@@ -110,6 +178,24 @@ export default function App() {
       void refreshAlerts();
     }
   }, [dashboard.events]);
+
+  useEffect(() => {
+    const pending = pendingApprovals.filter((item) => item.status === "pending");
+    const nextPendingIds = pending.map((item) => item.id).sort();
+    const previousPendingIds = previousPendingApprovalIdsRef.current;
+    const newPendingExists = nextPendingIds.some((id) => !previousPendingIds.includes(id));
+    if (newPendingExists && tab !== "approvals") {
+      setApprovalsAttention(true);
+      playApprovalChime();
+    }
+    previousPendingApprovalIdsRef.current = nextPendingIds;
+  }, [pendingApprovals, tab]);
+
+  useEffect(() => {
+    if (tab === "approvals") {
+      setApprovalsAttention(false);
+    }
+  }, [tab]);
 
   async function refreshApprovals() {
     const items = await client.listApprovals();
@@ -178,6 +264,7 @@ export default function App() {
     if (!result.ok) {
       if (result.code === "APPROVAL_REQUIRED") {
         setTab("approvals");
+        setApprovalsAttention(true);
         await refreshApprovals();
         pushToast("warning", "APPROVAL_REQUIRED", result.message);
         return;
@@ -285,20 +372,126 @@ export default function App() {
         />
       );
     }
+    if (tab === "portfolio") {
+      return <PortfolioPanel portfolio={dashboard.portfolio} />;
+    }
+    if (tab === "orders") {
+      return <OrdersPanel openOrders={dashboard.openOrders} />;
+    }
     if (tab === "ops") {
       return <OpsMetricsPanel metrics={dashboard.metrics} />;
     }
     return <LogsPanel logs={dashboard.logs} />;
-  }, [tab, dashboard.risk, dashboard.audit, dashboard.logs, dashboard.metrics, pendingApprovals, selectedAuditId, currentUserId, alerts, incidents]);
+  }, [
+    tab,
+    dashboard.risk,
+    dashboard.audit,
+    dashboard.logs,
+    dashboard.metrics,
+    dashboard.portfolio,
+    dashboard.openOrders,
+    pendingApprovals,
+    selectedAuditId,
+    currentUserId,
+    alerts,
+    incidents
+  ]);
+
+  const readinessItems = useMemo(() => {
+    const now = Date.now();
+    const pending = pendingApprovals.filter((item) => item.status === "pending");
+    const approvalFresh =
+      pending.length === 0 || pending.every((item) => Number.isFinite(Date.parse(item.expiresAt)) && Date.parse(item.expiresAt) > now);
+    const nearestApprovalExpiry = pending
+      .map((item) => Date.parse(item.expiresAt))
+      .filter((value) => Number.isFinite(value))
+      .sort((a, b) => a - b)[0];
+    return [
+      {
+        key: "backend",
+        label: "Backend data source",
+        ok: dashboard.dataSource === "live",
+        detail:
+          dashboard.dataSource === "live"
+            ? "Mission Control is using live backend data."
+            : "UI is not on live backend data path."
+      },
+      {
+        key: "ws",
+        label: "WebSocket stream",
+        ok: dashboard.connectionHealth === "live",
+        detail:
+          dashboard.connectionHealth === "live"
+            ? "Event stream is connected."
+            : "Event stream degraded/reconnecting."
+      },
+      {
+        key: "exchange",
+        label: "OKX demo auth",
+        ok: dashboard.exchange.mode === "demo" && dashboard.exchange.connected,
+        detail:
+          dashboard.exchange.mode === "demo" && dashboard.exchange.connected
+            ? `Demo exchange check passed at ${new Date(dashboard.exchange.lastHealthCheckAt).toLocaleTimeString()}.`
+            : dashboard.exchange.lastError || "Exchange auth check failing."
+      },
+      {
+        key: "portfolio",
+        label: "Portfolio snapshot",
+        ok: dashboard.exchange.connected && !dashboard.portfolio.lastError,
+        detail:
+          dashboard.exchange.connected && !dashboard.portfolio.lastError
+            ? `Total equity: ${dashboard.portfolio.totalEq} USD (${dashboard.portfolio.balances.length} assets).`
+            : dashboard.portfolio.lastError || "Portfolio data unavailable."
+      },
+      {
+        key: "orders",
+        label: "Open orders snapshot",
+        ok: dashboard.exchange.connected && !dashboard.openOrders.lastError,
+        detail:
+          dashboard.exchange.connected && !dashboard.openOrders.lastError
+            ? `Open orders: ${dashboard.openOrders.orders.length}.`
+            : dashboard.openOrders.lastError || "Open orders data unavailable."
+      },
+      {
+        key: "approval",
+        label: "Approval window",
+        ok: approvalFresh,
+        detail:
+          pending.length === 0
+            ? "No pending approvals."
+            : approvalFresh
+              ? `Pending approvals valid until ${new Date(nearestApprovalExpiry ?? now).toLocaleTimeString()}.`
+              : "One or more pending approvals are expired."
+      }
+    ];
+  }, [dashboard.dataSource, dashboard.connectionHealth, dashboard.exchange, dashboard.portfolio, dashboard.openOrders, pendingApprovals]);
 
   return (
     <div className="app-shell">
       <aside className="sidebar card">
         <div className="brand">Tourab Mission Control</div>
         <div className="nav-group">
-          <button className="nav-item nav-active">Primary Bot</button>
-          <button className="nav-item">BTC Operator</button>
-          <button className="nav-item">ETH Operator</button>
+          <button
+            className={`nav-item ${operatorScope === "primary" ? "nav-active" : ""}`}
+            onClick={() => setOperatorScope("primary")}
+            aria-pressed={operatorScope === "primary"}
+          >
+            Primary Bot
+          </button>
+          <button
+            className={`nav-item ${operatorScope === "btc" ? "nav-active" : ""}`}
+            onClick={() => setOperatorScope("btc")}
+            aria-pressed={operatorScope === "btc"}
+          >
+            BTC Operator
+          </button>
+          <button
+            className={`nav-item ${operatorScope === "eth" ? "nav-active" : ""}`}
+            onClick={() => setOperatorScope("eth")}
+            aria-pressed={operatorScope === "eth"}
+          >
+            ETH Operator
+          </button>
         </div>
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </aside>
@@ -334,6 +527,10 @@ export default function App() {
             >
               {connectionLabel}
             </span>
+            <span className={`conn-badge ${dashboard.dataSource === "live" ? "ok" : "warn"}`}>{sourceLabel}</span>
+            <span className={`conn-badge ${dashboard.exchange.connected ? "ok" : "warn"}`}>{exchangeLabel}</span>
+            <span className={`conn-badge ${dashboard.exchange.connected ? "ok" : "warn"}`}>{equityLabel}</span>
+            <span className={`conn-badge ${dashboard.exchange.connected ? "ok" : "warn"}`}>{openOrdersLabel}</span>
           </div>
         </header>
 
@@ -343,12 +540,15 @@ export default function App() {
           <ReconciliationCard status={dashboard.reconciliation} role={dashboard.role} onSetStatus={(input) => void setReconciliationStatus(input)} />
         </section>
 
+        <DemoReadinessCard items={readinessItems} />
+
         <EventStream
           events={dashboard.filteredEvents}
           quickFilter={dashboard.quickFilter}
           onQuickFilterChange={dashboard.setQuickFilter}
           symbolFilter={dashboard.symbolFilter}
           onSymbolFilterChange={dashboard.setSymbolFilter}
+          symbolFilterLocked={operatorScope !== "primary"}
           severityFilter={dashboard.severityFilter}
           onSeverityFilterChange={dashboard.setSeverityFilter}
           eventTypeFilter={dashboard.eventTypeFilter}
@@ -369,10 +569,25 @@ export default function App() {
           <button className={`tab ${tab === "risk" ? "tab-active" : ""}`} onClick={() => setTab("risk")}>Risk</button>
           <button className={`tab ${tab === "audit" ? "tab-active" : ""}`} onClick={() => setTab("audit")}>Audit</button>
           <button className={`tab ${tab === "logs" ? "tab-active" : ""}`} onClick={() => setTab("logs")}>Logs</button>
-          <button className={`tab ${tab === "approvals" ? "tab-active" : ""}`} onClick={() => setTab("approvals")}>Approvals</button>
+          <button
+            className={`tab ${tab === "approvals" ? "tab-active" : ""} ${approvalsAttention && tab !== "approvals" ? "tab-attention" : ""}`}
+            onClick={() => setTab("approvals")}
+          >
+            Approvals
+          </button>
           <button className={`tab ${tab === "alerts" ? "tab-active" : ""}`} onClick={() => setTab("alerts")}>Alerts</button>
           <button className={`tab ${tab === "incidents" ? "tab-active" : ""}`} onClick={() => setTab("incidents")}>Incidents</button>
+          <button className={`tab ${tab === "portfolio" ? "tab-active" : ""}`} onClick={() => setTab("portfolio")}>Portfolio</button>
+          <button className={`tab ${tab === "orders" ? "tab-active" : ""}`} onClick={() => setTab("orders")}>Orders</button>
           <button className={`tab ${tab === "ops" ? "tab-active" : ""}`} onClick={() => setTab("ops")}>Ops</button>
+          <button
+            className="tab sound-toggle"
+            onClick={() => setApprovalSoundMuted((prev) => !prev)}
+            aria-pressed={!approvalSoundMuted}
+            title="Toggle approval sound"
+          >
+            {approvalSoundMuted ? "Sound Off" : "Sound On"}
+          </button>
         </div>
         {rightPanel}
       </aside>

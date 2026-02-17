@@ -49,7 +49,7 @@ export function LogsPanel({ logs }: LogsPanelProps) {
             <span>{formatTime(log.at)}</span>
             <span className={`tag sev-${log.severity}`}>{log.severity.toUpperCase()}</span>
             <span>{log.symbol || "-"}</span>
-            <span>{log.message}</span>
+            <span className="log-message">{log.message}</span>
           </article>
         ))}
       </div>

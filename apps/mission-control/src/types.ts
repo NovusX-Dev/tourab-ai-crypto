@@ -10,10 +10,13 @@ export type {
   ControlAction,
   ControlActionResponse,
   DashboardSnapshot,
+  ExchangeStatus,
   EventSeverity,
   EventType,
   LogEntry,
+  OpenOrdersStatus,
   OpsMetrics,
+  PortfolioStatus,
   ReconciliationStatus,
   RiskStatus,
   UserRole

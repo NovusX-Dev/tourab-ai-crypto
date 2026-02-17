@@ -196,6 +196,33 @@ Mission Control auth modes:
   - UI sends bearer token via top-bar `auth token` field (stored in browser local storage)
   - local helper endpoint: `POST /auth/dev-token` with `{ "userId": "...", "role": "operator|admin|read_only", "ttlSec": 3600 }`
 
+Mission Control operator readiness + trust signals:
+- Top bar source badge:
+  - `LIVE_BACKEND`: UI is reading from live backend endpoints.
+  - `MOCK_FALLBACK`: UI fell back to mock data because backend/ws path is degraded.
+  - `MOCK_FORCED`: UI started in forced mock mode (`VITE_TOURAB_USE_MOCK=1`).
+- Top bar exchange badge:
+  - `EXCHANGE_DEMO_OK`: backend private OKX demo health check is passing.
+  - `EXCHANGE_AUTH_FAIL`: backend cannot authenticate to OKX demo (check credentials/allowlist/passphrase).
+- Top bar now also shows:
+  - `EQ <value> USD` from latest portfolio snapshot.
+  - `OPEN ORDERS <count>` from latest open orders snapshot.
+- Demo Readiness card checks:
+  - backend data source
+  - websocket stream health
+  - OKX demo auth
+  - portfolio snapshot freshness
+  - open orders snapshot freshness
+  - approval window validity
+
+Mission Control portfolio/orders visibility:
+- Right panel tabs:
+  - `Portfolio`: total equity + per-asset balances (`eq`, `availBal`, `cashBal`) and last update timestamp.
+  - `Orders`: open orders list (`instId`, `side`, `state`, `px`, `sz`, `accFillSz`, `ordId`, update time).
+- Data source:
+  - Snapshot payload now includes `exchange`, `portfolio`, and `openOrders`.
+  - Backend polls OKX demo private APIs on interval (default `TOURAB_EXCHANGE_HEALTH_INTERVAL_MS=15000`).
+
 Milestone 4 alert workflow baseline:
 - Alert store JSONL: `logs/mission-alerts.jsonl` (override via `TOURAB_ALERT_STORE_PATH`)
 - Ops store SQLite (durable audit + incidents): `logs/mission-ops.sqlite` (override via `TOURAB_OPS_STORE_PATH`)

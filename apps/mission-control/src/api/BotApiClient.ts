@@ -8,21 +8,28 @@ import type {
   ControlAction,
   ControlActionResponse,
   DashboardSnapshot,
+  ExchangeStatus,
   LogEntry,
+  OpenOrdersStatus,
   OpsMetrics,
+  PortfolioStatus,
   ReconciliationStatus,
   RiskStatus,
   UserRole
 } from "../types";
 
 export type ConnectionHealth = "live" | "degraded";
+export type ClientDataSource = "live" | "mock_fallback" | "mock_forced";
 
 export interface BotApiClient {
   setAuthToken(token: string | undefined): void;
+  getDataSource(): ClientDataSource;
+  onDataSourceChange(listener: (source: ClientDataSource) => void): () => void;
   getSnapshot(): Promise<DashboardSnapshot>;
   subscribeToEvents(
     onEvent: (event: BotEvent) => void,
-    onConnectionHealthChange?: (health: ConnectionHealth) => void
+    onConnectionHealthChange?: (health: ConnectionHealth) => void,
+    onDataSourceChange?: (source: ClientDataSource) => void
   ): () => void;
   performAction(action: ControlAction, role: UserRole, userId: string, approvalId?: string): Promise<ControlActionResponse>;
   listApprovals(status?: "pending" | "approved" | "rejected" | "expired"): Promise<ApprovalRequest[]>;
@@ -51,4 +58,7 @@ export interface DashboardData {
   alerts: AlertItem[];
   incidents: IncidentItem[];
   metrics: OpsMetrics;
+  exchange: ExchangeStatus;
+  portfolio: PortfolioStatus;
+  openOrders: OpenOrdersStatus;
 }

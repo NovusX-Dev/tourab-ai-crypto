@@ -44,6 +44,15 @@ Env flags:
 - `VITE_TOURAB_USE_MOCK=1` forces mock mode
 - `VITE_TOURAB_API_FALLBACK=0` disables fallback to mock when backend is unavailable
 - Top bar includes `auth token` input for signed-auth mode (`Bearer` token value only).
+- Top bar now exposes source badge:
+  - `LIVE_BACKEND`: live backend data path
+  - `MOCK_FALLBACK`: fallback-to-mock is active due to backend/ws degradation
+  - `MOCK_FORCED`: UI started in forced mock mode
+- Top bar now exposes exchange badge:
+  - `EXCHANGE_DEMO_OK`: OKX demo private auth health check passing
+  - `EXCHANGE_AUTH_FAIL`: exchange auth/config check failing (see Demo Readiness card detail)
+- Backend polling cadence for exchange/private snapshots:
+  - `TOURAB_EXCHANGE_HEALTH_INTERVAL_MS` (default `15000`)
 
 ## Expected backend contract (Phase 2)
 
@@ -56,6 +65,22 @@ Env flags:
   - logs
 - Real-time event stream delivering typed events used in `src/types.ts`.
 - Role-aware control command responses with clear error codes for invalid transitions/authorization failures.
+- Snapshot now includes:
+  - `exchange`: `{ connected, mode, source, lastHealthCheckAt, lastError? }`
+  - `portfolio`: `{ totalEq, balances[], lastUpdatedAt, lastError? }`
+  - `openOrders`: `{ orders[], lastUpdatedAt, lastError? }`
+
+## Operator usage (current UI)
+
+- Right panel tabs now include:
+  - `Portfolio`: asset balances and total equity.
+  - `Orders`: currently open orders in demo account.
+- Top bar now includes:
+  - data source trust badge (`LIVE_BACKEND` / `MOCK_FALLBACK` / `MOCK_FORCED`)
+  - exchange auth badge (`EXCHANGE_DEMO_OK` / `EXCHANGE_AUTH_FAIL`)
+  - compact equity and open-order counters.
+- Demo Readiness card:
+  - central pass/fail view for backend source, WS health, demo auth, portfolio/orders snapshot status, and approval expiry state.
 
 ## Phase 3 start: approval workflow
 

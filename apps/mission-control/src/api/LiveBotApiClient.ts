@@ -1,6 +1,6 @@
 import type { BotApiClient } from "./BotApiClient";
 import { mockBotApiClient } from "./MockBotApiClient";
-import type { ConnectionHealth } from "./BotApiClient";
+import type { ClientDataSource, ConnectionHealth } from "./BotApiClient";
 import type {
   AlertItem,
   ApprovalRequest,
@@ -25,6 +25,8 @@ const ACTION_PATH: Record<ControlAction, string> = {
 
 export class LiveBotApiClient implements BotApiClient {
   private authToken: string | undefined;
+  private dataSource: ClientDataSource = "live";
+  private readonly dataSourceListeners = new Set<(source: ClientDataSource) => void>();
 
   constructor(
     private readonly baseHttpUrl: string,
@@ -34,6 +36,28 @@ export class LiveBotApiClient implements BotApiClient {
 
   setAuthToken(token: string | undefined): void {
     this.authToken = token;
+  }
+
+  getDataSource(): ClientDataSource {
+    return this.dataSource;
+  }
+
+  onDataSourceChange(listener: (source: ClientDataSource) => void): () => void {
+    this.dataSourceListeners.add(listener);
+    listener(this.dataSource);
+    return () => {
+      this.dataSourceListeners.delete(listener);
+    };
+  }
+
+  private setDataSource(next: ClientDataSource): void {
+    if (this.dataSource === next) {
+      return;
+    }
+    this.dataSource = next;
+    for (const listener of this.dataSourceListeners) {
+      listener(next);
+    }
   }
 
   async getSnapshot(): Promise<DashboardSnapshot> {
@@ -46,18 +70,21 @@ export class LiveBotApiClient implements BotApiClient {
       if (!res.ok) {
         throw new Error(`Snapshot request failed: ${res.status}`);
       }
+      this.setDataSource("live");
       return (await res.json()) as DashboardSnapshot;
     } catch (error: unknown) {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.getSnapshot();
     }
   }
 
   subscribeToEvents(
     onEvent: (event: BotEvent) => void,
-    onConnectionHealthChange?: (health: ConnectionHealth) => void
+    onConnectionHealthChange?: (health: ConnectionHealth) => void,
+    onDataSourceChange?: (source: ClientDataSource) => void
   ): () => void {
     const tokenSuffix = this.authToken ? `&token=${encodeURIComponent(this.authToken)}` : "";
     const url = `${this.baseWsUrl}/events?replay=200${tokenSuffix}`;
@@ -69,11 +96,16 @@ export class LiveBotApiClient implements BotApiClient {
     const emitHealth = (health: ConnectionHealth) => {
       onConnectionHealthChange?.(health);
     };
+    const emitSource = (source: ClientDataSource) => {
+      this.setDataSource(source);
+      onDataSourceChange?.(source);
+    };
 
     const ensureFallback = () => {
       if (!this.allowFallback || fallbackUnsubscribe) {
         return;
       }
+      emitSource("mock_fallback");
       fallbackUnsubscribe = mockBotApiClient.subscribeToEvents(onEvent);
     };
 
@@ -115,6 +147,7 @@ export class LiveBotApiClient implements BotApiClient {
 
       ws.onopen = () => {
         emitHealth("live");
+        emitSource("live");
         clearFallback();
       };
 
@@ -182,6 +215,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.performAction(action, role, userId, approvalId);
     }
   }
@@ -203,6 +237,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.listApprovals(status);
     }
   }
@@ -224,6 +259,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.approveApproval(id, userId);
     }
   }
@@ -247,6 +283,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.rejectApproval(id, userId, reason);
     }
   }
@@ -268,6 +305,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.listAlerts(status);
     }
   }
@@ -289,6 +327,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.acknowledgeAlert(id, userId);
     }
   }
@@ -310,6 +349,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.resolveAlert(id, userId);
     }
   }
@@ -339,6 +379,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.updateReconciliation(role, userId, input);
     }
   }
@@ -360,6 +401,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.listIncidents(status);
     }
   }
@@ -381,6 +423,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.acknowledgeIncident(id, userId);
     }
   }
@@ -402,6 +445,7 @@ export class LiveBotApiClient implements BotApiClient {
       if (!this.allowFallback) {
         throw error;
       }
+      this.setDataSource("mock_fallback");
       return mockBotApiClient.resolveIncident(id, userId);
     }
   }

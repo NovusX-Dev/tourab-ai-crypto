@@ -53,10 +53,12 @@ select {
 
 .app-shell {
   min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 240px 1fr 360px;
   gap: 12px;
   padding: 12px;
+  overflow: hidden;
 }
 
 .card {
@@ -71,6 +73,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0;
 }
 
 .brand {
@@ -114,9 +117,10 @@ select {
 
 .main-grid {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
+  min-height: 0;
 }
 
 .topbar {
@@ -135,6 +139,8 @@ select {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .env-badge,
@@ -173,6 +179,28 @@ select {
   display: grid;
   grid-template-columns: 1.1fr 1fr 0.95fr;
   gap: 12px;
+}
+
+.readiness-card {
+  padding: 12px;
+  min-width: 0;
+}
+
+.readiness-list {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.readiness-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 .bot-status-card,
@@ -323,10 +351,10 @@ select {
 }
 
 .event-stream {
-  min-height: 460px;
+  min-height: 0;
   padding: 12px;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
 }
@@ -365,9 +393,14 @@ select {
 
 .event-list {
   overflow: auto;
-  display: grid;
-  gap: 7px;
+  display: block;
   padding-right: 3px;
+  min-height: 0;
+  position: relative;
+}
+
+.event-virtual-spacer {
+  position: relative;
 }
 
 .event-row {
@@ -379,6 +412,11 @@ select {
   align-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.02);
+  position: absolute;
+  left: 0;
+  right: 6px;
+  height: 90px;
+  overflow: hidden;
 }
 
 .event-pinned {
@@ -391,11 +429,17 @@ select {
 
 .event-message {
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .event-tags {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .pin-btn {
@@ -409,8 +453,9 @@ select {
 .right-panel {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  min-height: 0;
 }
 
 .toast-stack {
@@ -554,9 +599,65 @@ select {
   border-color: var(--accent);
 }
 
+.tab-attention {
+  animation: tab-flash 0.9s ease-in-out infinite alternate;
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.sound-toggle {
+  margin-left: auto;
+}
+
 .panel-content {
   padding: 12px;
   overflow: auto;
+  min-height: 0;
+}
+
+.portfolio-list,
+.orders-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.portfolio-row,
+.order-row {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 9px;
+}
+
+.portfolio-row {
+  display: grid;
+  grid-template-columns: minmax(60px, 90px) repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.portfolio-ccy {
+  font-weight: 700;
+}
+
+.portfolio-metric,
+.order-meta {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.order-row {
+  display: grid;
+  gap: 6px;
+}
+
+.order-main {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .risk-limits {
@@ -571,6 +672,8 @@ select {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   padding: 9px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .risk-values,
@@ -626,11 +729,30 @@ select {
 
 .log-row {
   display: grid;
-  grid-template-columns: 70px 70px 90px 1fr;
+  grid-template-columns: minmax(64px, 80px) minmax(70px, 90px) minmax(80px, 110px) minmax(0, 1fr);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 7px;
   gap: 8px;
+  min-width: 0;
+}
+
+.log-row span {
+  min-width: 0;
+}
+
+.log-message {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@keyframes tab-flash {
+  from {
+    box-shadow: 0 0 0 rgba(240, 185, 90, 0.05);
+  }
+  to {
+    box-shadow: 0 0 16px rgba(240, 185, 90, 0.35);
+  }
 }
 
 @media (max-width: 1400px) {
@@ -663,12 +785,20 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .readiness-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .event-filters,
   .log-filters {
     grid-template-columns: 1fr 1fr;
   }
 
   .event-row {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-row {
     grid-template-columns: 1fr;
   }
 }

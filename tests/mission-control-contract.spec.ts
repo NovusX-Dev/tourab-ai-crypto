@@ -17,6 +17,8 @@ interface SnapshotResponse {
   state: { state: string };
   alerts: Array<{ code: string; status: string }>;
   incidents: Array<{ id: string; status: string; taxonomy: string; runbookRef: string }>;
+  portfolio: { totalEq: string; balances: Array<{ ccy: string }>; lastUpdatedAt: string; lastError?: string };
+  openOrders: { orders: Array<{ ordId: string; instId: string }>; lastUpdatedAt: string; lastError?: string };
 }
 
 async function postControl(baseHttpUrl: string, path: string): Promise<void> {
@@ -189,6 +191,9 @@ describe("mission-control contract", () => {
       const snapshot = (await snapshotRes.json()) as SnapshotResponse;
       expect(snapshot.audit.some((item) => item.title === "Approval created")).toBe(true);
       expect(snapshot.audit.some((item) => item.title === "Approval approved" && item.detail.includes("contract-tester"))).toBe(true);
+      expect(typeof snapshot.portfolio.totalEq).toBe("string");
+      expect(Array.isArray(snapshot.portfolio.balances)).toBe(true);
+      expect(Array.isArray(snapshot.openOrders.orders)).toBe(true);
     } finally {
       await handle.close();
       await rm(tempDir, { recursive: true, force: true });

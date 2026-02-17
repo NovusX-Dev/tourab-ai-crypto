@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import type { BotApiClient } from "../api/BotApiClient";
 import type { ConnectionHealth } from "../api/BotApiClient";
-import type { AlertItem, AuditItem, BotEvent, BotStateSnapshot, IncidentItem, LogEntry, OpsMetrics, ReconciliationStatus, RiskStatus, UserRole } from "../types";
+import type { ClientDataSource } from "../api/BotApiClient";
+import type {
+  AlertItem,
+  AuditItem,
+  BotEvent,
+  BotStateSnapshot,
+  ExchangeStatus,
+  IncidentItem,
+  LogEntry,
+  OpenOrdersStatus,
+  OpsMetrics,
+  PortfolioStatus,
+  ReconciliationStatus,
+  RiskStatus,
+  UserRole
+} from "../types";
 import { filterEvents, type QuickFilter } from "../logic/eventFilters";
 import type { EventSeverity, EventType } from "@tourab/shared";
 
@@ -18,6 +33,13 @@ const EMPTY_RISK: RiskStatus = { limits: [], activeBlocks: [], recentRejects: []
 const EMPTY_RECON: ReconciliationStatus = { positions: "in_progress", pnl: "in_progress", orders: "in_progress", lastRunAt: new Date().toISOString() };
 const EMPTY_ALERTS: AlertItem[] = [];
 const EMPTY_INCIDENTS: IncidentItem[] = [];
+const EMPTY_EXCHANGE: ExchangeStatus = {
+  connected: false,
+  mode: "unknown",
+  source: "none",
+  lastHealthCheckAt: new Date(0).toISOString(),
+  lastError: "Exchange health not yet loaded."
+};
 const EMPTY_METRICS: OpsMetrics = {
   controlRequestsTotal: 0,
   controlFailuresTotal: 0,
@@ -31,6 +53,17 @@ const EMPTY_METRICS: OpsMetrics = {
   openIncidents: 0,
   reconcileRunsTotal: 0
 };
+const EMPTY_PORTFOLIO: PortfolioStatus = {
+  totalEq: "0",
+  balances: [],
+  lastUpdatedAt: new Date(0).toISOString(),
+  lastError: "Portfolio not loaded yet."
+};
+const EMPTY_OPEN_ORDERS: OpenOrdersStatus = {
+  orders: [],
+  lastUpdatedAt: new Date(0).toISOString(),
+  lastError: "Open orders not loaded yet."
+};
 
 export function useDashboardData(client: BotApiClient) {
   const [state, setState] = useState<BotStateSnapshot>(EMPTY_STATE);
@@ -41,6 +74,9 @@ export function useDashboardData(client: BotApiClient) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>(EMPTY_ALERTS);
   const [incidents, setIncidents] = useState<IncidentItem[]>(EMPTY_INCIDENTS);
+  const [exchange, setExchange] = useState<ExchangeStatus>(EMPTY_EXCHANGE);
+  const [portfolio, setPortfolio] = useState<PortfolioStatus>(EMPTY_PORTFOLIO);
+  const [openOrders, setOpenOrders] = useState<OpenOrdersStatus>(EMPTY_OPEN_ORDERS);
   const [metrics, setMetrics] = useState<OpsMetrics>(EMPTY_METRICS);
   const [role, setRole] = useState<UserRole>("operator");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
@@ -50,22 +86,39 @@ export function useDashboardData(client: BotApiClient) {
   const [pinnedSymbol, setPinnedSymbol] = useState<string>("");
   const [streamPaused, setStreamPaused] = useState(false);
   const [connectionHealth, setConnectionHealth] = useState<ConnectionHealth>("live");
+  const [dataSource, setDataSource] = useState<ClientDataSource>(() => client.getDataSource());
 
   useEffect(() => {
     let mounted = true;
-    void client.getSnapshot().then((snapshot) => {
+    async function refreshSnapshot() {
+      const snapshot = await client.getSnapshot();
       if (!mounted) {
         return;
       }
       setState(snapshot.state);
-      setEvents(snapshot.events);
       setRisk(snapshot.risk);
       setReconciliation(snapshot.reconciliation);
       setAudit(snapshot.audit);
       setLogs(snapshot.logs);
       setAlerts(snapshot.alerts);
       setIncidents(snapshot.incidents);
+      setExchange(snapshot.exchange);
+      setPortfolio(snapshot.portfolio);
+      setOpenOrders(snapshot.openOrders);
       setMetrics(snapshot.metrics);
+      setEvents((prev) => {
+        if (prev.length > 0) {
+          return prev;
+        }
+        return snapshot.events;
+      });
+    }
+    void refreshSnapshot();
+    const snapshotTimer = setInterval(() => {
+      void refreshSnapshot();
+    }, 10_000);
+    const unsubscribeSource = client.onDataSourceChange((source) => {
+      setDataSource(source);
     });
 
     const unsubscribe = client.subscribeToEvents(
@@ -116,11 +169,16 @@ export function useDashboardData(client: BotApiClient) {
       },
       (health) => {
         setConnectionHealth(health);
+      },
+      (source) => {
+        setDataSource(source);
       }
     );
 
     return () => {
       mounted = false;
+      clearInterval(snapshotTimer);
+      unsubscribeSource();
       unsubscribe();
     };
   }, [client, streamPaused]);
@@ -149,6 +207,9 @@ export function useDashboardData(client: BotApiClient) {
     logs,
     alerts,
     incidents,
+    exchange,
+    portfolio,
+    openOrders,
     metrics,
     role,
     setRole,
@@ -164,6 +225,7 @@ export function useDashboardData(client: BotApiClient) {
     setPinnedSymbol,
     streamPaused,
     setStreamPaused,
-    connectionHealth
+    connectionHealth,
+    dataSource
   };
 }

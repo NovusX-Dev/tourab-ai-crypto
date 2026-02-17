@@ -159,6 +159,50 @@ export interface OpsMetrics {
 
 export type ControlAction = "start" | "pause" | "resume" | "stop" | "cancel_all" | "emergency_stop";
 
+export type ExchangeMode = "demo" | "live" | "unknown";
+export type ExchangeSource = "okx_demo" | "none";
+
+export interface ExchangeStatus {
+  connected: boolean;
+  mode: ExchangeMode;
+  source: ExchangeSource;
+  lastHealthCheckAt: string;
+  lastError?: string;
+}
+
+export interface PortfolioBalance {
+  ccy: string;
+  availBal: string;
+  cashBal: string;
+  eq: string;
+}
+
+export interface PortfolioStatus {
+  totalEq: string;
+  balances: PortfolioBalance[];
+  lastUpdatedAt: string;
+  lastError?: string;
+}
+
+export interface OpenOrderItem {
+  ordId: string;
+  clOrdId: string;
+  instId: string;
+  side: "buy" | "sell";
+  px: string;
+  sz: string;
+  accFillSz: string;
+  state: string;
+  cTime: string;
+  uTime: string;
+}
+
+export interface OpenOrdersStatus {
+  orders: OpenOrderItem[];
+  lastUpdatedAt: string;
+  lastError?: string;
+}
+
 export interface DashboardSnapshot {
   state: BotStateSnapshot;
   risk: RiskStatus;
@@ -168,6 +212,9 @@ export interface DashboardSnapshot {
   alerts: AlertItem[];
   incidents: IncidentItem[];
   metrics: OpsMetrics;
+  exchange: ExchangeStatus;
+  portfolio: PortfolioStatus;
+  openOrders: OpenOrdersStatus;
   events: BotEvent[];
 }
 

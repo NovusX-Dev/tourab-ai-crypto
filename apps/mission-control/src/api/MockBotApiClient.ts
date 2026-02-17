@@ -1,5 +1,5 @@
 import type { BotApiClient } from "./BotApiClient";
-import type { ConnectionHealth } from "./BotApiClient";
+import type { ClientDataSource, ConnectionHealth } from "./BotApiClient";
 import type { AlertItem, ApprovalRequest, BotEvent, BotLifecycleState, ControlAction, DashboardSnapshot, IncidentItem, UserRole } from "../types";
 import { isActionEnabled, canRoleExecuteAction, transitionState } from "../logic/controlAvailability";
 import {
@@ -15,6 +15,17 @@ import {
 } from "../mock/mockData";
 
 export class MockBotApiClient implements BotApiClient {
+  getDataSource(): ClientDataSource {
+    return "mock_forced";
+  }
+
+  onDataSourceChange(listener: (source: ClientDataSource) => void): () => void {
+    listener("mock_forced");
+    return () => {
+      return;
+    };
+  }
+
   setAuthToken(_token: string | undefined): void {
     return;
   }
@@ -77,15 +88,35 @@ export class MockBotApiClient implements BotApiClient {
         ...this.metrics,
         openAlerts: this.alerts.filter((item) => item.status === "open").length,
         openIncidents: this.incidents.filter((item) => item.status !== "resolved").length
+      },
+      exchange: {
+        connected: false,
+        mode: "demo",
+        source: "none",
+        lastHealthCheckAt: new Date().toISOString(),
+        lastError: "Mock mode forced by UI configuration."
+      },
+      portfolio: {
+        totalEq: "0",
+        balances: [],
+        lastUpdatedAt: new Date().toISOString(),
+        lastError: "Portfolio unavailable in forced mock mode."
+      },
+      openOrders: {
+        orders: [],
+        lastUpdatedAt: new Date().toISOString(),
+        lastError: "Open orders unavailable in forced mock mode."
       }
     };
   }
 
   subscribeToEvents(
     onEvent: (event: BotEvent) => void,
-    onConnectionHealthChange?: (health: ConnectionHealth) => void
+    onConnectionHealthChange?: (health: ConnectionHealth) => void,
+    onDataSourceChange?: (source: ClientDataSource) => void
   ): () => void {
     onConnectionHealthChange?.("live");
+    onDataSourceChange?.("mock_forced");
     this.metrics.wsConnectionsTotal += 1;
     if (this.intervalRef) {
       clearInterval(this.intervalRef);

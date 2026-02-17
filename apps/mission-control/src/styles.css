@@ -316,6 +316,12 @@ select {
   gap: 8px;
 }
 
+.recon-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
 .event-stream {
   min-height: 460px;
   padding: 12px;
@@ -477,6 +483,54 @@ select {
   margin-top: 9px;
   display: flex;
   gap: 8px;
+}
+
+.alerts-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.alert-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 9px;
+}
+
+.alert-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.alert-title {
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+.alert-meta {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.alert-actions {
+  margin-top: 9px;
+  display: flex;
+  gap: 8px;
+}
+
+.alert-status-open {
+  color: var(--warning);
+}
+
+.alert-status-acknowledged {
+  color: var(--accent);
+}
+
+.alert-status-resolved {
+  color: var(--success);
 }
 
 .tab-row {

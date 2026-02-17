@@ -1,8 +1,10 @@
 import { formatTime } from "../format";
-import type { ReconciliationStatus } from "../types";
+import type { ReconciliationStatus, UserRole } from "../types";
 
 interface ReconciliationCardProps {
   status: ReconciliationStatus;
+  role: UserRole;
+  onSetStatus: (input: Partial<Pick<ReconciliationStatus, "positions" | "pnl" | "orders">>) => void;
 }
 
 function badgeClass(value: ReconciliationStatus["orders"]): string {
@@ -18,7 +20,7 @@ function badgeClass(value: ReconciliationStatus["orders"]): string {
   return "state-progress";
 }
 
-export function ReconciliationCard({ status }: ReconciliationCardProps) {
+export function ReconciliationCard({ status, role, onSetStatus }: ReconciliationCardProps) {
   return (
     <section className="card recon-card" aria-label="Reconciliation status">
       <div className="panel-title">Reconciliation</div>
@@ -28,6 +30,17 @@ export function ReconciliationCard({ status }: ReconciliationCardProps) {
         <div className={`recon-chip ${badgeClass(status.orders)}`}>Orders: {status.orders}</div>
       </div>
       <div className="hint">Last run: {formatTime(status.lastRunAt)}</div>
+      <div className="recon-actions">
+        <button className="btn btn-ghost" disabled={role === "read_only"} onClick={() => onSetStatus({ positions: "ok", pnl: "ok", orders: "ok" })}>
+          Mark OK
+        </button>
+        <button className="btn btn-danger" disabled={role === "read_only"} onClick={() => onSetStatus({ orders: "drift" })}>
+          Sim Drift
+        </button>
+        <button className="btn btn-danger" disabled={role === "read_only"} onClick={() => onSetStatus({ orders: "error" })}>
+          Sim Error
+        </button>
+      </div>
     </section>
   );
 }

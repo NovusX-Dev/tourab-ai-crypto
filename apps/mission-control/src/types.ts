@@ -1,5 +1,7 @@
 export type {
   ApprovalRequest,
+  AlertItem,
+  IncidentItem,
   AuditItem,
   BotEvent,
   BotLifecycleState,
@@ -11,6 +13,7 @@ export type {
   EventSeverity,
   EventType,
   LogEntry,
+  OpsMetrics,
   ReconciliationStatus,
   RiskStatus,
   UserRole

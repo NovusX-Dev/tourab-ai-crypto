@@ -8,6 +8,7 @@ import { appendOrderLedgerRecord, readOrderLedger } from "./lifecycle-store.js";
 import { buildValidSpotProposal, fetchSpotMarketInputs } from "./proposal-helper.js";
 import { reconcileOrderLifecycle } from "./reconciliation.js";
 import { parseJsonPayload, validateContextPayload } from "./cli-validation.js";
+import type { RiskContext } from "@tourab/shared";
 
 type Mode = "propose" | "execute";
 
@@ -116,7 +117,7 @@ async function runCycle(
     stopDistanceBps: args.stopDistanceBps ?? 150
   });
 
-  const context = {
+  const context: RiskContext = {
     ...contextBase,
     instrument: {
       symbol: market.symbol,
@@ -162,6 +163,7 @@ async function runCycle(
   }
 
   const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
+  const freshnessEnabled = parseBooleanEnv(process.env.TOURAB_FRESHNESS_GUARD_ENABLED, true);
   const [pendingOrders, fills, ledger] = await Promise.all([
     adapter.getPendingOrders(symbol),
     adapter.getFills(symbol, 100),
@@ -199,6 +201,21 @@ async function runCycle(
   }
 
   const humanApprovalEnabled = parseBooleanEnv(process.env.TOURAB_HUMAN_APPROVAL_ENABLED, true);
+  if (freshnessEnabled) {
+    const account = await adapter.getAccountBalance("USDT");
+    const now = new Date().toISOString();
+    const totalEq = Number(account.totalEq);
+    context.account = {
+      ...context.account,
+      equityUsd: Number.isFinite(totalEq) && totalEq > 0 ? totalEq : context.account.equityUsd,
+      asOf: now
+    };
+    context.market = {
+      ...context.market,
+      asOf: now
+    };
+    context.ordersAsOf = now;
+  }
   const result = await executeProposalWithGatekeeper(built.proposal, context, adapter, {
     async write(event) {
       writeEvent({
@@ -219,7 +236,13 @@ async function runCycle(
     expiresAtIso: process.env.TOURAB_HUMAN_APPROVAL_EXPIRES_AT
   }, {
     actor: "auto-loop",
-    executionMode: (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ?? "proposal_only"
+    executionMode: (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ?? "proposal_only",
+    freshness: {
+      enabled: freshnessEnabled,
+      maxMarketAgeMs: Number(process.env.TOURAB_MAX_MARKET_AGE_MS ?? "15000"),
+      maxAccountAgeMs: Number(process.env.TOURAB_MAX_ACCOUNT_AGE_MS ?? "60000"),
+      maxOrdersAgeMs: Number(process.env.TOURAB_MAX_ORDERS_AGE_MS ?? "60000")
+    }
   });
 
   if (result.status === "SUBMITTED") {

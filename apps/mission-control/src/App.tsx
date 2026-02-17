@@ -1,21 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createDefaultBotApiClient } from "./api/LiveBotApiClient";
 import { ApprovalsPanel } from "./components/ApprovalsPanel";
+import { AlertsPanel } from "./components/AlertsPanel";
 import { AuditTimeline } from "./components/AuditTimeline";
 import { BotStatusCard } from "./components/BotStatusCard";
 import { ControlDeck } from "./components/ControlDeck";
 import { EventStream } from "./components/EventStream";
 import { LogsPanel } from "./components/LogsPanel";
+import { IncidentsPanel } from "./components/IncidentsPanel";
+import { OpsMetricsPanel } from "./components/OpsMetricsPanel";
 import { ReconciliationCard } from "./components/ReconciliationCard";
 import { RiskPanel } from "./components/RiskPanel";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { applyTheme, getInitialTheme, type ThemeName } from "./theme";
 import { useDashboardData } from "./state/useDashboardData";
-import type { ApprovalRequest, AuditItem, ControlAction, EventType } from "./types";
+import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, IncidentItem } from "./types";
 
 const client = createDefaultBotApiClient();
 
-type RightTab = "risk" | "audit" | "logs" | "approvals";
+type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "ops";
 type ToastTone = "success" | "error" | "warning";
 
 interface ToastItem {
@@ -38,9 +41,28 @@ export default function App() {
   const [highlightedSymbol, setHighlightedSymbol] = useState<string | undefined>(undefined);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
   const [currentUserId, setCurrentUserId] = useState("operator-1");
+  const [authToken, setAuthToken] = useState<string>(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+    return window.localStorage.getItem("tourab_auth_token") ?? "";
+  });
 
   const dashboard = useDashboardData(client);
+
+  useEffect(() => {
+    client.setAuthToken(authToken || undefined);
+    if (typeof window !== "undefined") {
+      if (authToken) {
+        window.localStorage.setItem("tourab_auth_token", authToken);
+      } else {
+        window.localStorage.removeItem("tourab_auth_token");
+      }
+    }
+  }, [authToken]);
 
   const connectionLabel = dashboard.streamPaused
     ? "Paused"
@@ -75,9 +97,33 @@ export default function App() {
     previousConnectionHealthRef.current = next;
   }, [dashboard.connectionHealth]);
 
+  const lastCircuitEventRef = useRef<string>("");
+  useEffect(() => {
+    const latest = dashboard.events[0];
+    if (!latest || latest.id === lastCircuitEventRef.current) {
+      return;
+    }
+    if (latest.tags?.includes("circuit_breaker")) {
+      lastCircuitEventRef.current = latest.id;
+      setTab("alerts");
+      pushToast("error", "CIRCUIT_BREAKER", latest.message);
+      void refreshAlerts();
+    }
+  }, [dashboard.events]);
+
   async function refreshApprovals() {
     const items = await client.listApprovals();
     setPendingApprovals(items);
+  }
+
+  async function refreshAlerts() {
+    const items = await client.listAlerts();
+    setAlerts(items);
+  }
+
+  async function refreshIncidents() {
+    const items = await client.listIncidents();
+    setIncidents(items);
   }
 
   async function approveApproval(id: string) {
@@ -94,6 +140,30 @@ export default function App() {
     const updated = await client.rejectApproval(id, currentUserId, "Rejected by operator");
     pushToast("warning", "APPROVAL_REJECTED", `${updated.id} rejected by ${currentUserId}`);
     await refreshApprovals();
+  }
+
+  async function acknowledgeAlert(id: string) {
+    const updated = await client.acknowledgeAlert(id, currentUserId);
+    pushToast("warning", "ALERT_ACKNOWLEDGED", `${updated.code} acknowledged by ${currentUserId}`);
+    await refreshAlerts();
+  }
+
+  async function resolveAlert(id: string) {
+    const updated = await client.resolveAlert(id, currentUserId);
+    pushToast("success", "ALERT_RESOLVED", `${updated.code} resolved by ${currentUserId}`);
+    await refreshAlerts();
+  }
+
+  async function acknowledgeIncident(id: string) {
+    const updated = await client.acknowledgeIncident(id, currentUserId);
+    pushToast("warning", "INCIDENT_ACKNOWLEDGED", `${updated.id} acknowledged by ${currentUserId}`);
+    await refreshIncidents();
+  }
+
+  async function resolveIncident(id: string) {
+    const updated = await client.resolveIncident(id, currentUserId);
+    pushToast("success", "INCIDENT_RESOLVED", `${updated.id} resolved by ${currentUserId}`);
+    await refreshIncidents();
   }
 
   async function handleAction(action: ControlAction, approvalId?: string) {
@@ -126,6 +196,18 @@ export default function App() {
     await refreshApprovals();
   }
 
+  async function setReconciliationStatus(input: Partial<Pick<typeof dashboard.reconciliation, "positions" | "pnl" | "orders">>) {
+    try {
+      const next = await client.updateReconciliation(dashboard.role, currentUserId, input);
+      dashboard.setReconciliation(next);
+      pushToast("success", "RECONCILIATION_UPDATED", `positions=${next.positions} pnl=${next.pnl} orders=${next.orders}`);
+      await refreshAlerts();
+      await refreshIncidents();
+    } catch (_error: unknown) {
+      pushToast("error", "RECONCILIATION_UPDATE_FAILED", "Failed to update reconciliation status.");
+    }
+  }
+
   function onSelectAudit(item: AuditItem) {
     setSelectedAuditId(item.id);
     setHighlightedEventType(item.relatedEventType);
@@ -140,11 +222,15 @@ export default function App() {
 
   useEffect(() => {
     void refreshApprovals();
+    void refreshAlerts();
+    void refreshIncidents();
   }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
       void refreshApprovals();
+      void refreshAlerts();
+      void refreshIncidents();
     }, 5000);
     return () => {
       clearInterval(timer);
@@ -177,8 +263,33 @@ export default function App() {
         />
       );
     }
+    if (tab === "alerts") {
+      return (
+        <AlertsPanel
+          items={alerts}
+          currentUserId={currentUserId}
+          onRefresh={() => void refreshAlerts()}
+          onAcknowledge={(id) => void acknowledgeAlert(id)}
+          onResolve={(id) => void resolveAlert(id)}
+        />
+      );
+    }
+    if (tab === "incidents") {
+      return (
+        <IncidentsPanel
+          items={incidents}
+          currentUserId={currentUserId}
+          onRefresh={() => void refreshIncidents()}
+          onAcknowledge={(id) => void acknowledgeIncident(id)}
+          onResolve={(id) => void resolveIncident(id)}
+        />
+      );
+    }
+    if (tab === "ops") {
+      return <OpsMetricsPanel metrics={dashboard.metrics} />;
+    }
     return <LogsPanel logs={dashboard.logs} />;
-  }, [tab, dashboard.risk, dashboard.audit, dashboard.logs, pendingApprovals, selectedAuditId, currentUserId]);
+  }, [tab, dashboard.risk, dashboard.audit, dashboard.logs, dashboard.metrics, pendingApprovals, selectedAuditId, currentUserId, alerts, incidents]);
 
   return (
     <div className="app-shell">
@@ -209,6 +320,13 @@ export default function App() {
               aria-label="User identity"
               style={{ width: 120 }}
             />
+            <input
+              value={authToken}
+              onChange={(event) => setAuthToken(event.target.value)}
+              placeholder="auth token"
+              aria-label="Auth token"
+              style={{ width: 180 }}
+            />
             <span
               className={`conn-badge ${
                 dashboard.streamPaused || dashboard.connectionHealth === "degraded" ? "warn" : "ok"
@@ -222,7 +340,7 @@ export default function App() {
         <section className="status-row">
           <BotStatusCard state={dashboard.state} />
           <ControlDeck role={dashboard.role} state={dashboard.state.state} onAction={handleAction} />
-          <ReconciliationCard status={dashboard.reconciliation} />
+          <ReconciliationCard status={dashboard.reconciliation} role={dashboard.role} onSetStatus={(input) => void setReconciliationStatus(input)} />
         </section>
 
         <EventStream
@@ -252,6 +370,9 @@ export default function App() {
           <button className={`tab ${tab === "audit" ? "tab-active" : ""}`} onClick={() => setTab("audit")}>Audit</button>
           <button className={`tab ${tab === "logs" ? "tab-active" : ""}`} onClick={() => setTab("logs")}>Logs</button>
           <button className={`tab ${tab === "approvals" ? "tab-active" : ""}`} onClick={() => setTab("approvals")}>Approvals</button>
+          <button className={`tab ${tab === "alerts" ? "tab-active" : ""}`} onClick={() => setTab("alerts")}>Alerts</button>
+          <button className={`tab ${tab === "incidents" ? "tab-active" : ""}`} onClick={() => setTab("incidents")}>Incidents</button>
+          <button className={`tab ${tab === "ops" ? "tab-active" : ""}`} onClick={() => setTab("ops")}>Ops</button>
         </div>
         {rightPanel}
       </aside>

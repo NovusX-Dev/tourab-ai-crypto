@@ -20,12 +20,14 @@ function validProposal(): TradeProposal {
 }
 
 function validContext(): RiskContext {
+  const now = new Date().toISOString();
   return {
     account: {
       equityUsd: 50,
       currentDailyLossUsd: 0.1,
       currentWeeklyLossUsd: 0.5,
-      currentOpenExposureUsd: 2
+      currentOpenExposureUsd: 2,
+      asOf: now
     },
     instrument: {
       symbol: "BTC-USDT",
@@ -34,8 +36,10 @@ function validContext(): RiskContext {
       tickSz: 0.1
     },
     market: {
-      markPrice: 100500
+      markPrice: 100500,
+      asOf: now
     },
+    ordersAsOf: now,
     limits: {
       maxPerTradeRiskUsd: 0.5,
       maxDailyLossUsd: 1,
@@ -262,6 +266,42 @@ describe("executeProposalWithGatekeeper invariants", () => {
     expect(result.status).toBe("REJECTED_BY_APPROVAL");
     if (result.status === "REJECTED_BY_APPROVAL") {
       expect(result.code).toBe("HUMAN_APPROVAL_REQUIRED");
+    }
+  });
+
+  it("blocks stale market/account/orders data before execution", async () => {
+    const adapter: OrderExecutionAdapter = {
+      async placeSpotLimitOrder() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const staleTs = new Date(Date.now() - 10 * 60_000).toISOString();
+    const result = await executeProposalWithGatekeeper(
+      validProposal(),
+      {
+        ...validContext(),
+        market: { ...validContext().market, asOf: staleTs },
+        account: { ...validContext().account, asOf: staleTs },
+        ordersAsOf: staleTs,
+        policy: { ...validContext().policy!, executionMode: "demo_execution_enabled" }
+      },
+      adapter,
+      {
+        async write() {
+          return;
+        }
+      },
+      validApproval(),
+      {
+        actor: "tester",
+        executionMode: "demo_execution_enabled"
+      }
+    );
+
+    expect(result.status).toBe("BLOCKED_BY_FRESHNESS");
+    if (result.status === "BLOCKED_BY_FRESHNESS") {
+      expect(result.code).toBe("STALE_MARKET_DATA");
     }
   });
 

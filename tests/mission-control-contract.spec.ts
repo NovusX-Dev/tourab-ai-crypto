@@ -14,6 +14,9 @@ interface EventQueryResponse {
 
 interface SnapshotResponse {
   audit: Array<{ title: string; detail: string }>;
+  state: { state: string };
+  alerts: Array<{ code: string; status: string }>;
+  incidents: Array<{ id: string; status: string; taxonomy: string; runbookRef: string }>;
 }
 
 async function postControl(baseHttpUrl: string, path: string): Promise<void> {
@@ -331,6 +334,178 @@ describe("mission-control contract", () => {
       expect(snapshot.audit.some((item) => item.title === "Invalid state transition")).toBe(true);
     } finally {
       await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("supports persistent alert workflow (open -> acknowledged -> resolved)", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      logRequests: false,
+      approvalTtlMs: 20
+    });
+
+    try {
+      await postControl(handle.baseHttpUrl, "/start");
+      const denied = await postControlRaw(handle.baseHttpUrl, "/stop");
+      const deniedPayload = (await denied.json()) as { details?: { approvalId?: string } };
+      const approvalId = deniedPayload.details?.approvalId as string;
+      await delay(30);
+
+      const expired = await postControlRaw(handle.baseHttpUrl, "/stop", { "x-approval-id": approvalId });
+      expect(expired.status).toBe(409);
+
+      const alertsRes = await fetch(`${handle.baseHttpUrl}/alerts?status=open`);
+      expect(alertsRes.ok).toBe(true);
+      const alertsPayload = (await alertsRes.json()) as { items: Array<{ id: string; code: string }> };
+      const approvalAlert = alertsPayload.items.find((item) => item.code === "APPROVAL_EXPIRED");
+      expect(approvalAlert).toBeTruthy();
+
+      const ackRes = await fetch(`${handle.baseHttpUrl}/alerts/${approvalAlert?.id}/ack`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        }
+      });
+      expect(ackRes.ok).toBe(true);
+
+      const resolveRes = await fetch(`${handle.baseHttpUrl}/alerts/${approvalAlert?.id}/resolve`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        }
+      });
+      expect(resolveRes.ok).toBe(true);
+    } finally {
+      await handle.close();
+    }
+
+    const restarted = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      logRequests: false,
+      approvalTtlMs: 20
+    });
+    try {
+      const alertsRes = await fetch(`${restarted.baseHttpUrl}/alerts?status=resolved`);
+      expect(alertsRes.ok).toBe(true);
+      const alertsPayload = (await alertsRes.json()) as { items: Array<{ code: string; resolvedBy?: string }> };
+      expect(alertsPayload.items.some((item) => item.code === "APPROVAL_EXPIRED")).toBe(true);
+    } finally {
+      await restarted.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("triggers drift circuit breaker and auto-pauses running bot", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+
+    try {
+      await postControl(handle.baseHttpUrl, "/start");
+
+      const update = await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ orders: "drift" })
+      });
+      expect(update.ok).toBe(true);
+      const updateSecond = await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ orders: "drift" })
+      });
+      expect(updateSecond.ok).toBe(true);
+
+      const snapshotRes = await fetch(`${handle.baseHttpUrl}/snapshot`);
+      const snapshot = (await snapshotRes.json()) as SnapshotResponse;
+      expect(snapshot.state.state).toBe("paused");
+      expect(snapshot.audit.some((item) => item.title === "Circuit breaker triggered")).toBe(true);
+      expect(snapshot.alerts.some((item) => item.code === "RECONCILIATION_DRIFT_CIRCUIT")).toBe(true);
+      expect(snapshot.incidents.some((item) => item.taxonomy === "reconciliation_drift")).toBe(true);
+
+      const incident = snapshot.incidents.find((item) => item.taxonomy === "reconciliation_drift");
+      const ackRes = await fetch(`${handle.baseHttpUrl}/incidents/${incident?.id}/ack`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        }
+      });
+      expect(ackRes.ok).toBe(true);
+      const resolveRes = await fetch(`${handle.baseHttpUrl}/incidents/${incident?.id}/resolve`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        }
+      });
+      expect(resolveRes.ok).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("persists audit trail across restart in structured ops store", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+
+    const first = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      await postControl(first.baseHttpUrl, "/start");
+      await postControl(first.baseHttpUrl, "/pause");
+      await postControl(first.baseHttpUrl, "/resume");
+    } finally {
+      await first.close();
+    }
+
+    const second = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const snapshotRes = await fetch(`${second.baseHttpUrl}/snapshot`);
+      const snapshot = (await snapshotRes.json()) as SnapshotResponse;
+      expect(snapshot.audit.length).toBeGreaterThan(0);
+    } finally {
+      await second.close();
       await rm(tempDir, { recursive: true, force: true });
     }
   });

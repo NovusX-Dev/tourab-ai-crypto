@@ -92,6 +92,71 @@ export interface LogEntry {
   message: string;
 }
 
+export type AlertSeverity = "warn" | "error" | "critical";
+export type AlertStatus = "open" | "acknowledged" | "resolved";
+
+export interface AlertItem {
+  id: string;
+  code: string;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  source: "system" | "control" | "exchange" | "ws";
+  title: string;
+  detail: string;
+  symbol?: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  count: number;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
+}
+
+export type IncidentStatus = "open" | "acknowledged" | "resolved";
+export type IncidentSeverity = "sev1" | "sev2" | "sev3";
+export type IncidentTaxonomy =
+  | "reconciliation_drift"
+  | "freshness_guard"
+  | "approval_governance"
+  | "control_plane"
+  | "exchange_reliability"
+  | "stream_health"
+  | "ops_durability";
+
+export interface IncidentItem {
+  id: string;
+  status: IncidentStatus;
+  severity: IncidentSeverity;
+  taxonomy: IncidentTaxonomy;
+  title: string;
+  detail: string;
+  runbookRef: string;
+  symbol?: string;
+  sourceAlertCode?: string;
+  createdAt: string;
+  updatedAt: string;
+  owner?: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
+}
+
+export interface OpsMetrics {
+  controlRequestsTotal: number;
+  controlFailuresTotal: number;
+  wsConnectionsTotal: number;
+  wsDisconnectsTotal: number;
+  gatekeeperRejectsTotal: number;
+  driftEventsTotal: number;
+  heartbeatGapEventsTotal: number;
+  lastHeartbeatGapMs: number;
+  openAlerts: number;
+  openIncidents: number;
+  reconcileRunsTotal: number;
+}
+
 export type ControlAction = "start" | "pause" | "resume" | "stop" | "cancel_all" | "emergency_stop";
 
 export interface DashboardSnapshot {
@@ -100,6 +165,9 @@ export interface DashboardSnapshot {
   reconciliation: ReconciliationStatus;
   audit: AuditItem[];
   logs: LogEntry[];
+  alerts: AlertItem[];
+  incidents: IncidentItem[];
+  metrics: OpsMetrics;
   events: BotEvent[];
 }
 

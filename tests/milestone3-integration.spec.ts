@@ -3,12 +3,14 @@ import { executeProposalWithGatekeeper, type OrderExecutionAdapter } from "../ap
 import type { RiskContext, TradeProposal } from "@tourab/shared";
 
 function context(): RiskContext {
+  const now = new Date().toISOString();
   return {
     account: {
       equityUsd: 50,
       currentDailyLossUsd: 0.1,
       currentWeeklyLossUsd: 0.5,
-      currentOpenExposureUsd: 2
+      currentOpenExposureUsd: 2,
+      asOf: now
     },
     instrument: {
       symbol: "BTC-USDT",
@@ -17,8 +19,10 @@ function context(): RiskContext {
       tickSz: 0.1
     },
     market: {
-      markPrice: 100500
+      markPrice: 100500,
+      asOf: now
     },
+    ordersAsOf: now,
     limits: {
       maxPerTradeRiskUsd: 0.5,
       maxDailyLossUsd: 1,

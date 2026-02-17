@@ -2,12 +2,14 @@ import type { BotApiClient } from "./BotApiClient";
 import { mockBotApiClient } from "./MockBotApiClient";
 import type { ConnectionHealth } from "./BotApiClient";
 import type {
+  AlertItem,
   ApprovalRequest,
   ApiErrorPayload,
   BotEvent,
   ControlAction,
   ControlActionResponse,
   DashboardSnapshot,
+  IncidentItem,
   UserRole,
   WsMessage
 } from "@tourab/shared";
@@ -22,15 +24,25 @@ const ACTION_PATH: Record<ControlAction, string> = {
 };
 
 export class LiveBotApiClient implements BotApiClient {
+  private authToken: string | undefined;
+
   constructor(
     private readonly baseHttpUrl: string,
     private readonly baseWsUrl: string,
     private readonly allowFallback: boolean
   ) {}
 
+  setAuthToken(token: string | undefined): void {
+    this.authToken = token;
+  }
+
   async getSnapshot(): Promise<DashboardSnapshot> {
     try {
-      const res = await fetch(`${this.baseHttpUrl}/snapshot`);
+      const res = await fetch(`${this.baseHttpUrl}/snapshot`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
       if (!res.ok) {
         throw new Error(`Snapshot request failed: ${res.status}`);
       }
@@ -47,7 +59,8 @@ export class LiveBotApiClient implements BotApiClient {
     onEvent: (event: BotEvent) => void,
     onConnectionHealthChange?: (health: ConnectionHealth) => void
   ): () => void {
-    const url = `${this.baseWsUrl}/events?replay=200`;
+    const tokenSuffix = this.authToken ? `&token=${encodeURIComponent(this.authToken)}` : "";
+    const url = `${this.baseWsUrl}/events?replay=200${tokenSuffix}`;
     let ws: WebSocket | undefined;
     let reconnectRef: ReturnType<typeof setTimeout> | undefined;
     let fallbackUnsubscribe: (() => void) | undefined;
@@ -148,6 +161,7 @@ export class LiveBotApiClient implements BotApiClient {
         headers: {
           "x-tourab-role": role,
           "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
           ...(approvalId ? { "x-approval-id": approvalId } : {})
         }
       });
@@ -175,7 +189,11 @@ export class LiveBotApiClient implements BotApiClient {
   async listApprovals(status?: "pending" | "approved" | "rejected" | "expired"): Promise<ApprovalRequest[]> {
     try {
       const query = status ? `?status=${status}` : "";
-      const res = await fetch(`${this.baseHttpUrl}/approvals${query}`);
+      const res = await fetch(`${this.baseHttpUrl}/approvals${query}`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
       if (!res.ok) {
         throw new Error(`Approval list failed: ${res.status}`);
       }
@@ -194,7 +212,8 @@ export class LiveBotApiClient implements BotApiClient {
       const res = await fetch(`${this.baseHttpUrl}/approvals/${id}/approve`, {
         method: "POST",
         headers: {
-          "x-user-id": userId
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
         }
       });
       if (!res.ok) {
@@ -215,7 +234,8 @@ export class LiveBotApiClient implements BotApiClient {
         method: "POST",
         headers: {
           "x-user-id": userId,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
         },
         body: JSON.stringify(reason ? { reason } : {})
       });
@@ -228,6 +248,161 @@ export class LiveBotApiClient implements BotApiClient {
         throw error;
       }
       return mockBotApiClient.rejectApproval(id, userId, reason);
+    }
+  }
+
+  async listAlerts(status?: "open" | "acknowledged" | "resolved"): Promise<AlertItem[]> {
+    try {
+      const query = status ? `?status=${status}` : "";
+      const res = await fetch(`${this.baseHttpUrl}/alerts${query}`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Alert list failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { items: AlertItem[] };
+      return payload.items;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.listAlerts(status);
+    }
+  }
+
+  async acknowledgeAlert(id: string, userId: string): Promise<AlertItem> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/alerts/${id}/ack`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Alert acknowledge failed: ${res.status}`);
+      }
+      return (await res.json()) as AlertItem;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.acknowledgeAlert(id, userId);
+    }
+  }
+
+  async resolveAlert(id: string, userId: string): Promise<AlertItem> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/alerts/${id}/resolve`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Alert resolve failed: ${res.status}`);
+      }
+      return (await res.json()) as AlertItem;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.resolveAlert(id, userId);
+    }
+  }
+
+  async updateReconciliation(
+    role: UserRole,
+    userId: string,
+    input: Partial<Pick<DashboardSnapshot["reconciliation"], "positions" | "pnl" | "orders">>
+  ): Promise<DashboardSnapshot["reconciliation"]> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Reconciliation update failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { reconciliation: DashboardSnapshot["reconciliation"] };
+      return payload.reconciliation;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.updateReconciliation(role, userId, input);
+    }
+  }
+
+  async listIncidents(status?: "open" | "acknowledged" | "resolved"): Promise<IncidentItem[]> {
+    try {
+      const query = status ? `?status=${status}` : "";
+      const res = await fetch(`${this.baseHttpUrl}/incidents${query}`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Incident list failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { items: IncidentItem[] };
+      return payload.items;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.listIncidents(status);
+    }
+  }
+
+  async acknowledgeIncident(id: string, userId: string): Promise<IncidentItem> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/incidents/${id}/ack`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Incident acknowledge failed: ${res.status}`);
+      }
+      return (await res.json()) as IncidentItem;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.acknowledgeIncident(id, userId);
+    }
+  }
+
+  async resolveIncident(id: string, userId: string): Promise<IncidentItem> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/incidents/${id}/resolve`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Incident resolve failed: ${res.status}`);
+      }
+      return (await res.json()) as IncidentItem;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      return mockBotApiClient.resolveIncident(id, userId);
     }
   }
 }

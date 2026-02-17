@@ -5,6 +5,7 @@ import { loadOkxDemoConfigFromEnv, OkxApiError, OkxDemoAdapter } from "@tourab/o
 import { executeProposalWithGatekeeper } from "./execution-service.js";
 import { HumanApprovalError, parseBooleanEnv } from "./human-approval.js";
 import { appendOrderLedgerRecord } from "./lifecycle-store.js";
+import { fetchSpotMarketInputs } from "./proposal-helper.js";
 import {
   CliStructuredError,
   parseJsonPayload,
@@ -82,6 +83,27 @@ async function run(): Promise<void> {
 
   const config = loadOkxDemoConfigFromEnv(process.env);
   const adapter = new OkxDemoAdapter(config);
+  const freshnessEnabled = parseBooleanEnv(process.env.TOURAB_FRESHNESS_GUARD_ENABLED, true);
+  if (freshnessEnabled) {
+    const [accountBalance, pendingOrders, market] = await Promise.all([
+      adapter.getAccountBalance("USDT"),
+      adapter.getPendingOrders(proposal.symbol),
+      fetchSpotMarketInputs(proposal.symbol, config.baseUrl)
+    ]);
+    const now = new Date().toISOString();
+    const totalEq = Number(accountBalance.totalEq);
+    context.account = {
+      ...context.account,
+      equityUsd: Number.isFinite(totalEq) && totalEq > 0 ? totalEq : context.account.equityUsd,
+      asOf: now
+    };
+    context.market = {
+      ...context.market,
+      markPrice: market.last,
+      asOf: now
+    };
+    context.ordersAsOf = pendingOrders ? now : context.ordersAsOf;
+  }
   const humanApprovalEnabled = parseBooleanEnv(process.env.TOURAB_HUMAN_APPROVAL_ENABLED, true);
   const requiredApprovalToken = process.env.TOURAB_HUMAN_APPROVAL_TOKEN;
   const result = await executeProposalWithGatekeeper(proposal, context, adapter, {
@@ -98,7 +120,13 @@ async function run(): Promise<void> {
     expiresAtIso: process.env.TOURAB_HUMAN_APPROVAL_EXPIRES_AT
   }, {
     actor: "cli-operator",
-    executionMode: (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ?? "proposal_only"
+    executionMode: (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ?? "proposal_only",
+    freshness: {
+      enabled: freshnessEnabled,
+      maxMarketAgeMs: Number(process.env.TOURAB_MAX_MARKET_AGE_MS ?? "15000"),
+      maxAccountAgeMs: Number(process.env.TOURAB_MAX_ACCOUNT_AGE_MS ?? "60000"),
+      maxOrdersAgeMs: Number(process.env.TOURAB_MAX_ORDERS_AGE_MS ?? "60000")
+    }
   });
   if (result.status === "SUBMITTED") {
     const ledgerPath = process.env.TOURAB_ORDER_LEDGER_PATH ?? "logs/order-intents.jsonl";

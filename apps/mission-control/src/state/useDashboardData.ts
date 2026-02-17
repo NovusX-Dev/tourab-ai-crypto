@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { BotApiClient } from "../api/BotApiClient";
 import type { ConnectionHealth } from "../api/BotApiClient";
-import type { AuditItem, BotEvent, BotStateSnapshot, LogEntry, ReconciliationStatus, RiskStatus, UserRole } from "../types";
+import type { AlertItem, AuditItem, BotEvent, BotStateSnapshot, IncidentItem, LogEntry, OpsMetrics, ReconciliationStatus, RiskStatus, UserRole } from "../types";
 import { filterEvents, type QuickFilter } from "../logic/eventFilters";
 import type { EventSeverity, EventType } from "@tourab/shared";
 
@@ -16,6 +16,21 @@ const EMPTY_STATE: BotStateSnapshot = {
 
 const EMPTY_RISK: RiskStatus = { limits: [], activeBlocks: [], recentRejects: [] };
 const EMPTY_RECON: ReconciliationStatus = { positions: "in_progress", pnl: "in_progress", orders: "in_progress", lastRunAt: new Date().toISOString() };
+const EMPTY_ALERTS: AlertItem[] = [];
+const EMPTY_INCIDENTS: IncidentItem[] = [];
+const EMPTY_METRICS: OpsMetrics = {
+  controlRequestsTotal: 0,
+  controlFailuresTotal: 0,
+  wsConnectionsTotal: 0,
+  wsDisconnectsTotal: 0,
+  gatekeeperRejectsTotal: 0,
+  driftEventsTotal: 0,
+  heartbeatGapEventsTotal: 0,
+  lastHeartbeatGapMs: 0,
+  openAlerts: 0,
+  openIncidents: 0,
+  reconcileRunsTotal: 0
+};
 
 export function useDashboardData(client: BotApiClient) {
   const [state, setState] = useState<BotStateSnapshot>(EMPTY_STATE);
@@ -24,6 +39,9 @@ export function useDashboardData(client: BotApiClient) {
   const [reconciliation, setReconciliation] = useState<ReconciliationStatus>(EMPTY_RECON);
   const [audit, setAudit] = useState<AuditItem[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>(EMPTY_ALERTS);
+  const [incidents, setIncidents] = useState<IncidentItem[]>(EMPTY_INCIDENTS);
+  const [metrics, setMetrics] = useState<OpsMetrics>(EMPTY_METRICS);
   const [role, setRole] = useState<UserRole>("operator");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [symbolFilter, setSymbolFilter] = useState<string>("");
@@ -45,6 +63,9 @@ export function useDashboardData(client: BotApiClient) {
       setReconciliation(snapshot.reconciliation);
       setAudit(snapshot.audit);
       setLogs(snapshot.logs);
+      setAlerts(snapshot.alerts);
+      setIncidents(snapshot.incidents);
+      setMetrics(snapshot.metrics);
     });
 
     const unsubscribe = client.subscribeToEvents(
@@ -54,9 +75,10 @@ export function useDashboardData(client: BotApiClient) {
         }
         setEvents((prev) => [event, ...prev].slice(0, 400));
         const approvalTag = (event.tags || []).find((tag) => tag.startsWith("approval_"));
-        if (approvalTag) {
-          const title =
-            approvalTag === "approval_created"
+        const circuitTag = (event.tags || []).find((tag) => tag === "circuit_breaker");
+        if (approvalTag || circuitTag) {
+          const title = approvalTag
+            ? approvalTag === "approval_created"
               ? "Approval created"
               : approvalTag === "approval_approved"
                 ? "Approval approved"
@@ -64,7 +86,8 @@ export function useDashboardData(client: BotApiClient) {
                   ? "Approval rejected"
                   : approvalTag === "approval_expired"
                     ? "Approval expired"
-                    : "Approval lifecycle";
+                    : "Approval lifecycle"
+            : "Circuit breaker triggered";
           setAudit((prev) => [
             {
               id: `audit-live-${event.id}`,
@@ -121,8 +144,12 @@ export function useDashboardData(client: BotApiClient) {
     filteredEvents,
     risk,
     reconciliation,
+    setReconciliation,
     audit,
     logs,
+    alerts,
+    incidents,
+    metrics,
     role,
     setRole,
     quickFilter,

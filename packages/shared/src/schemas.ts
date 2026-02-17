@@ -20,7 +20,8 @@ export const RiskContextSchema: z.ZodType<RiskContext> = z.object({
     equityUsd: positiveFiniteNumber,
     currentDailyLossUsd: nonNegativeFiniteNumber,
     currentWeeklyLossUsd: nonNegativeFiniteNumber,
-    currentOpenExposureUsd: nonNegativeFiniteNumber
+    currentOpenExposureUsd: nonNegativeFiniteNumber,
+    asOf: z.string().datetime().optional()
   }),
   instrument: z.object({
     symbol: z.string().min(1),
@@ -29,8 +30,10 @@ export const RiskContextSchema: z.ZodType<RiskContext> = z.object({
     tickSz: positiveFiniteNumber
   }),
   market: z.object({
-    markPrice: positiveFiniteNumber
+    markPrice: positiveFiniteNumber,
+    asOf: z.string().datetime().optional()
   }),
+  ordersAsOf: z.string().datetime().optional(),
   position: z
     .object({
       symbol: z.string().min(1),

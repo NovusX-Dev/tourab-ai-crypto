@@ -23,6 +23,7 @@ export interface AccountState {
   currentDailyLossUsd: number;
   currentWeeklyLossUsd: number;
   currentOpenExposureUsd: number;
+  asOf?: string;
 }
 
 export interface PositionState {
@@ -33,6 +34,7 @@ export interface PositionState {
 
 export interface MarketState {
   markPrice: number;
+  asOf?: string;
 }
 
 export interface RiskLimits {
@@ -52,6 +54,7 @@ export interface RiskContext {
   account: AccountState;
   instrument: OrderConstraints;
   market: MarketState;
+  ordersAsOf?: string;
   position?: PositionState;
   limits?: Partial<RiskLimits>;
   policy?: RiskPolicyConfig;

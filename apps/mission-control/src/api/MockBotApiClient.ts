@@ -1,6 +1,6 @@
 import type { BotApiClient } from "./BotApiClient";
 import type { ConnectionHealth } from "./BotApiClient";
-import type { ApprovalRequest, BotEvent, BotLifecycleState, ControlAction, DashboardSnapshot, UserRole } from "../types";
+import type { AlertItem, ApprovalRequest, BotEvent, BotLifecycleState, ControlAction, DashboardSnapshot, IncidentItem, UserRole } from "../types";
 import { isActionEnabled, canRoleExecuteAction, transitionState } from "../logic/controlAvailability";
 import {
   applyLifecycleAction,
@@ -15,6 +15,10 @@ import {
 } from "../mock/mockData";
 
 export class MockBotApiClient implements BotApiClient {
+  setAuthToken(_token: string | undefined): void {
+    return;
+  }
+
   private state = initialState();
   private events = initialEvents();
   private risk = initialRisk();
@@ -24,6 +28,21 @@ export class MockBotApiClient implements BotApiClient {
   private intervalRef: ReturnType<typeof setInterval> | undefined;
   private eventIndex = 0;
   private approvals: ApprovalRequest[] = [];
+  private alerts: AlertItem[] = [];
+  private incidents: IncidentItem[] = [];
+  private metrics = {
+    controlRequestsTotal: 0,
+    controlFailuresTotal: 0,
+    wsConnectionsTotal: 0,
+    wsDisconnectsTotal: 0,
+    gatekeeperRejectsTotal: 0,
+    driftEventsTotal: 0,
+    heartbeatGapEventsTotal: 0,
+    lastHeartbeatGapMs: 0,
+    openAlerts: 0,
+    openIncidents: 0,
+    reconcileRunsTotal: 0
+  };
   private readonly approvalTtlMs = 5 * 60_000;
 
   private materializeApprovalState(item: ApprovalRequest): ApprovalRequest {
@@ -51,7 +70,14 @@ export class MockBotApiClient implements BotApiClient {
       risk: this.risk,
       reconciliation: this.reconciliation,
       audit: this.audit,
-      logs: this.logs
+      logs: this.logs,
+      alerts: this.alerts,
+      incidents: this.incidents,
+      metrics: {
+        ...this.metrics,
+        openAlerts: this.alerts.filter((item) => item.status === "open").length,
+        openIncidents: this.incidents.filter((item) => item.status !== "resolved").length
+      }
     };
   }
 
@@ -60,6 +86,7 @@ export class MockBotApiClient implements BotApiClient {
     onConnectionHealthChange?: (health: ConnectionHealth) => void
   ): () => void {
     onConnectionHealthChange?.("live");
+    this.metrics.wsConnectionsTotal += 1;
     if (this.intervalRef) {
       clearInterval(this.intervalRef);
     }
@@ -79,6 +106,38 @@ export class MockBotApiClient implements BotApiClient {
           },
           ...this.logs
         ].slice(0, 300);
+        this.alerts = [
+          {
+            id: `alert-${Date.now()}`,
+            code: "EVENT_ERROR",
+            severity: "error" as const,
+            status: "open" as const,
+            source: "system" as const,
+            title: "Runtime error event",
+            detail: event.message,
+            symbol: event.symbol,
+            firstSeenAt: event.timestamp,
+            lastSeenAt: event.timestamp,
+            count: 1
+          },
+          ...this.alerts
+        ].slice(0, 200);
+        this.incidents = [
+          {
+            id: `incident-${Date.now()}`,
+            status: "open" as const,
+            severity: "sev2" as const,
+            taxonomy: "exchange_reliability" as const,
+            title: "Runtime error incident",
+            detail: event.message,
+            runbookRef: "docs/runbooks/exchange-reliability.md",
+            symbol: event.symbol,
+            sourceAlertCode: "EVENT_ERROR",
+            createdAt: event.timestamp,
+            updatedAt: event.timestamp
+          },
+          ...this.incidents
+        ].slice(0, 200);
       }
       onEvent(event);
     }, 2000);
@@ -88,6 +147,7 @@ export class MockBotApiClient implements BotApiClient {
         clearInterval(this.intervalRef);
         this.intervalRef = undefined;
       }
+      this.metrics.wsDisconnectsTotal += 1;
     };
   }
 
@@ -98,7 +158,9 @@ export class MockBotApiClient implements BotApiClient {
     state: BotLifecycleState;
     details?: Record<string, string | number | boolean>;
   }> {
+    this.metrics.controlRequestsTotal += 1;
     if (!canRoleExecuteAction(role, action)) {
+      this.metrics.controlFailuresTotal += 1;
       return { ok: false, code: "UNAUTHORIZED", message: "Not authorized for this action", state: this.state.state };
     }
 
@@ -108,6 +170,7 @@ export class MockBotApiClient implements BotApiClient {
       const found = this.approvals.find((item) => item.id === approvalId);
       if (!found || found.status !== "approved" || found.action !== action) {
         if (found?.status === "expired") {
+          this.metrics.controlFailuresTotal += 1;
           return {
             ok: false,
             code: "APPROVAL_EXPIRED",
@@ -117,6 +180,7 @@ export class MockBotApiClient implements BotApiClient {
           };
         }
         if (found?.status === "rejected") {
+          this.metrics.controlFailuresTotal += 1;
           return {
             ok: false,
             code: "APPROVAL_REJECTED",
@@ -152,6 +216,7 @@ export class MockBotApiClient implements BotApiClient {
     }
 
     if (!isActionEnabled(this.state.state, action)) {
+      this.metrics.controlFailuresTotal += 1;
       return {
         ok: false,
         code: "INVALID_STATE_TRANSITION",
@@ -227,6 +292,123 @@ export class MockBotApiClient implements BotApiClient {
       decidedAt: new Date().toISOString()
     };
     this.approvals = this.approvals.map((item) => (item.id === id ? updated : item));
+    return updated;
+  }
+
+  async listAlerts(status?: "open" | "acknowledged" | "resolved"): Promise<AlertItem[]> {
+    if (!status) {
+      return [...this.alerts];
+    }
+    return this.alerts.filter((item) => item.status === status);
+  }
+
+  async acknowledgeAlert(id: string, userId: string): Promise<AlertItem> {
+    const existing = this.alerts.find((item) => item.id === id);
+    if (!existing) {
+      throw new Error(`Alert not found: ${id}`);
+    }
+    const updated: AlertItem = {
+      ...existing,
+      status: existing.status === "resolved" ? "resolved" : "acknowledged",
+      acknowledgedBy: userId,
+      acknowledgedAt: new Date().toISOString()
+    };
+    this.alerts = this.alerts.map((item) => (item.id === id ? updated : item));
+    return updated;
+  }
+
+  async resolveAlert(id: string, userId: string): Promise<AlertItem> {
+    const existing = this.alerts.find((item) => item.id === id);
+    if (!existing) {
+      throw new Error(`Alert not found: ${id}`);
+    }
+    const updated: AlertItem = {
+      ...existing,
+      status: "resolved",
+      resolvedBy: userId,
+      resolvedAt: new Date().toISOString()
+    };
+    this.alerts = this.alerts.map((item) => (item.id === id ? updated : item));
+    return updated;
+  }
+
+  async updateReconciliation(
+    role: UserRole,
+    _userId: string,
+    input: Partial<Pick<DashboardSnapshot["reconciliation"], "positions" | "pnl" | "orders">>
+  ): Promise<DashboardSnapshot["reconciliation"]> {
+    if (role === "read_only") {
+      throw new Error("UNAUTHORIZED");
+    }
+    this.reconciliation = {
+      ...this.reconciliation,
+      ...input,
+      lastRunAt: new Date().toISOString()
+    };
+    const drift =
+      this.reconciliation.positions === "drift" ||
+      this.reconciliation.pnl === "drift" ||
+      this.reconciliation.orders === "drift" ||
+      this.reconciliation.positions === "error" ||
+      this.reconciliation.pnl === "error" ||
+      this.reconciliation.orders === "error";
+    if (drift && this.state.state === "running") {
+      this.metrics.driftEventsTotal += 1;
+      this.state = applyLifecycleAction(this.state, "paused");
+      const ts = new Date().toISOString();
+      this.events = [
+        {
+          id: `evt-cb-${Date.now()}`,
+          timestamp: ts,
+          type: "ControlCommandRejected" as const,
+          symbol: this.state.activeSymbol,
+          message: "Circuit breaker auto-pause due to reconciliation drift/error",
+          severity: "error" as const,
+          tags: ["circuit_breaker", "reconciliation_drift"]
+        },
+        ...this.events
+      ].slice(0, 400);
+    }
+    this.metrics.reconcileRunsTotal += 1;
+    return this.reconciliation;
+  }
+
+  async listIncidents(status?: "open" | "acknowledged" | "resolved"): Promise<IncidentItem[]> {
+    if (!status) {
+      return [...this.incidents];
+    }
+    return this.incidents.filter((item) => item.status === status);
+  }
+
+  async acknowledgeIncident(id: string, userId: string): Promise<IncidentItem> {
+    const existing = this.incidents.find((item) => item.id === id);
+    if (!existing) {
+      throw new Error(`Incident not found: ${id}`);
+    }
+    const updated: IncidentItem = {
+      ...existing,
+      status: existing.status === "resolved" ? "resolved" : "acknowledged",
+      acknowledgedBy: userId,
+      acknowledgedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    this.incidents = this.incidents.map((item) => (item.id === id ? updated : item));
+    return updated;
+  }
+
+  async resolveIncident(id: string, userId: string): Promise<IncidentItem> {
+    const existing = this.incidents.find((item) => item.id === id);
+    if (!existing) {
+      throw new Error(`Incident not found: ${id}`);
+    }
+    const updated: IncidentItem = {
+      ...existing,
+      status: "resolved",
+      resolvedBy: userId,
+      resolvedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    this.incidents = this.incidents.map((item) => (item.id === id ? updated : item));
     return updated;
   }
 }

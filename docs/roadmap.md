@@ -4,7 +4,7 @@
 - Milestone 1: substantially delivered.
 - Milestone 2: delivered.
 - Milestone 3: production-grade complete.
-- Milestone 4: in progress (core demo execution delivered; hardening still ongoing).
+- Milestone 4: production-grade complete.
 - Milestone 5: pending.
 - Milestone 6: pending.
 
@@ -33,10 +33,15 @@
   - REST + WS runtime monitoring/control,
   - approval workflows (including dual-approval emergency stop),
   - approval expiry/reject states,
-  - attributed audit trail entries.
-- Remaining for Milestone 4 completion:
-  - stronger durability/ops hardening (structured persistent audit store preferred),
-  - full production-grade incident/alert workflow for demo operations.
+  - attributed audit trail entries,
+  - incident/alert workflow baseline (persistent alert store + acknowledge/resolve in UI),
+  - drift-triggered circuit-breaker baseline (auto pause/stop + alert/audit/UI integration),
+  - execution freshness guard baseline (market/account/orders staleness checks before submit),
+  - real worker/control-plane coupling baseline (start/pause/resume/stop tied to active worker loop),
+  - signed auth baseline (HMAC bearer token support with enforce mode),
+  - structured persistent ops store baseline (SQLite-backed audit + incidents),
+  - incident taxonomy + runbook-linked lifecycle (`open/acknowledged/resolved`) and export endpoint.
+- Completion status: production-grade complete (all previously listed demo-readiness partials C1/D1/D3/E1/E2 closed).
 
 ## Milestone 5: Live Small Notional ($50) + Strict Limits + Kill Switch
 - Enable live mode only behind explicit config and startup warnings.
@@ -50,5 +55,4 @@
 
 ## Cross-Cutting Delivery Tracks
 - Mission Control UI/Backend phases (Phase 1/2/3) are implementation tracks that support Milestone 4+ hardening.
-- Demo readiness is gated by `docs/demo-readiness-checklist.md`, not by milestone label alone.
 - UI parity rule: every operator-facing backend change (controls, safety gates, statuses, error codes, audit semantics) must ship with corresponding Mission Control UI updates in the same phase before the item is considered complete.

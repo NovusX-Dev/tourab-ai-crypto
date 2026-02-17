@@ -43,6 +43,7 @@ Env flags:
 - `VITE_TOURAB_WS_BASE` (default: `ws://localhost:7071`)
 - `VITE_TOURAB_USE_MOCK=1` forces mock mode
 - `VITE_TOURAB_API_FALLBACK=0` disables fallback to mock when backend is unavailable
+- Top bar includes `auth token` input for signed-auth mode (`Bearer` token value only).
 
 ## Expected backend contract (Phase 2)
 
@@ -69,3 +70,29 @@ Env flags:
 - Approval states are explicit in UI: `pending`, `approved`, `rejected`, `expired`.
 - Pending approvals show a live expiry countdown; approval list auto-refreshes every 5 seconds.
 - Audit timeline now records approval lifecycle entries (created/approved/rejected/expired) with actor IDs.
+
+## Milestone 4 start: incident/alert workflow baseline
+
+- Alerts are persisted by backend in JSONL (`TOURAB_ALERT_STORE_PATH`, default `logs/mission-alerts.jsonl`).
+- Durable ops data (audit + incidents) is persisted in SQLite (`TOURAB_OPS_STORE_PATH`, default `logs/mission-ops.sqlite`).
+- Alert APIs:
+  - `GET /alerts?status=open|acknowledged|resolved`
+  - `POST /alerts/:id/ack`
+  - `POST /alerts/:id/resolve`
+- UI includes an `Alerts` tab with operator actions to acknowledge/resolve active alerts.
+- Incident APIs:
+  - `GET /incidents?status=open|acknowledged|resolved`
+  - `POST /incidents/:id/ack`
+  - `POST /incidents/:id/resolve`
+  - `GET /incidents/export`
+- UI includes an `Incidents` tab for runbook-linked incident lifecycle management.
+- UI includes an `Ops` tab for operator-facing metrics (control failures, WS health, rejects, drift count, heartbeat gaps, reconcile runs).
+
+## Milestone 4 slice: drift circuit breaker + reconciliation control
+
+- Reconciliation card includes simulation controls (`Mark OK`, `Sim Drift`, `Sim Error`) for operator testing.
+- Backend endpoint: `POST /reconciliation` to update reconciliation status.
+- When reconciliation drifts/errors while bot is running, backend auto-pauses/stops by circuit-breaker policy and emits alert/audit/events.
+- Drift trigger calibration env vars:
+  - `TOURAB_DRIFT_CIRCUIT_MIN_CONSECUTIVE` (default `2`)
+  - `TOURAB_DRIFT_CIRCUIT_MAX_GRACE_MS` (default `90000`)

@@ -48,7 +48,7 @@ export class RuntimeLifecycleManager {
     ]
   };
 
-  readonly reconciliation: ReconciliationStatus = {
+  reconciliation: ReconciliationStatus = {
     positions: "ok",
     pnl: "ok",
     orders: "in_progress",
@@ -80,6 +80,23 @@ export class RuntimeLifecycleManager {
 
   getSnapshotState(): BotStateSnapshot {
     return { ...this.state };
+  }
+
+  patchState(next: Partial<BotStateSnapshot>): BotStateSnapshot {
+    this.state = {
+      ...this.state,
+      ...next
+    };
+    return { ...this.state };
+  }
+
+  updateReconciliation(next: Partial<ReconciliationStatus>): ReconciliationStatus {
+    this.reconciliation = {
+      ...this.reconciliation,
+      ...next,
+      lastRunAt: next.lastRunAt ?? nowIso()
+    };
+    return { ...this.reconciliation };
   }
 
   startTick(onHeartbeatEvent: (eventMessage: string) => void): void {

@@ -8,7 +8,7 @@ Safety model:
 3. Human approve: nothing executes until you explicitly approve.
 4. Execute: only approved actions can be sent to exchange APIs.
 
-Current milestone status: Milestone 3 is production-grade complete (gatekeeper + human approval + fail-closed invariants).
+Current milestone status: Milestone 4 is production-grade complete; Milestone 3 remains production-grade complete.
 
 ## Delivery rule: backend + web-app parity
 - Any new operator-facing backend capability, control, safety check, state, or error code must be reflected in `apps/mission-control/` UI in the same milestone/phase.
@@ -149,9 +149,6 @@ Manual index refresh:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/update-project-index.ps1
 ```
 
-## Demo Readiness Gate
-- Checklist: `docs/demo-readiness-checklist.md`
-
 ## Mission Control Web App (Phase 1)
 Run locally (backend + UI together):
 
@@ -183,10 +180,57 @@ Phase 2 defaults:
 - WS base: `ws://localhost:7071`
 - Role header for controls: `x-tourab-role` (`read_only`, `operator`, `admin`)
 - User identity header (Phase 3): `x-user-id` (attributed approvals/audit)
-- Event store JSONL: `logs/mission-events.jsonl` (override via `TOURAB_EVENT_STORE_PATH`)
+- Event store SQLite: `logs/mission-events.sqlite` (override via `TOURAB_EVENT_STORE_PATH`)
 - Approval endpoints (Phase 3 start):
   - `GET /approvals?status=pending|approved|rejected|expired`
   - `POST /approvals` with body `{ "action": "stop|cancel_all|emergency_stop", "reason": "..." }`
   - `POST /approvals/:id/approve`
   - `POST /approvals/:id/reject`
   - Expiry: approvals auto-expire based on `TOURAB_APPROVAL_TTL_MS` (default `300000`)
+
+Mission Control auth modes:
+- Header mode (legacy/default): uses `x-tourab-role` + `x-user-id`.
+- Signed mode (recommended for serious demo):
+  - set `TOURAB_REQUIRE_SIGNED_AUTH=1`
+  - set `TOURAB_AUTH_SECRET=<shared_secret>`
+  - UI sends bearer token via top-bar `auth token` field (stored in browser local storage)
+  - local helper endpoint: `POST /auth/dev-token` with `{ "userId": "...", "role": "operator|admin|read_only", "ttlSec": 3600 }`
+
+Milestone 4 alert workflow baseline:
+- Alert store JSONL: `logs/mission-alerts.jsonl` (override via `TOURAB_ALERT_STORE_PATH`)
+- Ops store SQLite (durable audit + incidents): `logs/mission-ops.sqlite` (override via `TOURAB_OPS_STORE_PATH`)
+- Alert APIs:
+  - `GET /alerts?status=open|acknowledged|resolved`
+  - `POST /alerts/:id/ack`
+  - `POST /alerts/:id/resolve`
+- Incident APIs:
+  - `GET /incidents?status=open|acknowledged|resolved`
+  - `POST /incidents/:id/ack`
+  - `POST /incidents/:id/resolve`
+  - `GET /incidents/export`
+- Mission Control UI includes an `Alerts` tab for operator acknowledge/resolve actions.
+  - and an `Incidents` tab with runbook-linked incident lifecycle actions.
+
+Milestone 4 circuit-breaker + freshness guards:
+- Reconciliation endpoint for operator simulation/testing:
+  - `POST /reconciliation` body `{ "positions"|"pnl"|"orders": "ok|drift|error|in_progress" }`
+- Drift/error can auto-`pause` (default) or auto-`stop` the bot via `TOURAB_DRIFT_CIRCUIT_ACTION=pause|stop`.
+- Drift trigger calibration:
+  - `TOURAB_DRIFT_CIRCUIT_MIN_CONSECUTIVE` (default `2`)
+  - `TOURAB_DRIFT_CIRCUIT_MAX_GRACE_MS` (default `90000`)
+- Circuit-breaker events are emitted into audit/events and surfaced in Mission Control alerts/toasts.
+- Execution freshness guard before order submit (market/account/orders age):
+  - `TOURAB_FRESHNESS_GUARD_ENABLED=1` (default)
+  - `TOURAB_MAX_MARKET_AGE_MS` (default `15000`)
+  - `TOURAB_MAX_ACCOUNT_AGE_MS` (default `60000`)
+  - `TOURAB_MAX_ORDERS_AGE_MS` (default `60000`)
+
+Worker coupling baseline:
+- `start` / `resume` controls start real background worker cycles.
+- `pause` halts worker cycles.
+- `stop` / `emergency-stop` halts and resets worker progress.
+- Worker calibration envs:
+  - `TOURAB_WORKER_SYMBOLS` (default `BTC-USDT,ETH-USDT,SOL-USDT`)
+  - `TOURAB_WORKER_INTERVAL_MS` (default `7500`)
+  - `TOURAB_WORKER_MAX_RISK_USD` (default `0.2`)
+  - `TOURAB_WORKER_MAX_NOTIONAL_USD` (default `10`)

@@ -14,12 +14,23 @@ export class JsonlAlertStore {
   async readAll(): Promise<AlertItem[]> {
     try {
       const raw = await readFile(this.filePath, "utf-8");
-      return raw
+      const parsed: AlertItem[] = [];
+      const lines = raw
         .split(/\r?\n/)
         .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-        .map((line) => JSON.parse(line) as AlertItem)
-        .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
+        .filter((line) => line.length > 0);
+      let malformedLines = 0;
+      for (const line of lines) {
+        try {
+          parsed.push(JSON.parse(line) as AlertItem);
+        } catch {
+          malformedLines += 1;
+        }
+      }
+      if (malformedLines > 0) {
+        await this.persist(parsed);
+      }
+      return parsed.sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
     } catch (error: unknown) {
       if (error && typeof error === "object" && "code" in error && (error as { code?: string }).code === "ENOENT") {
         return [];

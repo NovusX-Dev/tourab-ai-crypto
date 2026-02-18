@@ -1,6 +1,18 @@
 import type { BotApiClient } from "./BotApiClient";
 import type { ClientDataSource, ConnectionHealth } from "./BotApiClient";
-import type { AlertItem, ApprovalRequest, BotEvent, BotLifecycleState, ControlAction, DashboardSnapshot, IncidentItem, UserRole } from "../types";
+import type {
+  AlertItem,
+  ApprovalRequest,
+  AutoExitConfig,
+  BotEvent,
+  BotLifecycleState,
+  ControlAction,
+  DashboardSnapshot,
+  IncidentItem,
+  ManagedTradeItem,
+  Milestone5EvidenceSummary,
+  UserRole
+} from "../types";
 import { isActionEnabled, canRoleExecuteAction, transitionState } from "../logic/controlAvailability";
 import {
   applyLifecycleAction,
@@ -41,6 +53,14 @@ export class MockBotApiClient implements BotApiClient {
   private approvals: ApprovalRequest[] = [];
   private alerts: AlertItem[] = [];
   private incidents: IncidentItem[] = [];
+  private autoExitConfig: AutoExitConfig = {
+    enabled: true,
+    maxHoldSec: 1800,
+    takeProfitRMultiple: 1.5,
+    flattenTimeUtc: undefined,
+    exitOffsetBps: 5
+  };
+  private managedTrades: ManagedTradeItem[] = [];
   private metrics = {
     controlRequestsTotal: 0,
     controlFailuresTotal: 0,
@@ -501,6 +521,46 @@ export class MockBotApiClient implements BotApiClient {
     };
     this.incidents = this.incidents.map((item) => (item.id === id ? updated : item));
     return updated;
+  }
+
+  async getAutoExitConfig(): Promise<AutoExitConfig> {
+    return { ...this.autoExitConfig };
+  }
+
+  async updateAutoExitConfig(_role: UserRole, _userId: string, input: Partial<AutoExitConfig>): Promise<AutoExitConfig> {
+    this.autoExitConfig = {
+      ...this.autoExitConfig,
+      ...input
+    };
+    return { ...this.autoExitConfig };
+  }
+
+  async listManagedTrades(): Promise<ManagedTradeItem[]> {
+    return [...this.managedTrades];
+  }
+
+  async getMilestone5Evidence(): Promise<Milestone5EvidenceSummary> {
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      policyVersion: "calendar-day-v1",
+      requiredDays: 7,
+      qualifiedDays: 0,
+      streakDays: 0,
+      milestoneReady: false,
+      generatedAt: new Date().toISOString(),
+      today: {
+        day: today,
+        pass: false,
+        source: "live",
+        blockers: ["No soak evidence yet."],
+        closureRatePct: 0,
+        filledEntries: 0,
+        deterministicClosed: 0,
+        reconciliationPass: true,
+        tradeErrors: 0
+      },
+      days: []
+    };
   }
 }
 

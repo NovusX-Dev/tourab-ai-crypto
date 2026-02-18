@@ -15,3 +15,11 @@ export function formatDuration(ms: number): string {
   const rem = sec % 60;
   return `${min}m ${rem}s`;
 }
+
+export function formatEquityRoundedThousands(value: string | number): string {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return "0.000";
+  }
+  return parsed.toFixed(3);
+}

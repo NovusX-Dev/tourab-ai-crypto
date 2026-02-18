@@ -4,6 +4,7 @@ import type { ConnectionHealth } from "../api/BotApiClient";
 import type { ClientDataSource } from "../api/BotApiClient";
 import type {
   AlertItem,
+  AutoExitConfig,
   AuditItem,
   BotEvent,
   BotStateSnapshot,
@@ -11,6 +12,8 @@ import type {
   ExchangeStatus,
   IncidentItem,
   LogEntry,
+  ManagedTradeItem,
+  Milestone5EvidenceSummary,
   OpenOrdersStatus,
   OpsMetrics,
   PortfolioStatus,
@@ -84,6 +87,33 @@ const EMPTY_OPEN_ORDERS: OpenOrdersStatus = {
   lastError: "Open orders not loaded yet."
 };
 const EMPTY_DEMO_QUEUE: DemoQueuedIntent[] = [];
+const EMPTY_AUTO_EXIT_CONFIG: AutoExitConfig = {
+  enabled: true,
+  maxHoldSec: 1800,
+  takeProfitRMultiple: 1.5,
+  exitOffsetBps: 5
+};
+const EMPTY_MANAGED_TRADES: ManagedTradeItem[] = [];
+const EMPTY_MILESTONE5_EVIDENCE: Milestone5EvidenceSummary = {
+  policyVersion: "calendar-day-v1",
+  requiredDays: 7,
+  qualifiedDays: 0,
+  streakDays: 0,
+  milestoneReady: false,
+  generatedAt: new Date(0).toISOString(),
+  today: {
+    day: new Date().toISOString().slice(0, 10),
+    pass: false,
+    source: "live",
+    blockers: [],
+    closureRatePct: 0,
+    filledEntries: 0,
+    deterministicClosed: 0,
+    reconciliationPass: true,
+    tradeErrors: 0
+  },
+  days: []
+};
 
 export function useDashboardData(client: BotApiClient) {
   const [state, setState] = useState<BotStateSnapshot>(EMPTY_STATE);
@@ -98,6 +128,9 @@ export function useDashboardData(client: BotApiClient) {
   const [portfolio, setPortfolio] = useState<PortfolioStatus>(EMPTY_PORTFOLIO);
   const [openOrders, setOpenOrders] = useState<OpenOrdersStatus>(EMPTY_OPEN_ORDERS);
   const [demoQueue, setDemoQueue] = useState<DemoQueuedIntent[]>(EMPTY_DEMO_QUEUE);
+  const [autoExitConfig, setAutoExitConfig] = useState<AutoExitConfig>(EMPTY_AUTO_EXIT_CONFIG);
+  const [managedTrades, setManagedTrades] = useState<ManagedTradeItem[]>(EMPTY_MANAGED_TRADES);
+  const [milestone5Evidence, setMilestone5Evidence] = useState<Milestone5EvidenceSummary>(EMPTY_MILESTONE5_EVIDENCE);
   const [metrics, setMetrics] = useState<OpsMetrics>(EMPTY_METRICS);
   const [role, setRole] = useState<UserRole>("operator");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
@@ -113,6 +146,11 @@ export function useDashboardData(client: BotApiClient) {
     let mounted = true;
     async function refreshSnapshot() {
       const snapshot = await client.getSnapshot();
+      const [autoExitRes, managedTradesRes, m5EvidenceRes] = await Promise.allSettled([
+        client.getAutoExitConfig(),
+        client.listManagedTrades(),
+        client.getMilestone5Evidence()
+      ]);
       if (!mounted) {
         return;
       }
@@ -127,6 +165,15 @@ export function useDashboardData(client: BotApiClient) {
       setPortfolio(snapshot.portfolio);
       setOpenOrders(snapshot.openOrders);
       setDemoQueue(snapshot.demoQueue);
+      if (autoExitRes.status === "fulfilled") {
+        setAutoExitConfig(autoExitRes.value);
+      }
+      if (managedTradesRes.status === "fulfilled") {
+        setManagedTrades(managedTradesRes.value);
+      }
+      if (m5EvidenceRes.status === "fulfilled") {
+        setMilestone5Evidence(m5EvidenceRes.value);
+      }
       setMetrics(snapshot.metrics);
       setEvents((prev) => {
         if (prev.length > 0) {
@@ -233,6 +280,11 @@ export function useDashboardData(client: BotApiClient) {
     portfolio,
     openOrders,
     demoQueue,
+    autoExitConfig,
+    setAutoExitConfig,
+    managedTrades,
+    setManagedTrades,
+    milestone5Evidence,
     metrics,
     role,
     setRole,

@@ -3,6 +3,36 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AuditItem, BotStateSnapshot, IncidentItem, IncidentStatus, ReconciliationStatus } from "@tourab/shared";
 
+export interface ManagedTradeRecord {
+  tradeId: string;
+  status: string;
+  symbol: string;
+  entrySide: "buy" | "sell";
+  entryOrdId: string;
+  entryClOrdId: string;
+  requestedQty: number;
+  entryFilledQty: number;
+  entryAvgPrice: number;
+  exitOrdId?: string;
+  exitClOrdId?: string;
+  exitFilledQty: number;
+  exitAvgPrice: number;
+  remainingQty: number;
+  exitReason?: string;
+  stopPrice: number;
+  takeProfitPrice: number;
+  maxHoldSec: number;
+  flattenAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+  feeUsd: number;
+  realizedPnlUsd: number;
+  exitSubmittedAt?: string;
+  exitRepriceCount: number;
+  forcedFlattenEscalated: boolean;
+}
+
 interface IncidentCreateInput {
   id: string;
   severity: IncidentItem["severity"];
@@ -27,6 +57,11 @@ export class SqliteOpsStore {
   }
 
   private init(): void {
+    this.db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA busy_timeout = 5000;
+      PRAGMA synchronous = NORMAL;
+    `);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS audit_entries (
         id TEXT PRIMARY KEY,
@@ -66,45 +101,212 @@ export class SqliteOpsStore {
         value_json TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS managed_trades (
+        trade_id TEXT PRIMARY KEY,
+        status TEXT NOT NULL,
+        symbol TEXT NOT NULL,
+        entry_side TEXT NOT NULL,
+        entry_ord_id TEXT NOT NULL,
+        entry_cl_ord_id TEXT NOT NULL,
+        requested_qty REAL NOT NULL,
+        entry_filled_qty REAL NOT NULL,
+        entry_avg_price REAL NOT NULL,
+        exit_ord_id TEXT,
+        exit_cl_ord_id TEXT,
+        exit_filled_qty REAL NOT NULL,
+        exit_avg_price REAL NOT NULL,
+        remaining_qty REAL NOT NULL,
+        exit_reason TEXT,
+        stop_price REAL NOT NULL,
+        take_profit_price REAL NOT NULL,
+        max_hold_sec INTEGER NOT NULL,
+        flatten_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        closed_at TEXT,
+        fee_usd REAL NOT NULL,
+        realized_pnl_usd REAL NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_managed_trades_status ON managed_trades(status, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_managed_trades_symbol ON managed_trades(symbol, updated_at DESC);
     `);
+    this.ensureManagedTradeColumn("exit_submitted_at", "TEXT");
+    this.ensureManagedTradeColumn("exit_reprice_count", "INTEGER NOT NULL DEFAULT 0");
+    this.ensureManagedTradeColumn("forced_flatten_escalated", "INTEGER NOT NULL DEFAULT 0");
+  }
+
+  private ensureManagedTradeColumn(name: string, definition: string): void {
+    const rows = this.db.prepare(`PRAGMA table_info(managed_trades)`).all() as Array<{ name: string }>;
+    if (rows.some((row) => row.name === name)) {
+      return;
+    }
+    this.db.exec(`ALTER TABLE managed_trades ADD COLUMN ${name} ${definition}`);
+  }
+
+  loadRuntimeState<T>(key: string): T | undefined {
+    const row = this.db.prepare(`SELECT value_json FROM runtime_state WHERE key = ?`).get(key) as
+      | { value_json: string }
+      | undefined;
+    if (!row) {
+      return undefined;
+    }
+    return JSON.parse(row.value_json) as T;
+  }
+
+  saveRuntimeState(key: string, value: unknown): void {
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO runtime_state (key, value_json, updated_at)
+         VALUES (?, ?, ?)`
+      )
+      .run(key, JSON.stringify(value), new Date().toISOString());
   }
 
   loadBotState(): BotStateSnapshot | undefined {
-    const row = this.db.prepare(`SELECT value_json FROM runtime_state WHERE key = 'bot_state'`).get() as
-      | { value_json: string }
-      | undefined;
-    if (!row) {
-      return undefined;
-    }
-    return JSON.parse(row.value_json) as BotStateSnapshot;
+    return this.loadRuntimeState<BotStateSnapshot>("bot_state");
   }
 
   saveBotState(state: BotStateSnapshot): void {
-    this.db
-      .prepare(
-        `INSERT OR REPLACE INTO runtime_state (key, value_json, updated_at)
-         VALUES ('bot_state', ?, ?)`
-      )
-      .run(JSON.stringify(state), new Date().toISOString());
+    this.saveRuntimeState("bot_state", state);
   }
 
   loadReconciliation(): ReconciliationStatus | undefined {
-    const row = this.db.prepare(`SELECT value_json FROM runtime_state WHERE key = 'reconciliation'`).get() as
-      | { value_json: string }
-      | undefined;
-    if (!row) {
-      return undefined;
-    }
-    return JSON.parse(row.value_json) as ReconciliationStatus;
+    return this.loadRuntimeState<ReconciliationStatus>("reconciliation");
   }
 
   saveReconciliation(state: ReconciliationStatus): void {
+    this.saveRuntimeState("reconciliation", state);
+  }
+
+  listManagedTrades(limit = 500): ManagedTradeRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT
+           trade_id, status, symbol, entry_side, entry_ord_id, entry_cl_ord_id,
+           requested_qty, entry_filled_qty, entry_avg_price,
+           exit_ord_id, exit_cl_ord_id, exit_filled_qty, exit_avg_price,
+           remaining_qty, exit_reason,
+           stop_price, take_profit_price, max_hold_sec, flatten_at,
+           created_at, updated_at, closed_at, fee_usd, realized_pnl_usd,
+           exit_submitted_at, exit_reprice_count, forced_flatten_escalated
+         FROM managed_trades
+         ORDER BY updated_at DESC
+         LIMIT ?`
+      )
+      .all(limit) as Array<{
+      trade_id: string;
+      status: string;
+      symbol: string;
+      entry_side: "buy" | "sell";
+      entry_ord_id: string;
+      entry_cl_ord_id: string;
+      requested_qty: number;
+      entry_filled_qty: number;
+      entry_avg_price: number;
+      exit_ord_id: string | null;
+      exit_cl_ord_id: string | null;
+      exit_filled_qty: number;
+      exit_avg_price: number;
+      remaining_qty: number;
+      exit_reason: string | null;
+      stop_price: number;
+      take_profit_price: number;
+      max_hold_sec: number;
+      flatten_at: string | null;
+      created_at: string;
+      updated_at: string;
+      closed_at: string | null;
+      fee_usd: number;
+      realized_pnl_usd: number;
+      exit_submitted_at: string | null;
+      exit_reprice_count: number | null;
+      forced_flatten_escalated: number | null;
+    }>;
+    return rows.map((row) => ({
+      tradeId: row.trade_id,
+      status: row.status,
+      symbol: row.symbol,
+      entrySide: row.entry_side,
+      entryOrdId: row.entry_ord_id,
+      entryClOrdId: row.entry_cl_ord_id,
+      requestedQty: row.requested_qty,
+      entryFilledQty: row.entry_filled_qty,
+      entryAvgPrice: row.entry_avg_price,
+      exitOrdId: row.exit_ord_id ?? undefined,
+      exitClOrdId: row.exit_cl_ord_id ?? undefined,
+      exitFilledQty: row.exit_filled_qty,
+      exitAvgPrice: row.exit_avg_price,
+      remainingQty: row.remaining_qty,
+      exitReason: row.exit_reason ?? undefined,
+      stopPrice: row.stop_price,
+      takeProfitPrice: row.take_profit_price,
+      maxHoldSec: row.max_hold_sec,
+      flattenAt: row.flatten_at ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      closedAt: row.closed_at ?? undefined,
+      feeUsd: row.fee_usd,
+      realizedPnlUsd: row.realized_pnl_usd,
+      exitSubmittedAt: row.exit_submitted_at ?? undefined,
+      exitRepriceCount: row.exit_reprice_count ?? 0,
+      forcedFlattenEscalated: (row.forced_flatten_escalated ?? 0) > 0
+    }));
+  }
+
+  upsertManagedTrade(trade: ManagedTradeRecord): void {
     this.db
       .prepare(
-        `INSERT OR REPLACE INTO runtime_state (key, value_json, updated_at)
-         VALUES ('reconciliation', ?, ?)`
+        `INSERT OR REPLACE INTO managed_trades (
+          trade_id, status, symbol, entry_side, entry_ord_id, entry_cl_ord_id,
+          requested_qty, entry_filled_qty, entry_avg_price,
+          exit_ord_id, exit_cl_ord_id, exit_filled_qty, exit_avg_price,
+          remaining_qty, exit_reason,
+          stop_price, take_profit_price, max_hold_sec, flatten_at,
+          created_at, updated_at, closed_at, fee_usd, realized_pnl_usd,
+          exit_submitted_at, exit_reprice_count, forced_flatten_escalated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(JSON.stringify(state), new Date().toISOString());
+      .run(
+        trade.tradeId,
+        trade.status,
+        trade.symbol,
+        trade.entrySide,
+        trade.entryOrdId,
+        trade.entryClOrdId,
+        trade.requestedQty,
+        trade.entryFilledQty,
+        trade.entryAvgPrice,
+        trade.exitOrdId ?? null,
+        trade.exitClOrdId ?? null,
+        trade.exitFilledQty,
+        trade.exitAvgPrice,
+        trade.remainingQty,
+        trade.exitReason ?? null,
+        trade.stopPrice,
+        trade.takeProfitPrice,
+        trade.maxHoldSec,
+        trade.flattenAt ?? null,
+        trade.createdAt,
+        trade.updatedAt,
+        trade.closedAt ?? null,
+        trade.feeUsd,
+        trade.realizedPnlUsd,
+        trade.exitSubmittedAt ?? null,
+        trade.exitRepriceCount,
+        trade.forcedFlattenEscalated ? 1 : 0
+      );
+  }
+
+  deleteManagedTradesOlderThan(cutoffIso: string): number {
+    const result = this.db
+      .prepare(
+        `DELETE FROM managed_trades
+         WHERE COALESCE(closed_at, updated_at) < ?`
+      )
+      .run(cutoffIso) as { changes?: number };
+    return result.changes ?? 0;
   }
 
   listAudit(limit = 300): AuditItem[] {
@@ -167,6 +369,7 @@ export class SqliteOpsStore {
   clearAllOps(): { auditDeleted: number; incidentsDeleted: number } {
     const auditResult = this.db.prepare(`DELETE FROM audit_entries`).run() as { changes?: number };
     const incidentResult = this.db.prepare(`DELETE FROM incidents`).run() as { changes?: number };
+    this.db.prepare(`DELETE FROM managed_trades`).run();
     return {
       auditDeleted: auditResult.changes ?? 0,
       incidentsDeleted: incidentResult.changes ?? 0

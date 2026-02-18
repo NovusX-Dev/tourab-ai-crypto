@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
@@ -608,6 +608,126 @@ describe("mission-control contract", () => {
         delete process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS;
       } else {
         process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS = previousCheck;
+      }
+    }
+  });
+
+  it("updates and persists auto-exit config", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+
+    const first = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const updateRes = await fetch(`${first.baseHttpUrl}/auto-exit/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          enabled: true,
+          maxHoldSec: 600,
+          takeProfitRMultiple: 1.8,
+          flattenTimeUtc: "23:45",
+          exitOffsetBps: 7
+        })
+      });
+      expect(updateRes.ok).toBe(true);
+      const payload = (await updateRes.json()) as { config: { maxHoldSec: number; takeProfitRMultiple: number; flattenTimeUtc?: string } };
+      expect(payload.config.maxHoldSec).toBe(600);
+      expect(payload.config.takeProfitRMultiple).toBe(1.8);
+      expect(payload.config.flattenTimeUtc).toBe("23:45");
+    } finally {
+      await first.close();
+    }
+
+    const second = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const configRes = await fetch(`${second.baseHttpUrl}/auto-exit/config`);
+      expect(configRes.ok).toBe(true);
+      const payload = (await configRes.json()) as { config: { maxHoldSec: number; takeProfitRMultiple: number; flattenTimeUtc?: string } };
+      expect(payload.config.maxHoldSec).toBe(600);
+      expect(payload.config.takeProfitRMultiple).toBe(1.8);
+      expect(payload.config.flattenTimeUtc).toBe("23:45");
+    } finally {
+      await second.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("exposes managed-trades endpoint", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, logRequests: false });
+    try {
+      const res = await fetch(`${handle.baseHttpUrl}/managed-trades`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as { items: unknown[] };
+      expect(Array.isArray(payload.items)).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("exposes milestone5 evidence summary from soak artifacts", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const evidenceDir = join(tempDir, "evidence");
+    const soakDir = join(evidenceDir, "m5-soak-2026-02-17T00-00-00-000Z");
+    await mkdir(soakDir, { recursive: true });
+    await writeFile(
+      join(soakDir, "report.json"),
+      JSON.stringify({
+        startedAt: "2026-02-17T00:00:00.000Z",
+        endedAt: "2026-02-17T00:20:00.000Z",
+        totals: {
+          filledEntries: 10,
+          deterministicClosed: 10,
+          tradeErrors: 0
+        },
+        checks: {
+          closureRatePct: 100,
+          closureRatePass: true,
+          closedTradeDataPass: true,
+          reconciliationSloObservedPass: true
+        }
+      }),
+      "utf-8"
+    );
+    const previousEvidenceDir = process.env.TOURAB_M5_EVIDENCE_DIR;
+    process.env.TOURAB_M5_EVIDENCE_DIR = evidenceDir;
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, logRequests: false });
+    try {
+      const res = await fetch(`${handle.baseHttpUrl}/milestone5/evidence`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as {
+        policyVersion: string;
+        qualifiedDays: number;
+        days: Array<{ day: string; pass: boolean; source: string }>;
+      };
+      expect(payload.policyVersion).toBe("calendar-day-v1");
+      expect(payload.qualifiedDays).toBeGreaterThanOrEqual(1);
+      expect(payload.days.some((item) => item.day === "2026-02-17" && item.pass && item.source === "soak_report")).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+      if (previousEvidenceDir === undefined) {
+        delete process.env.TOURAB_M5_EVIDENCE_DIR;
+      } else {
+        process.env.TOURAB_M5_EVIDENCE_DIR = previousEvidenceDir;
       }
     }
   });

@@ -24,6 +24,11 @@ export class SqliteEventStore {
 
   private init(): void {
     this.db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA busy_timeout = 5000;
+      PRAGMA synchronous = NORMAL;
+    `);
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS bot_events (
         id TEXT PRIMARY KEY,
         timestamp TEXT NOT NULL,

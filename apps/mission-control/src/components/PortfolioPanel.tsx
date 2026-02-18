@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatTime } from "../format";
+import { formatEquityRoundedThousands, formatTime } from "../format";
 import type { PortfolioStatus } from "../types";
 
 interface PortfolioPanelProps {
@@ -76,7 +76,7 @@ export function PortfolioPanel({ portfolio }: PortfolioPanelProps) {
     <section className="panel-content" aria-label="Portfolio panel">
       <div className="panel-head">
         <div className="panel-title">Portfolio</div>
-        <span className="tag">{`Eq ${portfolio.totalEq} USD`}</span>
+        <span className="tag">{`Eq ${formatEquityRoundedThousands(portfolio.totalEq)} USD`}</span>
       </div>
       <div className="hint">{`Updated: ${formatTime(portfolio.lastUpdatedAt)}`}</div>
       {portfolio.lastError ? <div className="inline-card">{portfolio.lastError}</div> : null}

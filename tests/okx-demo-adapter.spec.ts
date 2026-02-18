@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OkxApiError, OkxDemoAdapter } from "@tourab/okx-demo-adapter";
+import { OkxApiError, OkxDemoAdapter, loadOkxDemoConfigFromEnv, validateOkxDemoEnv } from "@tourab/okx-demo-adapter";
 import { ExecutionIntent } from "@tourab/shared";
 
 const demoConfig = {
@@ -140,5 +140,64 @@ describe("OkxDemoAdapter", () => {
     expect(result.ordId).toBe("o1");
     expect(calls[0].url).toBe("https://www.okx.com/api/v5/trade/cancel-order");
     expect(calls[0].init?.method).toBe("POST");
+  });
+
+  it("validates demo env and trims values", () => {
+    const result = validateOkxDemoEnv({
+      OKX_TRADING_MODE: "demo",
+      OKX_DEMO_API_KEY: "  demo-key  ",
+      OKX_DEMO_API_SECRET: "  demo-secret ",
+      OKX_DEMO_PASSPHRASE: " demo-pass ",
+      OKX_DEMO_BASE_URL: " https://www.okx.com "
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.issues).toHaveLength(0);
+    expect(result.config.apiKey).toBe("demo-key");
+    expect(result.config.apiSecret).toBe("demo-secret");
+    expect(result.config.passphrase).toBe("demo-pass");
+    expect(result.config.baseUrl).toBe("https://www.okx.com");
+  });
+
+  it("flags conflicting passphrase aliases", () => {
+    const result = validateOkxDemoEnv({
+      OKX_TRADING_MODE: "demo",
+      OKX_DEMO_API_KEY: "demo-key",
+      OKX_DEMO_API_SECRET: "demo-secret",
+      OKX_DEMO_API_PASSPHRASE: "pass-a",
+      OKX_DEMO_PASSPHRASE: "pass-b"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((item) => item.code === "PASSPHRASE_CONFLICT")).toBe(true);
+  });
+
+  it("throws config error with issues when env is invalid", () => {
+    expect(() =>
+      loadOkxDemoConfigFromEnv({
+        OKX_TRADING_MODE: "demo",
+        OKX_DEMO_API_KEY: "your_demo_api_key",
+        OKX_DEMO_API_SECRET: "",
+        OKX_DEMO_PASSPHRASE: ""
+      })
+    ).toThrowError(OkxApiError);
+
+    try {
+      loadOkxDemoConfigFromEnv({
+        OKX_TRADING_MODE: "demo",
+        OKX_DEMO_API_KEY: "your_demo_api_key",
+        OKX_DEMO_API_SECRET: "",
+        OKX_DEMO_PASSPHRASE: ""
+      });
+      throw new Error("expected config error");
+    } catch (error: unknown) {
+      const typed = error as OkxApiError;
+      expect(typed.code).toBe("OKX_CONFIG_ERROR");
+      const issues = typed.details?.issues as Array<{ code: string }> | undefined;
+      expect(Array.isArray(issues)).toBe(true);
+      expect(issues?.some((item) => item.code === "PLACEHOLDER_VALUE")).toBe(true);
+      expect(issues?.some((item) => item.code === "MISSING_API_SECRET")).toBe(true);
+      expect(issues?.some((item) => item.code === "MISSING_PASSPHRASE")).toBe(true);
+    }
   });
 });

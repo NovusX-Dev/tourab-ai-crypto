@@ -8,6 +8,25 @@ export interface OkxDemoConfig {
   baseUrl?: string;
 }
 
+export interface OkxDemoEnvValidationIssue {
+  code:
+    | "TRADING_MODE_NOT_DEMO"
+    | "MISSING_API_KEY"
+    | "MISSING_API_SECRET"
+    | "MISSING_PASSPHRASE"
+    | "PASSPHRASE_CONFLICT"
+    | "PLACEHOLDER_VALUE"
+    | "INVALID_BASE_URL";
+  message: string;
+  envKey?: string;
+}
+
+export interface OkxDemoEnvValidationResult {
+  ok: boolean;
+  issues: OkxDemoEnvValidationIssue[];
+  config: OkxDemoConfig;
+}
+
 export interface OkxOrderResult {
   ordId: string;
   clOrdId: string;
@@ -93,6 +112,123 @@ function assertDemoConfig(config: OkxDemoConfig): void {
   }
 }
 
+function normalizeEnvValue(value: string | undefined): string {
+  return (value ?? "").trim();
+}
+
+function looksLikePlaceholder(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return (
+    normalized.includes("your_") ||
+    normalized.includes("replace_me") ||
+    normalized.includes("example") ||
+    normalized.includes("changeme")
+  );
+}
+
+export function validateOkxDemoEnv(
+  env: Record<string, string | undefined> = process.env
+): OkxDemoEnvValidationResult {
+  const apiKey = normalizeEnvValue(env.OKX_DEMO_API_KEY);
+  const apiSecret = normalizeEnvValue(env.OKX_DEMO_API_SECRET);
+  const apiPassphrase = normalizeEnvValue(env.OKX_DEMO_API_PASSPHRASE);
+  const legacyPassphrase = normalizeEnvValue(env.OKX_DEMO_PASSPHRASE);
+  const passphrase = apiPassphrase || legacyPassphrase;
+  const baseUrl = normalizeEnvValue(env.OKX_DEMO_BASE_URL);
+  const mode = normalizeEnvValue(env.OKX_TRADING_MODE);
+
+  const config: OkxDemoConfig = {
+    apiKey,
+    apiSecret,
+    passphrase,
+    baseUrl: baseUrl || undefined
+  };
+
+  const issues: OkxDemoEnvValidationIssue[] = [];
+  if (mode && mode !== "demo") {
+    issues.push({
+      code: "TRADING_MODE_NOT_DEMO",
+      envKey: "OKX_TRADING_MODE",
+      message: "OKX_TRADING_MODE must be 'demo' for demo adapter usage."
+    });
+  }
+  if (!apiKey) {
+    issues.push({
+      code: "MISSING_API_KEY",
+      envKey: "OKX_DEMO_API_KEY",
+      message: "Missing OKX demo API key."
+    });
+  }
+  if (!apiSecret) {
+    issues.push({
+      code: "MISSING_API_SECRET",
+      envKey: "OKX_DEMO_API_SECRET",
+      message: "Missing OKX demo API secret."
+    });
+  }
+  if (!passphrase) {
+    issues.push({
+      code: "MISSING_PASSPHRASE",
+      envKey: "OKX_DEMO_API_PASSPHRASE",
+      message: "Missing OKX demo passphrase (set OKX_DEMO_API_PASSPHRASE or OKX_DEMO_PASSPHRASE)."
+    });
+  }
+  if (apiPassphrase && legacyPassphrase && apiPassphrase !== legacyPassphrase) {
+    issues.push({
+      code: "PASSPHRASE_CONFLICT",
+      message: "OKX_DEMO_API_PASSPHRASE and OKX_DEMO_PASSPHRASE are both set but different."
+    });
+  }
+  if (apiKey && looksLikePlaceholder(apiKey)) {
+    issues.push({
+      code: "PLACEHOLDER_VALUE",
+      envKey: "OKX_DEMO_API_KEY",
+      message: "OKX_DEMO_API_KEY looks like a placeholder value."
+    });
+  }
+  if (apiSecret && looksLikePlaceholder(apiSecret)) {
+    issues.push({
+      code: "PLACEHOLDER_VALUE",
+      envKey: "OKX_DEMO_API_SECRET",
+      message: "OKX_DEMO_API_SECRET looks like a placeholder value."
+    });
+  }
+  if (passphrase && looksLikePlaceholder(passphrase)) {
+    issues.push({
+      code: "PLACEHOLDER_VALUE",
+      envKey: apiPassphrase ? "OKX_DEMO_API_PASSPHRASE" : "OKX_DEMO_PASSPHRASE",
+      message: "Demo passphrase looks like a placeholder value."
+    });
+  }
+  if (baseUrl) {
+    try {
+      const parsed = new URL(baseUrl);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        issues.push({
+          code: "INVALID_BASE_URL",
+          envKey: "OKX_DEMO_BASE_URL",
+          message: "OKX_DEMO_BASE_URL must use http:// or https://."
+        });
+      }
+    } catch {
+      issues.push({
+        code: "INVALID_BASE_URL",
+        envKey: "OKX_DEMO_BASE_URL",
+        message: "OKX_DEMO_BASE_URL is not a valid URL."
+      });
+    }
+  }
+
+  return {
+    ok: issues.length === 0,
+    issues,
+    config
+  };
+}
+
 export class OkxDemoAdapter {
   private readonly baseUrl: string;
 
@@ -110,37 +246,65 @@ export class OkxDemoAdapter {
     requestPath: string,
     body: string
   ): Promise<OkxApiEnvelope<T>> {
-    const timestamp = this.now().toISOString();
-    const signature = signRequest(timestamp, method, requestPath, body, this.config.apiSecret);
-    const response = await this.fetchImpl(`${this.baseUrl}${requestPath}`, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "OK-ACCESS-KEY": this.config.apiKey,
-        "OK-ACCESS-SIGN": signature,
-        "OK-ACCESS-TIMESTAMP": timestamp,
-        "OK-ACCESS-PASSPHRASE": this.config.passphrase,
-        "x-simulated-trading": "1"
-      },
-      body: method === "POST" ? body : undefined
-    });
+    const maxAttempts = 4;
+    let lastError: OkxApiError | undefined;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const timestamp = this.now().toISOString();
+      const signature = signRequest(timestamp, method, requestPath, body, this.config.apiSecret);
+      try {
+        const response = await this.fetchImpl(`${this.baseUrl}${requestPath}`, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            "OK-ACCESS-KEY": this.config.apiKey,
+            "OK-ACCESS-SIGN": signature,
+            "OK-ACCESS-TIMESTAMP": timestamp,
+            "OK-ACCESS-PASSPHRASE": this.config.passphrase,
+            "x-simulated-trading": "1"
+          },
+          body: method === "POST" ? body : undefined,
+          signal: AbortSignal.timeout(15_000)
+        });
 
-    if (!response.ok) {
-      throw new OkxApiError("OKX_HTTP_ERROR", `OKX HTTP request failed with status ${response.status}.`, {
-        status: response.status
-      });
+        if (!response.ok) {
+          const bodyText = await response.text().catch(() => "");
+          const retryable = response.status === 429 || response.status >= 500;
+          lastError = new OkxApiError("OKX_HTTP_ERROR", `OKX HTTP request failed with status ${response.status}.`, {
+            status: response.status,
+            body: bodyText.slice(0, 300),
+            attempt
+          });
+          if (retryable && attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+            continue;
+          }
+          throw lastError;
+        }
+
+        const envelope = (await response.json()) as OkxApiEnvelope<T>;
+        if (envelope.code !== "0") {
+          throw new OkxApiError("OKX_API_ERROR", envelope.msg || "OKX returned an error response.", {
+            code: envelope.code,
+            msg: envelope.msg,
+            data: envelope.data
+          });
+        }
+
+        return envelope;
+      } catch (error: unknown) {
+        if (error instanceof OkxApiError) {
+          throw error;
+        }
+        lastError = new OkxApiError("OKX_NETWORK_ERROR", `OKX network request failed: ${error instanceof Error ? error.message : String(error)}`, {
+          attempt
+        });
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+          continue;
+        }
+      }
     }
-
-    const envelope = (await response.json()) as OkxApiEnvelope<T>;
-    if (envelope.code !== "0") {
-      throw new OkxApiError("OKX_API_ERROR", envelope.msg || "OKX returned an error response.", {
-        code: envelope.code,
-        msg: envelope.msg,
-        data: envelope.data
-      });
-    }
-
-    return envelope;
+    throw lastError ?? new OkxApiError("OKX_NETWORK_ERROR", "OKX network request failed.");
   }
 
   async placeSpotLimitOrder(intent: ExecutionIntent): Promise<OkxOrderResult> {
@@ -228,14 +392,11 @@ export class OkxDemoAdapter {
 export function loadOkxDemoConfigFromEnv(
   env: Record<string, string | undefined> = process.env
 ): OkxDemoConfig {
-  if (env.OKX_TRADING_MODE && env.OKX_TRADING_MODE !== "demo") {
-    throw new OkxApiError("OKX_CONFIG_ERROR", "OKX_TRADING_MODE must be 'demo' for demo adapter usage.");
+  const validation = validateOkxDemoEnv(env);
+  if (!validation.ok) {
+    throw new OkxApiError("OKX_CONFIG_ERROR", "Invalid OKX demo environment configuration.", {
+      issues: validation.issues
+    });
   }
-
-  return {
-    apiKey: env.OKX_DEMO_API_KEY ?? "",
-    apiSecret: env.OKX_DEMO_API_SECRET ?? "",
-    passphrase: env.OKX_DEMO_API_PASSPHRASE ?? env.OKX_DEMO_PASSPHRASE ?? "",
-    baseUrl: env.OKX_DEMO_BASE_URL
-  };
+  return validation.config;
 }

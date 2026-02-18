@@ -1,9 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
+import { setDefaultResultOrder } from "node:dns";
 import process from "node:process";
 import { join } from "node:path";
 
 export interface EnvLoaderOptions {
   override?: boolean;
+}
+
+function parseBooleanEnv(raw: string | undefined): boolean {
+  if (!raw) {
+    return false;
+  }
+  const normalized = raw.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
 export function loadEnvFileIfPresent(filePath: string, options: EnvLoaderOptions = {}): void {
@@ -35,4 +44,7 @@ export function loadEnvFileIfPresent(filePath: string, options: EnvLoaderOptions
 
 export function loadEnvFromProjectRoot(cwd = process.cwd(), options: EnvLoaderOptions = {}): void {
   loadEnvFileIfPresent(join(cwd, ".env"), options);
+  if (parseBooleanEnv(process.env.OKX_DEMO_FORCE_IPV4)) {
+    setDefaultResultOrder("ipv4first");
+  }
 }

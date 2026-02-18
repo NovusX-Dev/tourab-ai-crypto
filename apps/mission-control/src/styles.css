@@ -1032,6 +1032,46 @@ select optgroup {
   min-height: 0;
 }
 
+.m5-readiness-card {
+  padding: 10px;
+}
+
+.m5-readiness-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.m5-pill {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.m5-pill.ok {
+  color: var(--success);
+}
+
+.m5-pill.fail {
+  color: var(--danger);
+}
+
+.m5-blockers {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  color: var(--warning);
+  font-size: 0.75rem;
+}
+
+.m5-all-clear {
+  margin-top: 8px;
+  color: var(--success);
+  font-size: 0.75rem;
+}
+
 @keyframes tab-flash {
   from {
     box-shadow: 0 0 0 rgba(240, 185, 90, 0.05);

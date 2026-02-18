@@ -3,25 +3,28 @@ import { createDefaultBotApiClient } from "./api/LiveBotApiClient";
 import { ApprovalsPanel } from "./components/ApprovalsPanel";
 import { AlertsPanel } from "./components/AlertsPanel";
 import { AuditTimeline } from "./components/AuditTimeline";
+import { AutonomyPanel } from "./components/AutonomyPanel";
 import { BotStatusCard } from "./components/BotStatusCard";
 import { ControlDeck } from "./components/ControlDeck";
 import { DemoReadinessCard } from "./components/DemoReadinessCard";
 import { EventStream } from "./components/EventStream";
 import { LogsPanel } from "./components/LogsPanel";
 import { IncidentsPanel } from "./components/IncidentsPanel";
+import { Milestone5ReadinessCard } from "./components/Milestone5ReadinessCard";
 import { OpsMetricsPanel } from "./components/OpsMetricsPanel";
 import { OrdersPanel } from "./components/OrdersPanel";
 import { PortfolioPanel } from "./components/PortfolioPanel";
 import { ReconciliationCard } from "./components/ReconciliationCard";
 import { RiskPanel } from "./components/RiskPanel";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
+import { formatEquityRoundedThousands } from "./format";
 import { applyTheme, getInitialTheme, type ThemeName } from "./theme";
 import { useDashboardData } from "./state/useDashboardData";
 import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, IncidentItem } from "./types";
 
 const client = createDefaultBotApiClient();
 
-type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops";
+type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops" | "autonomy";
 type ToastTone = "success" | "error" | "warning";
 type OperatorScope = "primary" | "btc" | "eth";
 
@@ -100,7 +103,7 @@ export default function App() {
   const exchangeLabel = dashboard.exchange.connected
     ? `EXCHANGE_${dashboard.exchange.mode.toUpperCase()}_OK`
     : "EXCHANGE_AUTH_FAIL";
-  const equityLabel = `EQ ${dashboard.portfolio.totalEq || "0"} USD`;
+  const equityLabel = `EQ ${formatEquityRoundedThousands(dashboard.portfolio.totalEq)} USD`;
   const openOrdersLabel = `OPEN ORDERS ${dashboard.openOrders.orders.length}`;
 
   const scopedSymbol = operatorScope === "btc" ? "BTC-USDT" : operatorScope === "eth" ? "ETH-USDT" : "";
@@ -261,6 +264,22 @@ export default function App() {
     setIncidents(items);
   }
 
+  async function refreshManagedTrades() {
+    const items = await client.listManagedTrades();
+    dashboard.setManagedTrades(items);
+  }
+
+  async function saveAutoExitConfig(next: Parameters<typeof client.updateAutoExitConfig>[2]) {
+    try {
+      const updated = await client.updateAutoExitConfig(dashboard.role, currentUserId, next);
+      dashboard.setAutoExitConfig(updated);
+      pushToast("success", "AUTO_EXIT_UPDATED", "Auto-exit config updated.");
+      await refreshManagedTrades();
+    } catch (_error: unknown) {
+      pushToast("error", "AUTO_EXIT_UPDATE_FAILED", "Failed to update auto-exit config.");
+    }
+  }
+
   async function approveAndExecuteApproval(action: ControlAction, id: string) {
     const existing = pendingApprovals.find((item) => item.id === id);
     if (!existing) {
@@ -349,6 +368,7 @@ export default function App() {
     await refreshApprovals();
     await refreshAlerts();
     await refreshIncidents();
+    await refreshManagedTrades();
   }
 
   async function acknowledgeIncident(id: string) {
@@ -422,6 +442,7 @@ export default function App() {
     void refreshApprovals();
     void refreshAlerts();
     void refreshIncidents();
+    void refreshManagedTrades();
   }, []);
 
   useEffect(() => {
@@ -429,6 +450,7 @@ export default function App() {
       void refreshApprovals();
       void refreshAlerts();
       void refreshIncidents();
+      void refreshManagedTrades();
     }, 5000);
     return () => {
       clearInterval(timer);
@@ -494,6 +516,17 @@ export default function App() {
     if (tab === "ops") {
       return <OpsMetricsPanel metrics={dashboard.metrics} />;
     }
+    if (tab === "autonomy") {
+      return (
+        <AutonomyPanel
+          config={dashboard.autoExitConfig}
+          managedTrades={dashboard.managedTrades}
+          canEdit={dashboard.role !== "read_only"}
+          onSaveConfig={saveAutoExitConfig}
+          onRefreshTrades={refreshManagedTrades}
+        />
+      );
+    }
     return <LogsPanel logs={dashboard.logs} onClearStreamsAndLogs={() => void clearStreamsAndLogs()} />;
   }, [
     tab,
@@ -503,12 +536,15 @@ export default function App() {
     dashboard.metrics,
     dashboard.portfolio,
     dashboard.openOrders,
+    dashboard.autoExitConfig,
+    dashboard.managedTrades,
     dashboard.demoQueue,
     pendingApprovals,
     selectedAuditId,
     currentUserId,
     alerts,
-    incidents
+    incidents,
+    dashboard.role
   ]);
 
   const readinessItems = useMemo(() => {
@@ -520,6 +556,9 @@ export default function App() {
       .map((item) => Date.parse(item.expiresAt))
       .filter((value) => Number.isFinite(value))
       .sort((a, b) => a - b)[0];
+    const approvalMode = "manual";
+    const managedTradeErrorCount = dashboard.managedTrades.filter((item) => item.status === "error").length;
+    const autonomyReady = dashboard.autoExitConfig.enabled && managedTradeErrorCount === 0 && approvalMode === "manual";
     return [
       {
         key: "backend",
@@ -576,9 +615,24 @@ export default function App() {
             : approvalFresh
               ? `Pending approvals valid until ${new Date(nearestApprovalExpiry ?? now).toLocaleTimeString()}.`
               : "One or more pending approvals are expired."
+      },
+      {
+        key: "autonomy",
+        label: "Autonomy guardrails",
+        ok: autonomyReady,
+        detail: `Auto-exit ${dashboard.autoExitConfig.enabled ? "enabled" : "disabled"}; managed trade errors=${managedTradeErrorCount}; approval mode=${approvalMode}.`
       }
     ];
-  }, [dashboard.dataSource, dashboard.connectionHealth, dashboard.exchange, dashboard.portfolio, dashboard.openOrders, pendingApprovals]);
+  }, [
+    dashboard.dataSource,
+    dashboard.connectionHealth,
+    dashboard.exchange,
+    dashboard.portfolio,
+    dashboard.openOrders,
+    dashboard.autoExitConfig,
+    dashboard.managedTrades,
+    pendingApprovals
+  ]);
 
   return (
     <div className="app-shell">
@@ -608,6 +662,7 @@ export default function App() {
           </button>
         </div>
         <DemoReadinessCard items={readinessItems} compact />
+        <Milestone5ReadinessCard evidence={dashboard.milestone5Evidence} />
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </aside>
 
@@ -698,6 +753,7 @@ export default function App() {
           <button className={`tab ${tab === "portfolio" ? "tab-active" : ""}`} onClick={() => setTab("portfolio")}>Portfolio</button>
           <button className={`tab ${tab === "orders" ? "tab-active" : ""}`} onClick={() => setTab("orders")}>Orders</button>
           <button className={`tab ${tab === "ops" ? "tab-active" : ""}`} onClick={() => setTab("ops")}>Ops</button>
+          <button className={`tab ${tab === "autonomy" ? "tab-active" : ""}`} onClick={() => setTab("autonomy")}>Autonomy</button>
           <button
             className="tab sound-toggle"
             onClick={() => setApprovalSoundMuted((prev) => !prev)}

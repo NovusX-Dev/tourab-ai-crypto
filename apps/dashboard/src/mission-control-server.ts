@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import type { IncomingMessage, Server } from "node:http";
+import { readdir, readFile } from "node:fs/promises";
 import process from "node:process";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -31,7 +32,7 @@ import type {
   UserRole,
   WsMessage
 } from "@tourab/shared";
-import { loadOkxDemoConfigFromEnv, OkxDemoAdapter, type OkxFillRecord } from "@tourab/okx-demo-adapter";
+import { OkxApiError, loadOkxDemoConfigFromEnv, OkxDemoAdapter, type OkxFillRecord } from "@tourab/okx-demo-adapter";
 import { authRoleMiddleware, type AuthenticatedRequest } from "./mission-control/auth.js";
 import { ApprovalStore } from "./mission-control/approval-store.js";
 import { EventBus } from "./mission-control/event-bus.js";
@@ -41,10 +42,11 @@ import { canRoleExecuteAction } from "./mission-control/policy.js";
 import { controlRateLimiter } from "./mission-control/rate-limit.js";
 import { RuntimeLifecycleManager } from "./mission-control/runtime-lifecycle-manager.js";
 import { SqliteEventStore } from "./mission-control/sqlite-event-store.js";
-import { SqliteOpsStore } from "./mission-control/sqlite-ops-store.js";
+import { SqliteOpsStore, type ManagedTradeRecord } from "./mission-control/sqlite-ops-store.js";
 import { RuntimeWorkerManager } from "./mission-control/worker-manager.js";
 import { createSignedAccessToken, verifySignedAccessToken } from "./mission-control/auth.js";
 import { loadEnvFromProjectRoot } from "./env-loader.js";
+import { fetchSpotMarketInputs } from "./proposal-helper.js";
 
 // Load local .env defaults for standalone `mission-control:server` runs.
 loadEnvFromProjectRoot(process.cwd(), { override: true });
@@ -53,12 +55,19 @@ const DEFAULT_PORT = Number(process.env.TOURAB_MISSION_CONTROL_PORT ?? "7071");
 const DEFAULT_EVENT_STORE_PATH = process.env.TOURAB_EVENT_STORE_PATH ?? "logs/mission-events.sqlite";
 const DEFAULT_ALERT_STORE_PATH = process.env.TOURAB_ALERT_STORE_PATH ?? "logs/mission-alerts.jsonl";
 const DEFAULT_OPS_STORE_PATH = process.env.TOURAB_OPS_STORE_PATH ?? "logs/mission-ops.sqlite";
+const DEFAULT_M5_EVIDENCE_DIR = "logs";
 const REPLAY_DEFAULT = 200;
 const DEFAULT_DRIFT_CIRCUIT_ACTION = (process.env.TOURAB_DRIFT_CIRCUIT_ACTION ?? "pause") as "pause" | "stop";
 const DEFAULT_STREAM_RETENTION_MS = 15 * 60_000;
 const DEFAULT_STREAM_RETENTION_SWEEP_MS = 60_000;
 const HEARTBEAT_CHECKPOINT_MESSAGE = "Heartbeat checkpoint";
 const WORKER_STALL_ALERT_CODE = "WORKER_STALLED_NO_PROPOSAL";
+const DEFAULT_AUTO_EXIT_MAX_HOLD_SEC = 30 * 60;
+const DEFAULT_AUTO_EXIT_TP_R_MULTIPLE = 1.5;
+const DEFAULT_AUTO_EXIT_EXIT_OFFSET_BPS = 5;
+const DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC = 20;
+const DEFAULT_AUTO_EXIT_MAX_REPRICES = 3;
+const DEFAULT_AUTO_EXIT_FORCE_FLATTEN_BPS = 30;
 const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
   "ProposalCreated",
   "GatekeeperDecision",
@@ -98,6 +107,162 @@ function toFiniteNumber(raw: string | number | undefined): number {
 
 function round6(value: number): number {
   return Number(value.toFixed(6));
+}
+
+function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
+  if (!raw) {
+    return fallback;
+  }
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on") {
+    return true;
+  }
+  if (normalized === "0" || normalized === "false" || normalized === "no" || normalized === "off") {
+    return false;
+  }
+  return fallback;
+}
+
+function parseFlattenTimeUtc(raw: string | undefined): string | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const normalized = raw.trim();
+  if (!/^\d{2}:\d{2}$/.test(normalized)) {
+    return undefined;
+  }
+  const [hhRaw, mmRaw] = normalized.split(":");
+  const hh = Number(hhRaw);
+  const mm = Number(mmRaw);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+    return undefined;
+  }
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function nextFlattenAtIso(flattenTimeUtc: string | undefined, nowIso = new Date().toISOString()): string | undefined {
+  if (!flattenTimeUtc) {
+    return undefined;
+  }
+  const [hhRaw, mmRaw] = flattenTimeUtc.split(":");
+  const hh = Number(hhRaw);
+  const mm = Number(mmRaw);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
+    return undefined;
+  }
+  const now = new Date(nowIso);
+  const candidate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), hh, mm, 0, 0));
+  if (candidate.getTime() <= now.getTime()) {
+    candidate.setUTCDate(candidate.getUTCDate() + 1);
+  }
+  return candidate.toISOString();
+}
+
+function toManagedTrade(record: ManagedTradeRecord): ManagedTrade {
+  return {
+    tradeId: record.tradeId,
+    status: record.status as ManagedTradeStatus,
+    symbol: record.symbol,
+    entrySide: record.entrySide,
+    entryOrdId: record.entryOrdId,
+    entryClOrdId: record.entryClOrdId,
+    requestedQty: record.requestedQty,
+    entryFilledQty: record.entryFilledQty,
+    entryAvgPrice: record.entryAvgPrice,
+    exitOrdId: record.exitOrdId,
+    exitClOrdId: record.exitClOrdId,
+    exitFilledQty: record.exitFilledQty,
+    exitAvgPrice: record.exitAvgPrice,
+    remainingQty: record.remainingQty,
+    exitReason: record.exitReason as ExitReason | undefined,
+    stopPrice: record.stopPrice,
+    takeProfitPrice: record.takeProfitPrice,
+    maxHoldSec: record.maxHoldSec,
+    flattenAt: record.flattenAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    closedAt: record.closedAt,
+    feeUsd: record.feeUsd,
+    realizedPnlUsd: record.realizedPnlUsd,
+    exitSubmittedAt: record.exitSubmittedAt,
+    exitRepriceCount: record.exitRepriceCount,
+    forcedFlattenEscalated: record.forcedFlattenEscalated
+  };
+}
+
+function toManagedTradeRecord(trade: ManagedTrade): ManagedTradeRecord {
+  return {
+    tradeId: trade.tradeId,
+    status: trade.status,
+    symbol: trade.symbol,
+    entrySide: trade.entrySide,
+    entryOrdId: trade.entryOrdId,
+    entryClOrdId: trade.entryClOrdId,
+    requestedQty: trade.requestedQty,
+    entryFilledQty: trade.entryFilledQty,
+    entryAvgPrice: trade.entryAvgPrice,
+    exitOrdId: trade.exitOrdId,
+    exitClOrdId: trade.exitClOrdId,
+    exitFilledQty: trade.exitFilledQty,
+    exitAvgPrice: trade.exitAvgPrice,
+    remainingQty: trade.remainingQty,
+    exitReason: trade.exitReason,
+    stopPrice: trade.stopPrice,
+    takeProfitPrice: trade.takeProfitPrice,
+    maxHoldSec: trade.maxHoldSec,
+    flattenAt: trade.flattenAt,
+    createdAt: trade.createdAt,
+    updatedAt: trade.updatedAt,
+    closedAt: trade.closedAt,
+    feeUsd: trade.feeUsd,
+    realizedPnlUsd: trade.realizedPnlUsd,
+    exitSubmittedAt: trade.exitSubmittedAt,
+    exitRepriceCount: trade.exitRepriceCount,
+    forcedFlattenEscalated: trade.forcedFlattenEscalated
+  };
+}
+
+function fillStatsForOrder(fills: OkxFillRecord[], ordId: string | undefined): { qty: number; avgPrice: number } {
+  if (!ordId) {
+    return { qty: 0, avgPrice: 0 };
+  }
+  let qty = 0;
+  let notional = 0;
+  for (const fill of fills) {
+    if (fill.ordId !== ordId) {
+      continue;
+    }
+    const q = Math.max(0, toFiniteNumber(fill.fillSz));
+    const p = Math.max(0, toFiniteNumber(fill.fillPx));
+    if (q <= 0 || p <= 0) {
+      continue;
+    }
+    qty += q;
+    notional += q * p;
+  }
+  return {
+    qty: round6(qty),
+    avgPrice: qty > 0 ? round6(notional / qty) : 0
+  };
+}
+
+function dayStartIso(day: string): string {
+  return `${day}T00:00:00.000Z`;
+}
+
+function dayEndIso(day: string): string {
+  return `${day}T23:59:59.999Z`;
+}
+
+function asUtcDay(isoLike: string | undefined): string | undefined {
+  if (!isoLike) {
+    return undefined;
+  }
+  const epoch = Date.parse(isoLike);
+  if (!Number.isFinite(epoch)) {
+    return undefined;
+  }
+  return new Date(epoch).toISOString().slice(0, 10);
 }
 
 interface PositionAccumulator {
@@ -291,6 +456,91 @@ interface ClearStreamsResult {
   logsCleared: number;
 }
 
+type ManagedTradeStatus =
+  | "planned"
+  | "entry_submitted"
+  | "entry_partially_filled"
+  | "entry_filled"
+  | "exit_pending"
+  | "exit_submitted"
+  | "closed"
+  | "canceled"
+  | "error";
+
+type ExitReason = "stop_loss" | "take_profit" | "time_stop" | "flatten" | "manual" | "circuit_breaker";
+
+interface AutoExitConfig {
+  enabled: boolean;
+  maxHoldSec: number;
+  takeProfitRMultiple: number;
+  flattenTimeUtc?: string;
+  exitOffsetBps: number;
+}
+
+interface ManagedTrade {
+  tradeId: string;
+  status: ManagedTradeStatus;
+  symbol: string;
+  entrySide: "buy" | "sell";
+  entryOrdId: string;
+  entryClOrdId: string;
+  requestedQty: number;
+  entryFilledQty: number;
+  entryAvgPrice: number;
+  exitOrdId?: string;
+  exitClOrdId?: string;
+  exitFilledQty: number;
+  exitAvgPrice: number;
+  remainingQty: number;
+  exitReason?: ExitReason;
+  stopPrice: number;
+  takeProfitPrice: number;
+  maxHoldSec: number;
+  flattenAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+  feeUsd: number;
+  realizedPnlUsd: number;
+  exitSubmittedAt?: string;
+  exitRepriceCount: number;
+  forcedFlattenEscalated: boolean;
+}
+
+interface Milestone5EvidenceDay {
+  day: string;
+  pass: boolean;
+  source: "soak_report" | "live";
+  closureRatePct: number;
+  filledEntries: number;
+  deterministicClosed: number;
+  closedTradeDataPass: boolean;
+  reconciliationPass: boolean;
+  tradeErrors: number;
+  reportPath?: string;
+}
+
+interface Milestone5EvidenceSummary {
+  policyVersion: "calendar-day-v1";
+  requiredDays: number;
+  qualifiedDays: number;
+  streakDays: number;
+  milestoneReady: boolean;
+  generatedAt: string;
+  today: {
+    day: string;
+    pass: boolean;
+    source: "soak_report" | "live";
+    blockers: string[];
+    closureRatePct: number;
+    filledEntries: number;
+    deterministicClosed: number;
+    reconciliationPass: boolean;
+    tradeErrors: number;
+  };
+  days: Milestone5EvidenceDay[];
+}
+
 function controlActionFromPath(path: string): ControlAction | undefined {
   if (path === "/start") return "start";
   if (path === "/pause") return "pause";
@@ -420,6 +670,7 @@ export async function startMissionControlServer(
   const eventStorePath = options.eventStorePath ?? DEFAULT_EVENT_STORE_PATH;
   const alertStorePath = options.alertStorePath ?? DEFAULT_ALERT_STORE_PATH;
   const opsStorePath = options.opsStorePath ?? (process.env.TOURAB_OPS_STORE_PATH ?? join(dirname(eventStorePath), "mission-ops.sqlite"));
+  const m5EvidenceDir = process.env.TOURAB_M5_EVIDENCE_DIR ?? DEFAULT_M5_EVIDENCE_DIR;
   const replayDefault = options.replayDefault ?? REPLAY_DEFAULT;
   const logRequests = options.logRequests ?? true;
   const approvalTtlMs = options.approvalTtlMs ?? Number(process.env.TOURAB_APPROVAL_TTL_MS ?? 5 * 60_000);
@@ -456,9 +707,43 @@ export async function startMissionControlServer(
       intent: ExecutionIntent;
       proposal: TradeProposal;
       symbol: string;
+      stopPrice: number;
+      takeProfitPrice: number;
+      maxHoldSec: number;
+      flattenAt?: string;
       queuedAt: string;
     }
   >();
+  let autoExitConfig: AutoExitConfig =
+    opsStore.loadRuntimeState<AutoExitConfig>("auto_exit_config") ?? {
+      enabled: parseBooleanEnv(process.env.TOURAB_AUTO_EXIT_ENABLED, true),
+      maxHoldSec: parseBoundedInt(
+        process.env.TOURAB_AUTO_EXIT_MAX_HOLD_SEC,
+        DEFAULT_AUTO_EXIT_MAX_HOLD_SEC,
+        30,
+        7 * 24 * 60 * 60
+      ),
+      takeProfitRMultiple: Math.max(0.25, Number(process.env.TOURAB_AUTO_EXIT_TP_R_MULTIPLE ?? DEFAULT_AUTO_EXIT_TP_R_MULTIPLE)),
+      flattenTimeUtc: parseFlattenTimeUtc(process.env.TOURAB_AUTO_EXIT_FLATTEN_UTC),
+      exitOffsetBps: Math.max(0, Number(process.env.TOURAB_AUTO_EXIT_EXIT_OFFSET_BPS ?? DEFAULT_AUTO_EXIT_EXIT_OFFSET_BPS))
+    };
+  const autoExitStaleTimeoutSec = parseBoundedInt(
+    process.env.TOURAB_AUTO_EXIT_STALE_TIMEOUT_SEC,
+    DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC,
+    5,
+    15 * 60
+  );
+  const autoExitMaxReprices = parseBoundedInt(process.env.TOURAB_AUTO_EXIT_MAX_REPRICES, DEFAULT_AUTO_EXIT_MAX_REPRICES, 0, 20);
+  const autoExitForceFlattenBps = Math.max(
+    1,
+    Number(process.env.TOURAB_AUTO_EXIT_FORCE_FLATTEN_BPS ?? DEFAULT_AUTO_EXIT_FORCE_FLATTEN_BPS)
+  );
+  const managedTrades = new Map<string, ManagedTrade>(
+    opsStore
+      .listManagedTrades(1000)
+      .map((row) => toManagedTrade(row))
+      .map((trade) => [trade.tradeId, trade])
+  );
   let exchangeStatus: ExchangeStatus = {
     connected: false,
     mode: exchangeMode,
@@ -468,7 +753,7 @@ export async function startMissionControlServer(
   };
   const performanceTimelineMaxPoints = parseBoundedInt(process.env.TOURAB_PERF_TIMELINE_MAX_POINTS, 500, 50, 5000);
   const performanceTradeLimit = parseBoundedInt(process.env.TOURAB_PERF_TRADE_LIMIT, 200, 20, 2000);
-  const performanceFillLimit = parseBoundedInt(process.env.TOURAB_PERF_FILLS_LIMIT, 300, 20, 2000);
+  const performanceFillLimit = parseBoundedInt(process.env.TOURAB_PERF_FILLS_LIMIT, 100, 20, 100);
   const performanceFeeRateBps = Math.max(0, Number(process.env.TOURAB_PERF_FEE_RATE_BPS ?? "8"));
   const exchangeTimezoneOffsetMinutes = parseBoundedInt(process.env.TOURAB_EXCHANGE_TIMEZONE_OFFSET_MINUTES, 480, -840, 840);
   const exchangeTimezoneLabel = formatUtcOffsetLabel(exchangeTimezoneOffsetMinutes);
@@ -527,6 +812,8 @@ export async function startMissionControlServer(
     lastUpdatedAt: new Date(0).toISOString(),
     lastError: "Open orders health not checked yet."
   };
+  let latestSuccessfulFills: OkxFillRecord[] = [];
+  let latestSuccessfulPendingOrders: OpenOrdersStatus["orders"] = [];
 
   function getDemoQueueSnapshot(): DemoQueuedIntent[] {
     return [...pendingDemoOrders.entries()]
@@ -608,15 +895,27 @@ export async function startMissionControlServer(
           requestedBy: "worker",
           reason: `Auto-cycle execution request for ${intent.symbol} proposal=${proposal.proposalId}`
         });
+        const entryPrice = Math.max(0.00000001, intent.limitPrice);
+        const stopPrice = Math.max(0.00000001, proposal.stopPrice);
+        const riskDistance = Math.max(Math.abs(entryPrice - stopPrice), entryPrice * 0.001);
+        const takeProfitPrice =
+          intent.side === "buy"
+            ? round6(entryPrice + riskDistance * autoExitConfig.takeProfitRMultiple)
+            : round6(entryPrice - riskDistance * autoExitConfig.takeProfitRMultiple);
+        const flattenAt = nextFlattenAtIso(autoExitConfig.flattenTimeUtc);
         pendingDemoOrders.set(request.id, {
           intent,
           proposal,
           symbol,
+          stopPrice,
+          takeProfitPrice,
+          maxHoldSec: autoExitConfig.maxHoldSec,
+          flattenAt,
           queuedAt: new Date().toISOString()
         });
         await appendAudit(
           "Demo execution approval queued",
-          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol}`,
+          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol} stop=${stopPrice} tp=${takeProfitPrice}`,
           symbol,
           "ProposalApproved"
         );
@@ -639,6 +938,313 @@ export async function startMissionControlServer(
       executionMode: workerExecutionMode
     }
   );
+
+  function upsertManagedTrade(trade: ManagedTrade): void {
+    managedTrades.set(trade.tradeId, trade);
+    opsStore.upsertManagedTrade(toManagedTradeRecord(trade));
+  }
+
+  async function evaluateManagedTradeExits(input: {
+    adapter: OkxDemoAdapter;
+    fills: OkxFillRecord[];
+    marksBySymbol: Map<string, number>;
+    pendingOrders: OpenOrdersStatus["orders"];
+    nowIso: string;
+  }): Promise<void> {
+    if (!autoExitConfig.enabled) {
+      return;
+    }
+    const pendingByOrdId = new Set(input.pendingOrders.map((order) => order.ordId));
+    const markCache = new Map<string, number>();
+    const nowEpoch = Date.parse(input.nowIso);
+
+    function resolveExitOffsetBps(trade: ManagedTrade, reason: ExitReason): number {
+      if (reason === "flatten" || reason === "time_stop") {
+        return Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10);
+      }
+      if (trade.forcedFlattenEscalated) {
+        return Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10);
+      }
+      return autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 5;
+    }
+
+    function classifyTransientExitSubmitFailure(error: unknown): { transient: boolean; message: string } {
+      const message = error instanceof Error ? error.message : String(error);
+      if (error instanceof OkxApiError) {
+        if (error.code === "OKX_NETWORK_ERROR") {
+          return { transient: true, message };
+        }
+        if (error.code === "OKX_HTTP_ERROR") {
+          const status = Number((error.details ?? {}).status);
+          if (status === 408 || status === 425 || status === 429 || status >= 500) {
+            return { transient: true, message };
+          }
+        }
+      }
+      const normalized = message.toLowerCase();
+      if (
+        normalized.includes("all operations failed") ||
+        normalized.includes("fetch failed") ||
+        normalized.includes("network") ||
+        normalized.includes("timeout")
+      ) {
+        return { transient: true, message };
+      }
+      return { transient: false, message };
+    }
+
+    for (const trade of managedTrades.values()) {
+      const entryStats = fillStatsForOrder(input.fills, trade.entryOrdId);
+      if (entryStats.qty > 0) {
+        trade.entryFilledQty = entryStats.qty;
+        trade.entryAvgPrice = entryStats.avgPrice;
+        trade.status = entryStats.qty + 1e-9 < trade.requestedQty ? "entry_partially_filled" : "entry_filled";
+      } else if (trade.status === "planned") {
+        trade.status = "entry_submitted";
+      }
+
+      if (trade.exitOrdId) {
+        const exitStats = fillStatsForOrder(input.fills, trade.exitOrdId);
+        trade.exitFilledQty = exitStats.qty;
+        trade.exitAvgPrice = exitStats.avgPrice;
+        trade.remainingQty = Math.max(0, round6(trade.entryFilledQty - trade.exitFilledQty));
+        const approximateFees =
+          (trade.entryFilledQty * trade.entryAvgPrice + trade.exitFilledQty * trade.exitAvgPrice) * (performanceFeeRateBps / 10_000);
+        trade.feeUsd = round6(approximateFees);
+        const gross =
+          trade.entrySide === "buy"
+            ? (trade.exitAvgPrice - trade.entryAvgPrice) * trade.exitFilledQty
+            : (trade.entryAvgPrice - trade.exitAvgPrice) * trade.exitFilledQty;
+        trade.realizedPnlUsd = round6(gross - trade.feeUsd);
+        if (trade.remainingQty <= 1e-9) {
+          trade.status = "closed";
+          trade.closedAt = input.nowIso;
+          trade.exitSubmittedAt = undefined;
+          await publish(
+            createEvent(
+              "OrderFilled",
+              trade.symbol,
+              `Managed trade closed tradeId=${trade.tradeId} reason=${trade.exitReason ?? "unknown"} pnl=${trade.realizedPnlUsd}`,
+              trade.realizedPnlUsd >= 0 ? "info" : "warn",
+              ["managed_trade", "auto_exit_closed"]
+            )
+          );
+          await appendAudit(
+            "Managed trade closed",
+            `tradeId=${trade.tradeId} reason=${trade.exitReason ?? "unknown"} realizedPnl=${trade.realizedPnlUsd}`,
+            trade.symbol,
+            "OrderFilled"
+          );
+        } else if (!pendingByOrdId.has(trade.exitOrdId)) {
+          trade.status = "exit_pending";
+          trade.exitOrdId = undefined;
+          trade.exitClOrdId = undefined;
+          trade.exitSubmittedAt = undefined;
+        } else {
+          const submittedEpoch = trade.exitSubmittedAt ? Date.parse(trade.exitSubmittedAt) : Number.NaN;
+          const isStale =
+            Number.isFinite(nowEpoch) &&
+            Number.isFinite(submittedEpoch) &&
+            nowEpoch - submittedEpoch >= autoExitStaleTimeoutSec * 1000;
+          if (isStale) {
+            try {
+              await input.adapter.cancelOrder({
+                instId: trade.symbol,
+                ordId: trade.exitOrdId,
+                clOrdId: trade.exitClOrdId
+              });
+              trade.status = "exit_pending";
+              trade.exitOrdId = undefined;
+              trade.exitClOrdId = undefined;
+              trade.exitSubmittedAt = undefined;
+              trade.exitRepriceCount += 1;
+              if (trade.exitRepriceCount > autoExitMaxReprices) {
+                trade.forcedFlattenEscalated = true;
+                trade.exitReason = "flatten";
+              }
+              await publish(
+                createEvent(
+                  "OrderCancelled",
+                  trade.symbol,
+                  `Auto-exit stale cancel tradeId=${trade.tradeId} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
+                  "warn",
+                  ["managed_trade", "auto_exit", "stale_cancel"]
+                )
+              );
+              await appendAudit(
+                "Auto-exit stale cancel",
+                `tradeId=${trade.tradeId} staleTimeoutSec=${autoExitStaleTimeoutSec} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
+                trade.symbol,
+                "OrderCancelled"
+              );
+            } catch (error: unknown) {
+              const message = error instanceof Error ? error.message : String(error);
+              await upsertAlert({
+                code: "AUTO_EXIT_CANCEL_FAILED",
+                severity: "warn",
+                source: "exchange",
+                title: "Auto-exit cancel failed",
+                detail: `tradeId=${trade.tradeId} error=${message}`,
+                symbol: trade.symbol
+              });
+              await publish(
+                createEvent(
+                  "Error",
+                  trade.symbol,
+                  `Auto-exit cancel failed tradeId=${trade.tradeId} error=${message}`,
+                  "warn",
+                  ["managed_trade", "auto_exit_cancel_failed"]
+                )
+              );
+            }
+          } else {
+            trade.status = "exit_submitted";
+          }
+        }
+      } else if (trade.remainingQty > 1e-9 && trade.entryFilledQty > 0 && trade.exitReason) {
+        trade.status = "exit_pending";
+      }
+
+      trade.updatedAt = input.nowIso;
+      upsertManagedTrade(trade);
+    }
+
+    for (const trade of managedTrades.values()) {
+      if (trade.status === "closed" || trade.entryFilledQty <= 0 || trade.remainingQty <= 1e-9 || trade.exitOrdId) {
+        continue;
+      }
+      let mark =
+        input.marksBySymbol.get(trade.symbol) ??
+        markCache.get(trade.symbol) ??
+        (trade.entryAvgPrice > 0 ? trade.entryAvgPrice : undefined);
+      if (mark === undefined || mark <= 0) {
+        try {
+          const market = await fetchSpotMarketInputs(trade.symbol, process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com");
+          mark = market.last;
+          markCache.set(trade.symbol, mark);
+        } catch {
+          mark = trade.entryAvgPrice;
+        }
+      }
+
+      const createdEpoch = Date.parse(trade.createdAt);
+      const elapsedSec = Number.isFinite(createdEpoch) && Number.isFinite(nowEpoch) ? (nowEpoch - createdEpoch) / 1000 : 0;
+      const flattenTriggered = trade.flattenAt ? input.nowIso >= trade.flattenAt : false;
+      const timeTriggered = elapsedSec >= trade.maxHoldSec;
+      const stopTriggered = trade.entrySide === "buy" ? mark <= trade.stopPrice : mark >= trade.stopPrice;
+      const tpTriggered = trade.entrySide === "buy" ? mark >= trade.takeProfitPrice : mark <= trade.takeProfitPrice;
+
+      let reason: ExitReason | undefined;
+      if (trade.forcedFlattenEscalated) {
+        reason = "flatten";
+      } else if (trade.exitReason && (trade.status === "exit_pending" || trade.status === "error")) {
+        reason = trade.exitReason;
+      } else if (flattenTriggered) {
+        reason = "flatten";
+      } else if (timeTriggered) {
+        reason = "time_stop";
+      } else if (stopTriggered) {
+        reason = "stop_loss";
+      } else if (tpTriggered) {
+        reason = "take_profit";
+      }
+      if (!reason) {
+        continue;
+      }
+
+      if (trade.exitRepriceCount > autoExitMaxReprices) {
+        trade.forcedFlattenEscalated = true;
+        reason = "flatten";
+      }
+
+      const exitSide: "buy" | "sell" = trade.entrySide === "buy" ? "sell" : "buy";
+      const offsetBps = resolveExitOffsetBps(trade, reason);
+      const offsetMultiplier = exitSide === "sell" ? 1 - offsetBps / 10_000 : 1 + offsetBps / 10_000;
+      const limitPrice = round6(Math.max(0.00000001, mark * offsetMultiplier));
+      try {
+        const order = await input.adapter.placeSpotLimitOrder({
+          proposalId: `${trade.tradeId}-${reason}-${trade.exitRepriceCount}`,
+          symbol: trade.symbol,
+          side: exitSide,
+          qtyBase: Math.max(0.00000001, trade.remainingQty),
+          limitPrice
+        });
+        trade.exitOrdId = order.ordId;
+        trade.exitClOrdId = order.clOrdId;
+        trade.exitReason = reason;
+        trade.status = "exit_submitted";
+        trade.exitSubmittedAt = input.nowIso;
+        trade.updatedAt = input.nowIso;
+        upsertManagedTrade(trade);
+        await publish(
+          createEvent(
+            "OrderSubmitted",
+            trade.symbol,
+            `Auto-exit submitted tradeId=${trade.tradeId} reason=${reason} ordId=${order.ordId} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps}`,
+            "info",
+            ["managed_trade", "auto_exit", reason]
+          )
+        );
+        await appendAudit(
+          "Auto-exit submitted",
+          `tradeId=${trade.tradeId} reason=${reason} ordId=${order.ordId} limitPrice=${limitPrice} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps}`,
+          trade.symbol,
+          "OrderSubmitted"
+        );
+      } catch (error: unknown) {
+        const { transient, message } = classifyTransientExitSubmitFailure(error);
+        if (transient) {
+          trade.exitReason = reason;
+          trade.status = "exit_pending";
+          trade.updatedAt = input.nowIso;
+          upsertManagedTrade(trade);
+          await upsertAlert({
+            code: "AUTO_EXIT_SUBMIT_RETRYING",
+            severity: "warn",
+            source: "exchange",
+            title: "Auto-exit submit transient failure",
+            detail: `tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+            symbol: trade.symbol
+          });
+          await publish(
+            createEvent(
+              "System",
+              trade.symbol,
+              `Auto-exit transient submit failure tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+              "warn",
+              ["managed_trade", "auto_exit_retry"]
+            )
+          );
+          continue;
+        }
+        trade.exitRepriceCount += 1;
+        if (trade.exitRepriceCount > autoExitMaxReprices) {
+          trade.forcedFlattenEscalated = true;
+          trade.exitReason = "flatten";
+        }
+        trade.status = "error";
+        trade.updatedAt = input.nowIso;
+        upsertManagedTrade(trade);
+        await upsertAlert({
+          code: "AUTO_EXIT_SUBMIT_FAILED",
+          severity: "error",
+          source: "exchange",
+          title: "Auto-exit submit failed",
+          detail: `tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+          symbol: trade.symbol
+        });
+        await publish(
+          createEvent(
+            "Error",
+            trade.symbol,
+            `Auto-exit submit failed tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+            "error",
+            ["managed_trade", "auto_exit_error"]
+          )
+        );
+      }
+    }
+  }
 
   async function refreshExchangeStatus(): Promise<void> {
     const now = new Date().toISOString();
@@ -723,12 +1329,38 @@ export async function startMissionControlServer(
     }
     try {
       const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
-      const [balance, pendingOrders, fills] = await Promise.all([
+      const [balanceRes, pendingOrdersRes, fillsRes] = await Promise.allSettled([
         adapter.getAccountBalance(),
         adapter.getPendingOrders(),
         adapter.getFills(undefined, performanceFillLimit)
       ]);
-      const currentEqUsd = Math.max(0, toFiniteNumber(balance.totalEq));
+
+      const pendingOrders =
+        pendingOrdersRes.status === "fulfilled"
+          ? pendingOrdersRes.value.map((item) => ({
+              ordId: item.ordId,
+              clOrdId: item.clOrdId,
+              instId: item.instId,
+              side: item.side,
+              px: item.px,
+              sz: item.sz,
+              accFillSz: item.accFillSz,
+              state: item.state,
+              cTime: item.cTime,
+              uTime: item.uTime
+            }))
+          : latestSuccessfulPendingOrders;
+      if (pendingOrdersRes.status === "fulfilled") {
+        latestSuccessfulPendingOrders = pendingOrders;
+      }
+
+      const fills = fillsRes.status === "fulfilled" ? fillsRes.value : latestSuccessfulFills;
+      if (fillsRes.status === "fulfilled") {
+        latestSuccessfulFills = fills;
+      }
+
+      const currentEqUsd =
+        balanceRes.status === "fulfilled" ? Math.max(0, toFiniteNumber(balanceRes.value.totalEq)) : Math.max(0, toFiniteNumber(portfolioStatus.totalEq));
       if (sessionStartEqUsd === undefined) {
         sessionStartEqUsd = currentEqUsd;
       }
@@ -760,20 +1392,34 @@ export async function startMissionControlServer(
         exchangeTimezoneOffsetMinutes
       });
       exchangeStatus = {
-        connected: true,
+        connected: balanceRes.status === "fulfilled" && pendingOrdersRes.status === "fulfilled" && fillsRes.status === "fulfilled",
         mode,
         source: "okx_demo",
-        lastHealthCheckAt: now
+        lastHealthCheckAt: now,
+        lastError:
+          balanceRes.status === "rejected"
+            ? (balanceRes.reason instanceof Error ? balanceRes.reason.message : String(balanceRes.reason))
+            : pendingOrdersRes.status === "rejected"
+              ? (pendingOrdersRes.reason instanceof Error ? pendingOrdersRes.reason.message : String(pendingOrdersRes.reason))
+              : fillsRes.status === "rejected"
+                ? (fillsRes.reason instanceof Error ? fillsRes.reason.message : String(fillsRes.reason))
+                : undefined
       };
+
+      const balances =
+        balanceRes.status === "fulfilled"
+          ? balanceRes.value.details.map((item) => ({
+              ccy: item.ccy,
+              availBal: item.availBal,
+              cashBal: item.cashBal,
+              eq: item.eq
+            }))
+          : portfolioStatus.balances;
       portfolioStatus = {
-        totalEq: balance.totalEq,
-        balances: balance.details.map((item) => ({
-          ccy: item.ccy,
-          availBal: item.availBal,
-          cashBal: item.cashBal,
-          eq: item.eq
-        })),
+        totalEq: balanceRes.status === "fulfilled" ? balanceRes.value.totalEq : portfolioStatus.totalEq,
+        balances,
         lastUpdatedAt: now,
+        lastError: exchangeStatus.lastError,
         performance: {
           sessionStartEqUsd: round6(sessionStartEqUsd),
           currentEqUsd: round6(currentEqUsd),
@@ -791,20 +1437,20 @@ export async function startMissionControlServer(
         }
       };
       openOrdersStatus = {
-        orders: pendingOrders.map((item) => ({
-          ordId: item.ordId,
-          clOrdId: item.clOrdId,
-          instId: item.instId,
-          side: item.side,
-          px: item.px,
-          sz: item.sz,
-          accFillSz: item.accFillSz,
-          state: item.state,
-          cTime: item.cTime,
-          uTime: item.uTime
-        })),
-        lastUpdatedAt: now
+        orders: pendingOrders,
+        lastUpdatedAt: now,
+        lastError:
+          pendingOrdersRes.status === "rejected"
+            ? (pendingOrdersRes.reason instanceof Error ? pendingOrdersRes.reason.message : String(pendingOrdersRes.reason))
+            : undefined
       };
+      await evaluateManagedTradeExits({
+        adapter,
+        fills,
+        marksBySymbol,
+        pendingOrders: openOrdersStatus.orders,
+        nowIso: now
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const currentEqUsd = Math.max(0, toFiniteNumber(portfolioStatus.totalEq));
@@ -939,20 +1585,47 @@ export async function startMissionControlServer(
     }
   }
 
-  async function pruneRetentionData(): Promise<void> {
-    const cutoffIso = new Date(Date.now() - streamRetentionMs).toISOString();
-    const eventsDeleted = eventStore.deleteOlderThan(cutoffIso);
-    const auditDeleted = opsStore.deleteAuditOlderThan(cutoffIso);
-    const incidentsDeleted = opsStore.deleteIncidentsOlderThan(cutoffIso);
-    if (eventsDeleted === 0 && auditDeleted === 0 && incidentsDeleted === 0) {
-      return;
+  function isSqliteBusyError(error: unknown): boolean {
+    if (!error || typeof error !== "object") {
+      return false;
     }
-    inMemoryEvents = await eventStore.readAll();
-    const latestAudit = opsStore.listAudit(300);
-    lifecycle.audit.length = 0;
-    lifecycle.audit.push(...latestAudit);
-    inMemoryIncidents = opsStore.listIncidents();
-    metrics.openIncidents = inMemoryIncidents.filter((item) => item.status !== "resolved").length;
+    const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : "";
+    const errcode = "errcode" in error ? Number((error as { errcode?: unknown }).errcode) : Number.NaN;
+    const message =
+      "message" in error ? String((error as { message?: unknown }).message ?? "").toLowerCase() : String(error).toLowerCase();
+    return code === "ERR_SQLITE_ERROR" && (errcode === 5 || message.includes("database is locked"));
+  }
+
+  async function pruneRetentionData(): Promise<void> {
+    try {
+      const cutoffIso = new Date(Date.now() - streamRetentionMs).toISOString();
+      const eventsDeleted = eventStore.deleteOlderThan(cutoffIso);
+      const auditDeleted = opsStore.deleteAuditOlderThan(cutoffIso);
+      const incidentsDeleted = opsStore.deleteIncidentsOlderThan(cutoffIso);
+      const managedTradesDeleted = opsStore.deleteManagedTradesOlderThan(cutoffIso);
+      if (eventsDeleted === 0 && auditDeleted === 0 && incidentsDeleted === 0 && managedTradesDeleted === 0) {
+        return;
+      }
+      inMemoryEvents = await eventStore.readAll();
+      const latestAudit = opsStore.listAudit(300);
+      lifecycle.audit.length = 0;
+      lifecycle.audit.push(...latestAudit);
+      inMemoryIncidents = opsStore.listIncidents();
+      metrics.openIncidents = inMemoryIncidents.filter((item) => item.status !== "resolved").length;
+      if (managedTradesDeleted > 0) {
+        for (const [tradeId, trade] of managedTrades.entries()) {
+          const reference = trade.closedAt ?? trade.updatedAt;
+          if (reference < cutoffIso) {
+            managedTrades.delete(tradeId);
+          }
+        }
+      }
+    } catch (error: unknown) {
+      if (isSqliteBusyError(error)) {
+        return;
+      }
+      throw error;
+    }
   }
 
   async function clearStreamsAndLogs(): Promise<ClearStreamsResult> {
@@ -963,12 +1636,161 @@ export async function startMissionControlServer(
     lifecycle.audit.length = 0;
     inMemoryEvents = [];
     inMemoryIncidents = [];
+    managedTrades.clear();
     metrics.openIncidents = 0;
     return {
       eventsDeleted,
       auditDeleted,
       incidentsDeleted,
       logsCleared
+    };
+  }
+
+  async function buildMilestone5EvidenceSummary(nowIso: string): Promise<Milestone5EvidenceSummary> {
+    const requiredDays = 7;
+    const reportDayMap = new Map<string, Milestone5EvidenceDay & { endedAt: string }>();
+    try {
+      const entries = await readdir(m5EvidenceDir, { withFileTypes: true });
+      const soakDirs = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("m5-soak-"));
+      for (const dirent of soakDirs) {
+        const reportPath = join(m5EvidenceDir, dirent.name, "report.json");
+        try {
+          const raw = await readFile(reportPath, "utf-8");
+          const report = JSON.parse(raw) as {
+            startedAt?: string;
+            endedAt?: string;
+            totals?: { filledEntries?: number; deterministicClosed?: number; tradeErrors?: number };
+            checks?: {
+              closureRatePct?: number;
+              closureRatePass?: boolean;
+              closedTradeDataPass?: boolean;
+              reconciliationSloObservedPass?: boolean;
+            };
+          };
+          const endedAt = report.endedAt ?? report.startedAt;
+          const day = asUtcDay(endedAt);
+          if (!endedAt || !day) {
+            continue;
+          }
+          const item: Milestone5EvidenceDay & { endedAt: string } = {
+            day,
+            pass: Boolean(
+              report.checks?.closureRatePass && report.checks?.closedTradeDataPass && report.checks?.reconciliationSloObservedPass
+            ),
+            source: "soak_report",
+            closureRatePct: round6(toFiniteNumber(report.checks?.closureRatePct)),
+            filledEntries: Math.max(0, Math.floor(toFiniteNumber(report.totals?.filledEntries))),
+            deterministicClosed: Math.max(0, Math.floor(toFiniteNumber(report.totals?.deterministicClosed))),
+            closedTradeDataPass: Boolean(report.checks?.closedTradeDataPass),
+            reconciliationPass: Boolean(report.checks?.reconciliationSloObservedPass),
+            tradeErrors: Math.max(0, Math.floor(toFiniteNumber(report.totals?.tradeErrors))),
+            reportPath,
+            endedAt
+          };
+          const existing = reportDayMap.get(day);
+          if (!existing || existing.endedAt < item.endedAt) {
+            reportDayMap.set(day, item);
+          }
+        } catch {
+          continue;
+        }
+      }
+    } catch {
+      // no-op: missing evidence directory should not fail endpoint.
+    }
+
+    const todayDay = nowIso.slice(0, 10);
+    const deterministicReasons = new Set<ExitReason>(["stop_loss", "take_profit", "time_stop", "flatten"]);
+    const closedToday = [...managedTrades.values()].filter((trade) => trade.closedAt && asUtcDay(trade.closedAt) === todayDay);
+    const filledEntriesToday = [...managedTrades.values()].filter(
+      (trade) => asUtcDay(trade.createdAt) === todayDay && trade.entryFilledQty > 0
+    );
+    const deterministicClosedToday = closedToday.filter(
+      (trade) => trade.exitReason && deterministicReasons.has(trade.exitReason)
+    ).length;
+    const tradeErrorsToday = [...managedTrades.values()].filter(
+      (trade) => trade.status === "error" && asUtcDay(trade.updatedAt) === todayDay
+    ).length;
+    const uniqueClosedIdsToday = new Set(closedToday.map((trade) => trade.tradeId));
+    const closedTradeDataPassToday =
+      uniqueClosedIdsToday.size === closedToday.length &&
+      closedToday.every(
+        (trade) =>
+          Boolean(trade.exitReason) && Number.isFinite(trade.realizedPnlUsd) && Number.isFinite(trade.feeUsd)
+      );
+    const closureRatePctToday =
+      filledEntriesToday.length > 0 ? round6((deterministicClosedToday / filledEntriesToday.length) * 100) : 100;
+    const reconciliationPass =
+      lifecycle.reconciliation.positions === "ok" &&
+      lifecycle.reconciliation.pnl === "ok" &&
+      lifecycle.reconciliation.orders === "ok";
+    const todayBlockers: string[] = [];
+    if (filledEntriesToday.length > 0 && closureRatePctToday < 95) {
+      todayBlockers.push(`Closure rate below threshold: ${closureRatePctToday.toFixed(2)}% (<95%).`);
+    }
+    if (!closedTradeDataPassToday) {
+      todayBlockers.push("Closed trade data integrity failed.");
+    }
+    if (!reconciliationPass) {
+      todayBlockers.push("Reconciliation not fully OK.");
+    }
+    if (tradeErrorsToday > 0) {
+      todayBlockers.push(`Managed trade errors today: ${tradeErrorsToday}.`);
+    }
+    const liveToday: Milestone5EvidenceDay = {
+      day: todayDay,
+      pass: todayBlockers.length === 0,
+      source: "live",
+      closureRatePct: closureRatePctToday,
+      filledEntries: filledEntriesToday.length,
+      deterministicClosed: deterministicClosedToday,
+      closedTradeDataPass: closedTradeDataPassToday,
+      reconciliationPass,
+      tradeErrors: tradeErrorsToday
+    };
+
+    const reportDays = [...reportDayMap.values()]
+      .sort((a, b) => b.day.localeCompare(a.day))
+      .map(({ endedAt: _endedAt, ...rest }) => rest);
+    const days = [...reportDays];
+    if (!days.some((item) => item.day === todayDay)) {
+      days.unshift(liveToday);
+    }
+
+    let streakDays = 0;
+    let expectedDay = days[0]?.day;
+    for (const day of days) {
+      if (!expectedDay || day.day !== expectedDay || !day.pass) {
+        break;
+      }
+      streakDays += 1;
+      const prev = new Date(dayStartIso(expectedDay));
+      prev.setUTCDate(prev.getUTCDate() - 1);
+      expectedDay = prev.toISOString().slice(0, 10);
+    }
+
+    const qualifiedDays = days.filter((item) => item.pass).length;
+    const today = days.find((item) => item.day === todayDay) ?? liveToday;
+    const todayBlockersEffective = today.source === "live" ? todayBlockers : today.pass ? [] : ["Latest soak report failed one or more criteria."];
+    return {
+      policyVersion: "calendar-day-v1",
+      requiredDays,
+      qualifiedDays,
+      streakDays,
+      milestoneReady: qualifiedDays >= requiredDays,
+      generatedAt: nowIso,
+      today: {
+        day: today.day,
+        pass: today.pass,
+        source: today.source,
+        blockers: todayBlockersEffective,
+        closureRatePct: today.closureRatePct,
+        filledEntries: today.filledEntries,
+        deterministicClosed: today.deterministicClosed,
+        reconciliationPass: today.reconciliationPass,
+        tradeErrors: today.tradeErrors
+      },
+      days: days.slice(0, 30)
     };
   }
 
@@ -1267,6 +2089,75 @@ export async function startMissionControlServer(
       events: inMemoryEvents.slice(0, 200)
     };
     res.json(snapshot);
+  });
+
+  app.get("/auto-exit/config", (_req, res) => {
+    res.json({
+      config: autoExitConfig
+    });
+  });
+
+  app.post("/auto-exit/config", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const next: AutoExitConfig = {
+      enabled:
+        typeof req.body?.enabled === "boolean"
+          ? req.body.enabled
+          : autoExitConfig.enabled,
+      maxHoldSec:
+        typeof req.body?.maxHoldSec === "number" && Number.isFinite(req.body.maxHoldSec)
+          ? Math.max(30, Math.floor(req.body.maxHoldSec))
+          : autoExitConfig.maxHoldSec,
+      takeProfitRMultiple:
+        typeof req.body?.takeProfitRMultiple === "number" && Number.isFinite(req.body.takeProfitRMultiple)
+          ? Math.max(0.25, req.body.takeProfitRMultiple)
+          : autoExitConfig.takeProfitRMultiple,
+      flattenTimeUtc:
+        typeof req.body?.flattenTimeUtc === "string"
+          ? parseFlattenTimeUtc(req.body.flattenTimeUtc)
+          : autoExitConfig.flattenTimeUtc,
+      exitOffsetBps:
+        typeof req.body?.exitOffsetBps === "number" && Number.isFinite(req.body.exitOffsetBps)
+          ? Math.max(0, req.body.exitOffsetBps)
+          : autoExitConfig.exitOffsetBps
+    };
+    autoExitConfig = next;
+    opsStore.saveRuntimeState("auto_exit_config", autoExitConfig);
+    await appendAudit(
+      "Auto-exit config updated",
+      `enabled=${autoExitConfig.enabled} maxHoldSec=${autoExitConfig.maxHoldSec} tpR=${autoExitConfig.takeProfitRMultiple} flatten=${autoExitConfig.flattenTimeUtc ?? "off"} offsetBps=${autoExitConfig.exitOffsetBps}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Auto-exit config updated by ${typed.userId}`,
+        "info",
+        ["auto_exit_config"]
+      )
+    );
+    res.json({ config: autoExitConfig });
+  });
+
+  app.get("/managed-trades", (_req, res) => {
+    const items = [...managedTrades.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    res.json({ items });
+  });
+
+  app.get("/milestone5/evidence", async (_req, res) => {
+    const summary = await buildMilestone5EvidenceSummary(new Date().toISOString());
+    res.json(summary);
   });
 
   app.get("/metrics", (_req, res) => {
@@ -1733,11 +2624,38 @@ export async function startMissionControlServer(
       const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
       const order = await adapter.placeSpotLimitOrder(queued.intent);
       pendingDemoOrders.delete(approvedId);
+      const createdAt = new Date().toISOString();
+      const managedTrade: ManagedTrade = {
+        tradeId: `trade-${queued.proposal.proposalId}`,
+        status: "planned",
+        symbol: queued.symbol,
+        entrySide: queued.intent.side,
+        entryOrdId: order.ordId,
+        entryClOrdId: order.clOrdId,
+        requestedQty: round6(queued.intent.qtyBase),
+        entryFilledQty: 0,
+        entryAvgPrice: 0,
+        exitFilledQty: 0,
+        exitAvgPrice: 0,
+        remainingQty: round6(queued.intent.qtyBase),
+        stopPrice: round6(queued.stopPrice),
+        takeProfitPrice: round6(queued.takeProfitPrice),
+        maxHoldSec: queued.maxHoldSec,
+        flattenAt: queued.flattenAt,
+        createdAt,
+        updatedAt: createdAt,
+        feeUsd: 0,
+        realizedPnlUsd: 0,
+        exitSubmittedAt: undefined,
+        exitRepriceCount: 0,
+        forcedFlattenEscalated: false
+      };
+      upsertManagedTrade(managedTrade);
       await publish(
         createEvent(
           "OrderSubmitted",
           queued.symbol,
-          `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${queued.proposal.proposalId}`,
+          `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${queued.proposal.proposalId} managedTrade=${managedTrade.tradeId}`,
           "info",
           ["demo_execution", "okx_demo"],
           typed.correlationId
@@ -1762,6 +2680,8 @@ export async function startMissionControlServer(
       } satisfies ControlActionResponse);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
+      // Prevent queue starvation when submit fails (e.g. auth/network errors).
+      pendingDemoOrders.delete(approvedId);
       await upsertAlert({
         code: "DEMO_ORDER_SUBMIT_FAILED",
         severity: "error",

@@ -13,6 +13,7 @@ import type {
   UserRole,
   WsMessage
 } from "@tourab/shared";
+import type { AutoExitConfig, ManagedTradeItem, Milestone5EvidenceSummary } from "../types";
 
 const ACTION_PATH: Record<ControlAction, string> = {
   start: "/start",
@@ -483,6 +484,94 @@ export class LiveBotApiClient implements BotApiClient {
       }
       this.setDataSource("mock_fallback");
       return mockBotApiClient.clearEventStreamsAndLogs(role, userId);
+    }
+  }
+
+  async getAutoExitConfig(): Promise<AutoExitConfig> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/auto-exit/config`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Auto-exit config fetch failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { config: AutoExitConfig };
+      return payload.config;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getAutoExitConfig();
+    }
+  }
+
+  async updateAutoExitConfig(role: UserRole, userId: string, input: Partial<AutoExitConfig>): Promise<AutoExitConfig> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/auto-exit/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Auto-exit config update failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { config: AutoExitConfig };
+      return payload.config;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.updateAutoExitConfig(role, userId, input);
+    }
+  }
+
+  async listManagedTrades(): Promise<ManagedTradeItem[]> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/managed-trades`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Managed trades fetch failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { items: ManagedTradeItem[] };
+      return payload.items;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.listManagedTrades();
+    }
+  }
+
+  async getMilestone5Evidence(): Promise<Milestone5EvidenceSummary> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/milestone5/evidence`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Milestone5 evidence fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as Milestone5EvidenceSummary;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getMilestone5Evidence();
     }
   }
 }

@@ -19,11 +19,14 @@
     "gatekeeper:cli": "tsx apps/dashboard/src/cli.ts",
     "okx:demo:execute": "tsx apps/dashboard/src/okx-demo-execute-cli.ts",
     "okx:demo:health": "tsx apps/dashboard/src/okx-demo-health-cli.ts",
+    "okx:demo:diag": "tsx apps/dashboard/src/okx-demo-diagnostic-cli.ts",
     "okx:demo:build-proposal": "tsx apps/dashboard/src/okx-proposal-helper-cli.ts",
     "okx:demo:orders": "tsx apps/dashboard/src/okx-demo-orders-cli.ts",
     "okx:demo:reconcile": "tsx apps/dashboard/src/okx-demo-reconcile-cli.ts",
     "okx:demo:cancel": "tsx apps/dashboard/src/okx-demo-cancel-cli.ts",
-    "okx:demo:auto-loop": "tsx apps/dashboard/src/okx-demo-auto-loop-cli.ts"
+    "okx:demo:auto-loop": "tsx apps/dashboard/src/okx-demo-auto-loop-cli.ts",
+    "soak:m5": "tsx scripts/m5-soak.ts",
+    "evidence:m5": "tsx scripts/m5-evidence-rollup.ts"
   },
   "dependencies": {
     "zod": "^4.1.5"

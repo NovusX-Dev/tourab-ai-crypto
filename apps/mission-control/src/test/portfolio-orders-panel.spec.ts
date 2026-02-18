@@ -44,7 +44,7 @@ describe("PortfolioPanel", () => {
 
     const view = render(React.createElement(PortfolioPanel, { portfolio }));
     expect(screen.getByText("Portfolio")).toBeInTheDocument();
-    expect(screen.getByText("Eq 1234.56 USD")).toBeInTheDocument();
+    expect(screen.getByText("Eq 1234.560 USD")).toBeInTheDocument();
 
     const currencyNodes = view.container.querySelectorAll(".portfolio-ccy");
     const currencies = Array.from(currencyNodes).map((node) => node.textContent?.trim());

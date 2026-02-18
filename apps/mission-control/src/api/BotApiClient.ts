@@ -1,8 +1,11 @@
 import type {
+  AutoExitConfig,
   ApprovalRequest,
   AlertItem,
   DemoQueuedIntent,
   IncidentItem,
+  ManagedTradeItem,
+  Milestone5EvidenceSummary,
   AuditItem,
   BotEvent,
   BotStateSnapshot,
@@ -55,6 +58,14 @@ export interface BotApiClient {
     input: Partial<Pick<ReconciliationStatus, "positions" | "pnl" | "orders">>
   ): Promise<ReconciliationStatus>;
   clearEventStreamsAndLogs(role: UserRole, userId: string): Promise<ClearStreamsResponse>;
+  getAutoExitConfig(): Promise<AutoExitConfig>;
+  updateAutoExitConfig(
+    role: UserRole,
+    userId: string,
+    input: Partial<AutoExitConfig>
+  ): Promise<AutoExitConfig>;
+  listManagedTrades(): Promise<ManagedTradeItem[]>;
+  getMilestone5Evidence(): Promise<Milestone5EvidenceSummary>;
 }
 
 export interface DashboardData {
@@ -71,4 +82,7 @@ export interface DashboardData {
   portfolio: PortfolioStatus;
   openOrders: OpenOrdersStatus;
   demoQueue: DemoQueuedIntent[];
+  autoExitConfig: AutoExitConfig;
+  managedTrades: ManagedTradeItem[];
+  milestone5Evidence?: Milestone5EvidenceSummary;
 }

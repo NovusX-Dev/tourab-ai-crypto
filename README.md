@@ -1,14 +1,18 @@
 # Tourab Crypto AI
 
-Tourab Crypto AI is a local, supervised trading operator.
+Tourab Crypto AI is a local trading operator moving toward bounded autonomy.
 
-Safety model:
+Safety model (current default):
 1. Propose: the system can suggest a trading action.
 2. Gatekeeper: risk checks and policy checks evaluate the proposal.
 3. Human approve: nothing executes until you explicitly approve.
 4. Execute: only approved actions can be sent to exchange APIs.
 
 Current milestone status: Milestone 4 is production-grade complete; Milestone 3 remains production-grade complete.
+
+Autonomy target:
+- Full trade lifecycle automation (entry + deterministic exit + post-trade learning)
+- Under strict policy controls, auditability, and immediate kill-switch authority
 
 ## Delivery rule: backend + web-app parity
 - Any new operator-facing backend capability, control, safety check, state, or error code must be reflected in `apps/mission-control/` UI in the same milestone/phase.
@@ -45,9 +49,14 @@ If `rg` is still not found after install, restart the terminal (or sign out/in) 
 
 ## Local-first constraints
 - Runs only when started locally by the operator.
-- No autonomous trading in early milestones.
+- No unbounded autonomous trading.
 - No withdrawals/transfers.
 - No leverage/derivatives/margin in v0.
+
+## Current limitation (important)
+- Entry execution exists.
+- Deterministic automatic exit engine (TP/SL/time-stop/session-flatten) is implemented in demo with stale-exit cancel/reprice and forced-flatten escalation.
+- Milestone 5 acceptance still requires accumulating 7 qualifying calendar demo days of evidence.
 
 ## Demo execution flow (Milestone 4)
 - Execution path is hard-gated: `evaluateTradeProposal` must return `APPROVE` before any OKX call.
@@ -118,6 +127,31 @@ npm run okx:demo:cancel -- --symbol BTC-USDT --all --approval-token <your_token>
 ## Strategy Automation (Milestone 4, safe start)
 - Start with proposal automation only (`--mode propose`).
 - `--mode execute` is available, but still guarded by drift checks, same-side open-order blocking, gatekeeper, and human token.
+
+## Autonomy Program (next)
+
+The project now targets staged autonomy:
+
+1. Milestone 5: autonomous exit engine + closed-trade accounting (demo first).
+2. Milestone 6: bounded auto-entry + strategy promotion pipeline (shadow/canary/rollback).
+3. Milestone 7: governed adaptive learning from closed trades.
+4. Milestone 8: live small-notional trading with strict limits + kill-switch.
+5. Milestone 9: research/backtesting integration loop in production workflow.
+
+Design principles:
+- No model or strategy change goes directly to production.
+- Every trade and decision path is attributable to policy + strategy version.
+- Kill-switch and circuit-breaker always override autonomous flow.
+- Performance claims are based on net results (fees/slippage included), not gross PnL.
+
+Milestone 5 evidence collection (intermittent-friendly):
+
+```powershell
+npm run soak:m5 -- --base-url http://localhost:7071 --duration-sec 900 --drain-sec 180 --poll-ms 2000 --max-hold-sec 40 --tp-r 0.5 --exit-offset-bps 1
+npm run evidence:m5 -- --base-url http://localhost:7071
+```
+
+- The rollup reads accumulated soak artifacts and reports qualifying day count (`qualifiedDays/7`) and current streak.
 
 Run one automated proposal cycle:
 
@@ -214,6 +248,10 @@ Mission Control operator readiness + trust signals:
   - portfolio snapshot freshness
   - open orders snapshot freshness
   - approval window validity
+  - autonomy guardrail status
+- Milestone 5 evidence signals:
+  - backend endpoint: `GET /milestone5/evidence`
+  - sidebar card: daily pass/fail, blockers, streak, and `qualifiedDays/7`
 
 Mission Control portfolio/orders visibility:
 - Right panel tabs:

@@ -8,9 +8,15 @@ import type {
   BotLifecycleState,
   ControlAction,
   DashboardSnapshot,
+  EntryAutonomyConfig,
+  EntryAutonomyStatus,
   IncidentItem,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
+  StrategyDegradationConfig,
+  StrategyPromotionStage,
+  StrategyPromotionState,
+  StrategyVersionRecord,
   UserRole
 } from "../types";
 import { isActionEnabled, canRoleExecuteAction, transitionState } from "../logic/controlAvailability";
@@ -61,6 +67,46 @@ export class MockBotApiClient implements BotApiClient {
     exitOffsetBps: 5
   };
   private managedTrades: ManagedTradeItem[] = [];
+  private entryAutonomy: { config: EntryAutonomyConfig; status: EntryAutonomyStatus } = {
+    config: {
+      approvalMode: "manual",
+      allowedSymbols: ["BTC-USDT", "ETH-USDT", "SOL-USDT"],
+      maxPerOrderNotionalUsd: 10,
+      maxOpenExposureUsd: 20,
+      maxDailyLossUsd: 5,
+      maxWeeklyLossUsd: 15,
+      lossStreakCooldownCount: 3,
+      cooldownMinutes: 60,
+      strategyVersion: "champion-v1",
+      policyVersion: "m6-policy-v1"
+    },
+    status: {
+      approvalMode: "manual",
+      fallbackActive: false,
+      lastPolicyAutoBlockers: []
+    }
+  };
+  private strategyPromotion: StrategyPromotionState = {
+    activeVersion: "champion-v1",
+    championVersion: "champion-v1",
+    previousStableVersion: "champion-v1",
+    versions: [
+      {
+        version: "champion-v1",
+        stage: "shadow",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ],
+    history: []
+  };
+  private strategyDegradationConfig: StrategyDegradationConfig = {
+    enabled: true,
+    maxDailyLossUsd: 5,
+    maxDrawdownPct: -5,
+    maxConsecutiveLosingTrades: 4
+  };
   private metrics = {
     controlRequestsTotal: 0,
     controlFailuresTotal: 0,
@@ -561,6 +607,150 @@ export class MockBotApiClient implements BotApiClient {
       },
       days: []
     };
+  }
+
+  async getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }> {
+    return {
+      config: { ...this.entryAutonomy.config },
+      status: { ...this.entryAutonomy.status, lastPolicyAutoBlockers: [...this.entryAutonomy.status.lastPolicyAutoBlockers] }
+    };
+  }
+
+  async updateEntryAutonomyConfig(
+    _role: UserRole,
+    _userId: string,
+    input: Partial<EntryAutonomyConfig>
+  ): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }> {
+    this.entryAutonomy = {
+      config: {
+        ...this.entryAutonomy.config,
+        ...input
+      },
+      status: {
+        ...this.entryAutonomy.status,
+        approvalMode: input.approvalMode ?? this.entryAutonomy.status.approvalMode
+      }
+    };
+    return this.getEntryAutonomyConfig();
+  }
+
+  async getStrategyPromotion(): Promise<{ state: StrategyPromotionState }> {
+    return { state: JSON.parse(JSON.stringify(this.strategyPromotion)) as StrategyPromotionState };
+  }
+
+  async registerStrategyVersion(
+    _role: UserRole,
+    userId: string,
+    input: {
+      version: string;
+      notes?: string;
+      challenger?: boolean;
+      artifacts?: { researchReportUrl?: string; shadowReportUrl?: string; canaryReportUrl?: string };
+    }
+  ): Promise<{ state: StrategyPromotionState }> {
+    const nowIso = new Date().toISOString();
+    const existing = this.strategyPromotion.versions.find((item) => item.version === input.version);
+    if (!existing) {
+      const record: StrategyVersionRecord = {
+        version: input.version,
+        stage: "research",
+        status: "candidate",
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        notes: input.notes,
+        artifacts: input.artifacts
+      };
+      this.strategyPromotion.versions.unshift(record);
+      if (input.challenger) {
+        this.strategyPromotion.challengerVersion = input.version;
+      }
+      this.strategyPromotion.history.unshift({
+        at: nowIso,
+        action: "register",
+        version: input.version,
+        actor: userId,
+        toStage: "research"
+      });
+    }
+    return this.getStrategyPromotion();
+  }
+
+  async promoteStrategyVersion(
+    _role: UserRole,
+    userId: string,
+    input: {
+      version: string;
+      targetStage: StrategyPromotionStage;
+      reason?: string;
+      artifacts?: { researchReportUrl?: string; shadowReportUrl?: string; canaryReportUrl?: string };
+    }
+  ): Promise<{ state: StrategyPromotionState }> {
+    const nowIso = new Date().toISOString();
+    const current = this.strategyPromotion.versions.find((item) => item.version === input.version);
+    if (!current) {
+      throw new Error("strategy_not_found");
+    }
+    const next: StrategyVersionRecord = {
+      ...current,
+      stage: input.targetStage,
+      status: input.targetStage === "limited_prod" ? "active" : "candidate",
+      updatedAt: nowIso,
+      artifacts: {
+        ...current.artifacts,
+        ...input.artifacts
+      }
+    };
+    this.strategyPromotion.versions = this.strategyPromotion.versions.map((item) => (item.version === input.version ? next : item));
+    if (input.targetStage === "limited_prod") {
+      this.strategyPromotion.previousStableVersion = this.strategyPromotion.activeVersion;
+      this.strategyPromotion.activeVersion = input.version;
+      this.strategyPromotion.championVersion = input.version;
+      this.entryAutonomy.config.strategyVersion = input.version;
+    }
+    this.strategyPromotion.history.unshift({
+      at: nowIso,
+      action: "promote",
+      version: input.version,
+      actor: userId,
+      fromStage: current.stage,
+      toStage: input.targetStage,
+      reason: input.reason
+    });
+    return this.getStrategyPromotion();
+  }
+
+  async rollbackStrategy(_role: UserRole, userId: string, reason?: string): Promise<{ state: StrategyPromotionState }> {
+    const activeVersion = this.strategyPromotion.activeVersion;
+    const previous = this.strategyPromotion.previousStableVersion;
+    if (!previous || previous === activeVersion) {
+      throw new Error("rollback_not_available");
+    }
+    const nowIso = new Date().toISOString();
+    this.strategyPromotion.activeVersion = previous;
+    this.strategyPromotion.championVersion = previous;
+    this.strategyPromotion.challengerVersion = activeVersion;
+    this.entryAutonomy.config.strategyVersion = previous;
+    this.strategyPromotion.history.unshift({
+      at: nowIso,
+      action: "rollback",
+      version: activeVersion,
+      actor: userId,
+      reason
+    });
+    return this.getStrategyPromotion();
+  }
+
+  async getStrategyDegradationConfig(): Promise<StrategyDegradationConfig> {
+    return { ...this.strategyDegradationConfig };
+  }
+
+  async updateStrategyDegradationConfig(
+    _role: UserRole,
+    _userId: string,
+    input: Partial<StrategyDegradationConfig>
+  ): Promise<StrategyDegradationConfig> {
+    this.strategyDegradationConfig = { ...this.strategyDegradationConfig, ...input };
+    return { ...this.strategyDegradationConfig };
   }
 }
 

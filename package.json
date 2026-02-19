@@ -26,7 +26,8 @@
     "okx:demo:cancel": "tsx apps/dashboard/src/okx-demo-cancel-cli.ts",
     "okx:demo:auto-loop": "tsx apps/dashboard/src/okx-demo-auto-loop-cli.ts",
     "soak:m5": "tsx scripts/m5-soak.ts",
-    "evidence:m5": "tsx scripts/m5-evidence-rollup.ts"
+    "evidence:m5": "tsx scripts/m5-evidence-rollup.ts",
+    "acceptance:m6": "tsx scripts/m6-acceptance-walkthrough.ts"
   },
   "dependencies": {
     "zod": "^4.1.5"

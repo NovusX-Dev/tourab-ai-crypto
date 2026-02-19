@@ -1,11 +1,16 @@
 import type {
   AutoExitConfig,
+  EntryAutonomyConfig,
+  EntryAutonomyStatus,
   ApprovalRequest,
   AlertItem,
   DemoQueuedIntent,
   IncidentItem,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
+  StrategyDegradationConfig,
+  StrategyPromotionStage,
+  StrategyPromotionState,
   AuditItem,
   BotEvent,
   BotStateSnapshot,
@@ -66,6 +71,40 @@ export interface BotApiClient {
   ): Promise<AutoExitConfig>;
   listManagedTrades(): Promise<ManagedTradeItem[]>;
   getMilestone5Evidence(): Promise<Milestone5EvidenceSummary>;
+  getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }>;
+  updateEntryAutonomyConfig(
+    role: UserRole,
+    userId: string,
+    input: Partial<EntryAutonomyConfig>
+  ): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }>;
+  getStrategyPromotion(): Promise<{ state: StrategyPromotionState }>;
+  registerStrategyVersion(
+    role: UserRole,
+    userId: string,
+    input: {
+      version: string;
+      notes?: string;
+      challenger?: boolean;
+      artifacts?: { researchReportUrl?: string; shadowReportUrl?: string; canaryReportUrl?: string };
+    }
+  ): Promise<{ state: StrategyPromotionState }>;
+  promoteStrategyVersion(
+    role: UserRole,
+    userId: string,
+    input: {
+      version: string;
+      targetStage: StrategyPromotionStage;
+      reason?: string;
+      artifacts?: { researchReportUrl?: string; shadowReportUrl?: string; canaryReportUrl?: string };
+    }
+  ): Promise<{ state: StrategyPromotionState }>;
+  rollbackStrategy(role: UserRole, userId: string, reason?: string): Promise<{ state: StrategyPromotionState }>;
+  getStrategyDegradationConfig(): Promise<StrategyDegradationConfig>;
+  updateStrategyDegradationConfig(
+    role: UserRole,
+    userId: string,
+    input: Partial<StrategyDegradationConfig>
+  ): Promise<StrategyDegradationConfig>;
 }
 
 export interface DashboardData {
@@ -83,6 +122,9 @@ export interface DashboardData {
   openOrders: OpenOrdersStatus;
   demoQueue: DemoQueuedIntent[];
   autoExitConfig: AutoExitConfig;
+  entryAutonomy: { config: EntryAutonomyConfig; status: EntryAutonomyStatus };
+  strategyPromotion: StrategyPromotionState;
+  strategyDegradation: StrategyDegradationConfig;
   managedTrades: ManagedTradeItem[];
   milestone5Evidence?: Milestone5EvidenceSummary;
 }

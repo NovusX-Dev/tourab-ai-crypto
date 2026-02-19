@@ -68,6 +68,11 @@ const DEFAULT_AUTO_EXIT_EXIT_OFFSET_BPS = 5;
 const DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC = 20;
 const DEFAULT_AUTO_EXIT_MAX_REPRICES = 3;
 const DEFAULT_AUTO_EXIT_FORCE_FLATTEN_BPS = 30;
+const DEFAULT_ENTRY_AUTONOMY_POLICY_VERSION = "m6-policy-v1";
+const DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION = "champion-v1";
+const DEFAULT_STRATEGY_MAX_DAILY_LOSS_USD = 5;
+const DEFAULT_STRATEGY_MAX_DRAWDOWN_PCT = -5;
+const DEFAULT_STRATEGY_MAX_CONSEC_LOSSES = 4;
 const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
   "ProposalCreated",
   "GatekeeperDecision",
@@ -121,6 +126,14 @@ function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
     return false;
   }
   return fallback;
+}
+
+function parseCsvEnv(raw: string | undefined, fallback: string[]): string[] {
+  const items = (raw ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return items.length > 0 ? items : fallback;
 }
 
 function parseFlattenTimeUtc(raw: string | undefined): string | undefined {
@@ -477,6 +490,73 @@ interface AutoExitConfig {
   exitOffsetBps: number;
 }
 
+type EntryApprovalMode = "manual" | "policy_auto";
+
+interface EntryAutonomyConfig {
+  approvalMode: EntryApprovalMode;
+  allowedSymbols: string[];
+  maxPerOrderNotionalUsd: number;
+  maxOpenExposureUsd: number;
+  maxDailyLossUsd: number;
+  maxWeeklyLossUsd: number;
+  lossStreakCooldownCount: number;
+  cooldownMinutes: number;
+  strategyVersion: string;
+  policyVersion: string;
+}
+
+interface EntryAutonomyStatus {
+  approvalMode: EntryApprovalMode;
+  fallbackActive: boolean;
+  lastFallbackReason?: string;
+  lastFallbackAt?: string;
+  lastPolicyAutoDecisionAt?: string;
+  lastPolicyAutoBlockers: string[];
+}
+
+type StrategyPromotionStage = "research" | "shadow" | "paper_canary" | "limited_prod";
+type StrategyVersionStatus = "active" | "candidate" | "retired" | "rolled_back";
+
+interface StrategyVersionRecord {
+  version: string;
+  stage: StrategyPromotionStage;
+  status: StrategyVersionStatus;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  artifacts?: {
+    researchReportUrl?: string;
+    shadowReportUrl?: string;
+    canaryReportUrl?: string;
+  };
+}
+
+interface StrategyPromotionHistoryItem {
+  at: string;
+  action: "register" | "promote" | "rollback";
+  version: string;
+  actor: string;
+  fromStage?: StrategyPromotionStage;
+  toStage?: StrategyPromotionStage;
+  reason?: string;
+}
+
+interface StrategyPromotionState {
+  activeVersion: string;
+  championVersion: string;
+  challengerVersion?: string;
+  previousStableVersion?: string;
+  versions: StrategyVersionRecord[];
+  history: StrategyPromotionHistoryItem[];
+}
+
+interface StrategyDegradationConfig {
+  enabled: boolean;
+  maxDailyLossUsd: number;
+  maxDrawdownPct: number;
+  maxConsecutiveLosingTrades: number;
+}
+
 interface ManagedTrade {
   tradeId: string;
   status: ManagedTradeStatus;
@@ -711,6 +791,9 @@ export async function startMissionControlServer(
       takeProfitPrice: number;
       maxHoldSec: number;
       flattenAt?: string;
+      approvalModeAtDecision: EntryApprovalMode;
+      strategyVersion: string;
+      policyVersion: string;
       queuedAt: string;
     }
   >();
@@ -727,6 +810,54 @@ export async function startMissionControlServer(
       flattenTimeUtc: parseFlattenTimeUtc(process.env.TOURAB_AUTO_EXIT_FLATTEN_UTC),
       exitOffsetBps: Math.max(0, Number(process.env.TOURAB_AUTO_EXIT_EXIT_OFFSET_BPS ?? DEFAULT_AUTO_EXIT_EXIT_OFFSET_BPS))
     };
+  let entryAutonomyConfig: EntryAutonomyConfig =
+    opsStore.loadRuntimeState<EntryAutonomyConfig>("entry_autonomy_config") ?? {
+      approvalMode: (process.env.TOURAB_APPROVAL_MODE as EntryApprovalMode | undefined) ?? "manual",
+      allowedSymbols: parseCsvEnv(process.env.TOURAB_POLICY_AUTO_ALLOWED_SYMBOLS, ["BTC-USDT", "ETH-USDT", "SOL-USDT"]),
+      maxPerOrderNotionalUsd: Math.max(1, Number(process.env.TOURAB_POLICY_AUTO_MAX_PER_ORDER_NOTIONAL_USD ?? "12")),
+      maxOpenExposureUsd: Math.max(1, Number(process.env.TOURAB_POLICY_AUTO_MAX_OPEN_EXPOSURE_USD ?? "20")),
+      maxDailyLossUsd: Math.max(0.5, Number(process.env.TOURAB_POLICY_AUTO_MAX_DAILY_LOSS_USD ?? "5")),
+      maxWeeklyLossUsd: Math.max(1, Number(process.env.TOURAB_POLICY_AUTO_MAX_WEEKLY_LOSS_USD ?? "15")),
+      lossStreakCooldownCount: parseBoundedInt(process.env.TOURAB_POLICY_AUTO_LOSS_STREAK_COUNT, 3, 1, 20),
+      cooldownMinutes: parseBoundedInt(process.env.TOURAB_POLICY_AUTO_COOLDOWN_MINUTES, 60, 1, 24 * 60),
+      strategyVersion: (process.env.TOURAB_STRATEGY_VERSION ?? DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION).trim(),
+      policyVersion: (process.env.TOURAB_POLICY_VERSION ?? DEFAULT_ENTRY_AUTONOMY_POLICY_VERSION).trim()
+    };
+  let entryAutonomyStatus: EntryAutonomyStatus =
+    opsStore.loadRuntimeState<EntryAutonomyStatus>("entry_autonomy_status") ?? {
+      approvalMode: entryAutonomyConfig.approvalMode,
+      fallbackActive: false,
+      lastPolicyAutoBlockers: []
+    };
+  let strategyPromotionState: StrategyPromotionState =
+    opsStore.loadRuntimeState<StrategyPromotionState>("strategy_promotion_state") ?? {
+      activeVersion: entryAutonomyConfig.strategyVersion,
+      championVersion: entryAutonomyConfig.strategyVersion,
+      previousStableVersion: entryAutonomyConfig.strategyVersion,
+      versions: [
+        {
+          version: entryAutonomyConfig.strategyVersion,
+          stage: "shadow",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          notes: "bootstrap"
+        }
+      ],
+      history: []
+    };
+  let strategyDegradationConfig: StrategyDegradationConfig =
+    opsStore.loadRuntimeState<StrategyDegradationConfig>("strategy_degradation_config") ?? {
+      enabled: parseBooleanEnv(process.env.TOURAB_STRATEGY_DEGRADATION_ENABLED, true),
+      maxDailyLossUsd: Math.max(0.5, Number(process.env.TOURAB_STRATEGY_MAX_DAILY_LOSS_USD ?? DEFAULT_STRATEGY_MAX_DAILY_LOSS_USD)),
+      maxDrawdownPct: Number(process.env.TOURAB_STRATEGY_MAX_DRAWDOWN_PCT ?? DEFAULT_STRATEGY_MAX_DRAWDOWN_PCT),
+      maxConsecutiveLosingTrades: parseBoundedInt(
+        process.env.TOURAB_STRATEGY_MAX_CONSEC_LOSSES,
+        DEFAULT_STRATEGY_MAX_CONSEC_LOSSES,
+        1,
+        50
+      )
+    };
   const autoExitStaleTimeoutSec = parseBoundedInt(
     process.env.TOURAB_AUTO_EXIT_STALE_TIMEOUT_SEC,
     DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC,
@@ -738,12 +869,46 @@ export async function startMissionControlServer(
     1,
     Number(process.env.TOURAB_AUTO_EXIT_FORCE_FLATTEN_BPS ?? DEFAULT_AUTO_EXIT_FORCE_FLATTEN_BPS)
   );
+  const autoExitMaxOffsetBps = parseBoundedInt(process.env.TOURAB_AUTO_EXIT_MAX_OFFSET_BPS, 100, 1, 5_000);
   const managedTrades = new Map<string, ManagedTrade>(
     opsStore
       .listManagedTrades(1000)
       .map((row) => toManagedTrade(row))
       .map((trade) => [trade.tradeId, trade])
   );
+  if (entryAutonomyConfig.approvalMode !== "manual" && entryAutonomyConfig.approvalMode !== "policy_auto") {
+    entryAutonomyConfig.approvalMode = "manual";
+  }
+  if (!strategyPromotionState.activeVersion) {
+    strategyPromotionState.activeVersion = entryAutonomyConfig.strategyVersion;
+  }
+  if (!strategyPromotionState.championVersion) {
+    strategyPromotionState.championVersion = strategyPromotionState.activeVersion;
+  }
+  if (!Array.isArray(strategyPromotionState.versions) || strategyPromotionState.versions.length === 0) {
+    strategyPromotionState.versions = [
+      {
+        version: strategyPromotionState.activeVersion,
+        stage: "shadow",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        notes: "bootstrap"
+      }
+    ];
+  }
+  if (!strategyPromotionState.versions.some((item) => item.version === strategyPromotionState.activeVersion)) {
+    strategyPromotionState.versions.unshift({
+      version: strategyPromotionState.activeVersion,
+      stage: "shadow",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      notes: "bootstrap"
+    });
+  }
+  entryAutonomyConfig.strategyVersion = strategyPromotionState.activeVersion;
+  entryAutonomyStatus.approvalMode = entryAutonomyConfig.approvalMode;
   let exchangeStatus: ExchangeStatus = {
     connected: false,
     mode: exchangeMode,
@@ -890,10 +1055,32 @@ export async function startMissionControlServer(
         if (pendingDemoOrders.size >= pendingDemoApprovalLimit) {
           return { queued: false, reason: `Pending demo approval limit (${pendingDemoApprovalLimit}) reached.` };
         }
+        const nowIso = new Date().toISOString();
+        let approvalModeAtDecision: EntryApprovalMode = "manual";
+        if (entryAutonomyConfig.approvalMode === "policy_auto") {
+          const policyAuto = await evaluatePolicyAutoEligibility({
+            symbol,
+            intent,
+            nowIso
+          });
+          if (policyAuto.ok) {
+            approvalModeAtDecision = "policy_auto";
+            entryAutonomyStatus.fallbackActive = false;
+            entryAutonomyStatus.lastFallbackAt = undefined;
+            entryAutonomyStatus.lastFallbackReason = undefined;
+            persistEntryAutonomyState();
+          } else {
+            await fallbackApprovalModeToManual(
+              `policy_auto guardrails failed: ${policyAuto.blockers.join(" | ")}`,
+              symbol,
+              "warn"
+            );
+          }
+        }
         const request = approvals.create({
           action: "demo_order_submit",
-          requestedBy: "worker",
-          reason: `Auto-cycle execution request for ${intent.symbol} proposal=${proposal.proposalId}`
+          requestedBy: approvalModeAtDecision === "policy_auto" ? "policy_auto" : "worker",
+          reason: `Auto-cycle execution request for ${intent.symbol} proposal=${proposal.proposalId} approvalMode=${approvalModeAtDecision}`
         });
         const entryPrice = Math.max(0.00000001, intent.limitPrice);
         const stopPrice = Math.max(0.00000001, proposal.stopPrice);
@@ -903,6 +1090,7 @@ export async function startMissionControlServer(
             ? round6(entryPrice + riskDistance * autoExitConfig.takeProfitRMultiple)
             : round6(entryPrice - riskDistance * autoExitConfig.takeProfitRMultiple);
         const flattenAt = nextFlattenAtIso(autoExitConfig.flattenTimeUtc);
+        const effectiveStrategyVersion = strategyPromotionState.activeVersion || entryAutonomyConfig.strategyVersion;
         pendingDemoOrders.set(request.id, {
           intent,
           proposal,
@@ -911,14 +1099,52 @@ export async function startMissionControlServer(
           takeProfitPrice,
           maxHoldSec: autoExitConfig.maxHoldSec,
           flattenAt,
+          approvalModeAtDecision,
+          strategyVersion: effectiveStrategyVersion,
+          policyVersion: entryAutonomyConfig.policyVersion,
           queuedAt: new Date().toISOString()
         });
         await appendAudit(
           "Demo execution approval queued",
-          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol} stop=${stopPrice} tp=${takeProfitPrice}`,
+          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol} stop=${stopPrice} tp=${takeProfitPrice} approvalMode=${approvalModeAtDecision} strategy=${effectiveStrategyVersion} policy=${entryAutonomyConfig.policyVersion}`,
           symbol,
           "ProposalApproved"
         );
+        if (approvalModeAtDecision === "policy_auto") {
+          approvals.approve(request.id, "policy_auto_runtime");
+          const queued = pendingDemoOrders.get(request.id);
+          if (queued) {
+            try {
+              await executeQueuedDemoOrder({
+                approvedId: request.id,
+                queued,
+                actor: "policy_auto_runtime"
+              });
+            } catch (error: unknown) {
+              const message = error instanceof Error ? error.message : String(error);
+              pendingDemoOrders.delete(request.id);
+              await upsertAlert({
+                code: "POLICY_AUTO_SUBMIT_FAILED",
+                severity: "error",
+                source: "exchange",
+                title: "Policy-auto demo submit failed",
+                detail: message,
+                symbol
+              });
+              await publish(
+                createEvent(
+                  "Error",
+                  symbol,
+                  `Policy-auto demo submit failed approval=${request.id} error=${message}`,
+                  "error",
+                  ["entry_autonomy", "policy_auto", "okx_error"]
+                )
+              );
+              await fallbackApprovalModeToManual(`policy_auto submit failure: ${message}`, symbol, "critical");
+              return { queued: false, reason: message };
+            }
+          }
+        }
         return { queued: true, approvalId: request.id };
       }
     },
@@ -930,7 +1156,7 @@ export async function startMissionControlServer(
       baseUrl: process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com",
       intervalMs: parseBoundedInt(process.env.TOURAB_WORKER_INTERVAL_MS, 7_500, 2_000, 120_000),
       maxRiskUsd: Number(process.env.TOURAB_WORKER_MAX_RISK_USD ?? "0.2"),
-      maxNotionalUsd: Number(process.env.TOURAB_WORKER_MAX_NOTIONAL_USD ?? "10"),
+      maxNotionalUsd: Number(process.env.TOURAB_WORKER_MAX_NOTIONAL_USD ?? "12"),
       entryOffsetBps: Number(process.env.TOURAB_WORKER_ENTRY_OFFSET_BPS ?? "20"),
       stopDistanceBps: Number(process.env.TOURAB_WORKER_STOP_DISTANCE_BPS ?? "150"),
       retryMaxAttempts: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_MAX_ATTEMPTS, 3, 1, 10),
@@ -944,6 +1170,427 @@ export async function startMissionControlServer(
     opsStore.upsertManagedTrade(toManagedTradeRecord(trade));
   }
 
+  function persistEntryAutonomyState(): void {
+    opsStore.saveRuntimeState("entry_autonomy_config", entryAutonomyConfig);
+    opsStore.saveRuntimeState("entry_autonomy_status", entryAutonomyStatus);
+  }
+
+  function persistStrategyPromotionState(): void {
+    opsStore.saveRuntimeState("strategy_promotion_state", strategyPromotionState);
+    entryAutonomyConfig.strategyVersion = strategyPromotionState.activeVersion;
+    persistEntryAutonomyState();
+  }
+
+  function persistStrategyDegradationConfig(): void {
+    opsStore.saveRuntimeState("strategy_degradation_config", strategyDegradationConfig);
+  }
+
+  function stageRank(stage: StrategyPromotionStage): number {
+    if (stage === "research") return 0;
+    if (stage === "shadow") return 1;
+    if (stage === "paper_canary") return 2;
+    return 3;
+  }
+
+  function findStrategy(version: string): StrategyVersionRecord | undefined {
+    return strategyPromotionState.versions.find((item) => item.version === version);
+  }
+
+  function upsertStrategyVersion(record: StrategyVersionRecord): void {
+    const next = strategyPromotionState.versions.filter((item) => item.version !== record.version);
+    next.unshift(record);
+    strategyPromotionState.versions = next.slice(0, 200);
+  }
+
+  function setActiveStrategyVersion(nextVersion: string): void {
+    strategyPromotionState.activeVersion = nextVersion;
+    if (!strategyPromotionState.previousStableVersion) {
+      strategyPromotionState.previousStableVersion = nextVersion;
+    }
+    const nowIso = new Date().toISOString();
+    strategyPromotionState.versions = strategyPromotionState.versions.map((item) => {
+      if (item.version === nextVersion) {
+        return { ...item, status: "active", updatedAt: nowIso };
+      }
+      if (item.status === "active") {
+        return { ...item, status: "candidate", updatedAt: nowIso };
+      }
+      return item;
+    });
+    if (!strategyPromotionState.versions.some((item) => item.version === nextVersion)) {
+      strategyPromotionState.versions.unshift({
+        version: nextVersion,
+        stage: "research",
+        status: "active",
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        notes: "auto-inserted"
+      });
+    }
+  }
+
+  async function evaluatePromotionGates(targetStage: StrategyPromotionStage, nowIso: string): Promise<string[]> {
+    const blockers: string[] = [];
+    if (targetStage === "limited_prod") {
+      const m5 = await buildMilestone5EvidenceSummary(nowIso);
+      if (!m5.today.pass || m5.qualifiedDays < m5.requiredDays) {
+        blockers.push(`Milestone5 readiness insufficient (${m5.qualifiedDays}/${m5.requiredDays}, todayPass=${m5.today.pass}).`);
+      }
+      if (entryAutonomyConfig.approvalMode !== "policy_auto") {
+        blockers.push("approval_mode must be policy_auto for limited_prod.");
+      }
+    }
+    if (targetStage === "paper_canary" || targetStage === "limited_prod") {
+      if (inMemoryIncidents.some((item) => item.status !== "resolved")) {
+        blockers.push("Open incidents present.");
+      }
+      if (inMemoryAlerts.some((item) => item.status === "open" && item.severity === "critical")) {
+        blockers.push("Open critical alerts present.");
+      }
+      if (
+        lifecycle.reconciliation.positions !== "ok" ||
+        lifecycle.reconciliation.pnl !== "ok" ||
+        lifecycle.reconciliation.orders !== "ok"
+      ) {
+        blockers.push("Reconciliation is not fully OK.");
+      }
+    }
+    return blockers;
+  }
+
+  async function rollbackStrategyOnDegradation(reason: string, actor: string, symbol: string, force = false): Promise<boolean> {
+    const active = findStrategy(strategyPromotionState.activeVersion);
+    const previous = strategyPromotionState.previousStableVersion ? findStrategy(strategyPromotionState.previousStableVersion) : undefined;
+    if (!active || !previous || previous.version === active.version) {
+      return false;
+    }
+    if (!force && active.stage !== "paper_canary" && active.stage !== "limited_prod") {
+      return false;
+    }
+    const nowIso = new Date().toISOString();
+    upsertStrategyVersion({
+      ...active,
+      status: "rolled_back",
+      updatedAt: nowIso
+    });
+    upsertStrategyVersion({
+      ...previous,
+      status: "active",
+      updatedAt: nowIso
+    });
+    strategyPromotionState.activeVersion = previous.version;
+    strategyPromotionState.championVersion = previous.version;
+    strategyPromotionState.challengerVersion = active.version;
+    strategyPromotionState.history.unshift({
+      at: nowIso,
+      action: "rollback",
+      version: active.version,
+      actor,
+      fromStage: active.stage,
+      toStage: previous.stage,
+      reason
+    });
+    strategyPromotionState.history = strategyPromotionState.history.slice(0, 400);
+    persistStrategyPromotionState();
+    await appendAudit(
+      "Strategy rollback",
+      `Rolled back strategy from ${active.version} to ${previous.version}; reason=${reason}; actor=${actor}`,
+      symbol,
+      "System"
+    );
+    await publish(
+      createEvent(
+        "System",
+        symbol,
+        `Strategy rollback executed from ${active.version} to ${previous.version}: ${reason}`,
+        "warn",
+        ["strategy_promotion", "rollback"]
+      )
+    );
+    return true;
+  }
+
+  async function evaluateStrategyDegradationTriggers(nowIso: string): Promise<void> {
+    if (!strategyDegradationConfig.enabled) {
+      return;
+    }
+    const active = findStrategy(strategyPromotionState.activeVersion);
+    if (!active || (active.stage !== "paper_canary" && active.stage !== "limited_prod")) {
+      return;
+    }
+    const daily = portfolioStatus.performance.dailyByBasis?.utc ?? portfolioStatus.performance.daily;
+    if (Math.abs(Math.min(0, daily.realizedPnlUsd)) >= strategyDegradationConfig.maxDailyLossUsd) {
+      await rollbackStrategyOnDegradation(
+        `daily loss breach: ${daily.realizedPnlUsd} <= -${strategyDegradationConfig.maxDailyLossUsd}`,
+        "system",
+        lifecycle.getSnapshotState().activeSymbol
+      );
+      return;
+    }
+    const latestTimeline = portfolioStatus.performance.timeline[portfolioStatus.performance.timeline.length - 1];
+    if (latestTimeline && latestTimeline.drawdownPct <= strategyDegradationConfig.maxDrawdownPct) {
+      await rollbackStrategyOnDegradation(
+        `drawdown breach: ${latestTimeline.drawdownPct}% <= ${strategyDegradationConfig.maxDrawdownPct}%`,
+        "system",
+        lifecycle.getSnapshotState().activeSymbol
+      );
+      return;
+    }
+    const closed = [...managedTrades.values()]
+      .filter((trade) => trade.closedAt && Number.isFinite(Date.parse(trade.closedAt)))
+      .sort((a, b) => Date.parse(b.closedAt ?? b.updatedAt) - Date.parse(a.closedAt ?? a.updatedAt));
+    let consecutiveLosses = 0;
+    for (const trade of closed) {
+      if (toFiniteNumber(trade.realizedPnlUsd) < 0) {
+        consecutiveLosses += 1;
+      } else {
+        break;
+      }
+    }
+    if (consecutiveLosses >= strategyDegradationConfig.maxConsecutiveLosingTrades) {
+      await rollbackStrategyOnDegradation(
+        `consecutive loss breach: ${consecutiveLosses} >= ${strategyDegradationConfig.maxConsecutiveLosingTrades}`,
+        "system",
+        lifecycle.getSnapshotState().activeSymbol
+      );
+      return;
+    }
+    void nowIso;
+  }
+
+  async function fallbackApprovalModeToManual(reason: string, symbol: string, severity: "warn" | "critical" = "warn"): Promise<void> {
+    if (entryAutonomyConfig.approvalMode !== "policy_auto") {
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    entryAutonomyConfig.approvalMode = "manual";
+    entryAutonomyStatus.approvalMode = "manual";
+    entryAutonomyStatus.fallbackActive = true;
+    entryAutonomyStatus.lastFallbackAt = nowIso;
+    entryAutonomyStatus.lastFallbackReason = reason;
+    persistEntryAutonomyState();
+    await upsertAlert({
+      code: "APPROVAL_MODE_FALLBACK",
+      severity,
+      source: "system",
+      title: "Approval mode fallback to manual",
+      detail: reason,
+      symbol
+    });
+    await publish(
+      createEvent(
+        "System",
+        symbol,
+        `Approval mode fallback to manual: ${reason}`,
+        severity === "critical" ? "error" : "warn",
+        ["entry_autonomy", "fallback_manual"]
+      )
+    );
+    await appendAudit("Approval mode fallback", `approvalMode=manual reason=${reason}`, symbol, "System");
+    if (severity === "critical") {
+      await rollbackStrategyOnDegradation(`approval fallback critical: ${reason}`, "system", symbol);
+    }
+  }
+
+  function computeOpenExposureUsd(): number {
+    let exposure = 0;
+    for (const trade of managedTrades.values()) {
+      if (trade.status === "closed" || trade.remainingQty <= 1e-9) {
+        continue;
+      }
+      const refPrice =
+        trade.entryAvgPrice > 0
+          ? trade.entryAvgPrice
+          : trade.exitAvgPrice > 0
+            ? trade.exitAvgPrice
+            : trade.takeProfitPrice > 0
+              ? trade.takeProfitPrice
+              : trade.stopPrice;
+      exposure += Math.max(0, trade.remainingQty) * Math.max(0, refPrice);
+    }
+    return round6(exposure);
+  }
+
+  function computeLossBudgets(nowIso: string): { dailyLossUsedUsd: number; weeklyLossUsedUsd: number; lossStreak: number; cooldownActive: boolean } {
+    const nowEpoch = Date.parse(nowIso);
+    const dayStartEpoch = Number.isFinite(nowEpoch) ? Date.parse(nowIso.slice(0, 10) + "T00:00:00.000Z") : Number.NaN;
+    const weekStartEpoch = Number.isFinite(nowEpoch) ? nowEpoch - 7 * 24 * 60 * 60 * 1000 : Number.NaN;
+    let dailyLossUsedUsd = 0;
+    let weeklyLossUsedUsd = 0;
+    const closed = [...managedTrades.values()]
+      .filter((trade) => trade.closedAt && Number.isFinite(Date.parse(trade.closedAt)))
+      .sort((a, b) => Date.parse(b.closedAt ?? b.updatedAt) - Date.parse(a.closedAt ?? a.updatedAt));
+    for (const trade of closed) {
+      const pnl = toFiniteNumber(trade.realizedPnlUsd);
+      if (pnl >= 0) {
+        continue;
+      }
+      const closedEpoch = Date.parse(trade.closedAt ?? trade.updatedAt);
+      if (Number.isFinite(dayStartEpoch) && closedEpoch >= dayStartEpoch) {
+        dailyLossUsedUsd += Math.abs(pnl);
+      }
+      if (Number.isFinite(weekStartEpoch) && closedEpoch >= weekStartEpoch) {
+        weeklyLossUsedUsd += Math.abs(pnl);
+      }
+    }
+    let lossStreak = 0;
+    for (const trade of closed) {
+      const pnl = toFiniteNumber(trade.realizedPnlUsd);
+      if (pnl < 0) {
+        lossStreak += 1;
+        continue;
+      }
+      break;
+    }
+    const cooldownActive =
+      lossStreak >= entryAutonomyConfig.lossStreakCooldownCount &&
+      closed.length > 0 &&
+      Number.isFinite(nowEpoch) &&
+      nowEpoch - Date.parse(closed[0].closedAt ?? closed[0].updatedAt) < entryAutonomyConfig.cooldownMinutes * 60_000;
+    return {
+      dailyLossUsedUsd: round6(dailyLossUsedUsd),
+      weeklyLossUsedUsd: round6(weeklyLossUsedUsd),
+      lossStreak,
+      cooldownActive
+    };
+  }
+
+  async function evaluatePolicyAutoEligibility(input: {
+    symbol: string;
+    intent: ExecutionIntent;
+    nowIso: string;
+  }): Promise<{ ok: boolean; blockers: string[] }> {
+    const blockers: string[] = [];
+    if (entryAutonomyConfig.approvalMode !== "policy_auto") {
+      blockers.push("Approval mode is manual.");
+    }
+    if (!entryAutonomyConfig.allowedSymbols.includes(input.symbol)) {
+      blockers.push(`Symbol ${input.symbol} is not in allowlist.`);
+    }
+    const notionalUsd = Math.max(0, input.intent.qtyBase * input.intent.limitPrice);
+    if (notionalUsd > entryAutonomyConfig.maxPerOrderNotionalUsd) {
+      blockers.push(`Per-order notional ${round6(notionalUsd)} exceeds max ${entryAutonomyConfig.maxPerOrderNotionalUsd}.`);
+    }
+    const openExposureUsd = computeOpenExposureUsd();
+    if (openExposureUsd + notionalUsd > entryAutonomyConfig.maxOpenExposureUsd) {
+      blockers.push(
+        `Open exposure would exceed cap: current=${openExposureUsd} next=${round6(openExposureUsd + notionalUsd)} cap=${entryAutonomyConfig.maxOpenExposureUsd}.`
+      );
+    }
+    const budget = computeLossBudgets(input.nowIso);
+    if (budget.dailyLossUsedUsd >= entryAutonomyConfig.maxDailyLossUsd) {
+      blockers.push(`Daily loss cap exhausted: used=${budget.dailyLossUsedUsd} cap=${entryAutonomyConfig.maxDailyLossUsd}.`);
+    }
+    if (budget.weeklyLossUsedUsd >= entryAutonomyConfig.maxWeeklyLossUsd) {
+      blockers.push(`Weekly loss cap exhausted: used=${budget.weeklyLossUsedUsd} cap=${entryAutonomyConfig.maxWeeklyLossUsd}.`);
+    }
+    if (budget.cooldownActive) {
+      blockers.push(`Cooldown active after loss streak=${budget.lossStreak}.`);
+    }
+    if (inMemoryIncidents.some((item) => item.status !== "resolved")) {
+      blockers.push("Open incidents present.");
+    }
+    if (inMemoryAlerts.some((item) => item.status === "open" && item.severity === "critical")) {
+      blockers.push("Open critical alerts present.");
+    }
+    if (
+      lifecycle.reconciliation.positions !== "ok" ||
+      lifecycle.reconciliation.pnl !== "ok" ||
+      lifecycle.reconciliation.orders !== "ok"
+    ) {
+      blockers.push("Reconciliation state is not fully OK.");
+    }
+    if (!exchangeStatus.connected || exchangeStatus.mode !== "demo") {
+      blockers.push("Demo exchange is not fully connected.");
+    }
+    const m5 = await buildMilestone5EvidenceSummary(input.nowIso);
+    if (!m5.today.pass || m5.qualifiedDays < m5.requiredDays) {
+      blockers.push(`Demo readiness not fully green (qualifiedDays=${m5.qualifiedDays}/${m5.requiredDays}, todayPass=${m5.today.pass}).`);
+    }
+    entryAutonomyStatus.lastPolicyAutoDecisionAt = input.nowIso;
+    entryAutonomyStatus.lastPolicyAutoBlockers = blockers;
+    persistEntryAutonomyState();
+    return { ok: blockers.length === 0, blockers };
+  }
+
+  async function executeQueuedDemoOrder(input: {
+    approvedId: string;
+    queued: {
+      intent: ExecutionIntent;
+      proposal: TradeProposal;
+      symbol: string;
+      stopPrice: number;
+      takeProfitPrice: number;
+      maxHoldSec: number;
+      flattenAt?: string;
+      approvalModeAtDecision: EntryApprovalMode;
+      strategyVersion: string;
+      policyVersion: string;
+      queuedAt: string;
+    };
+    actor: string;
+    correlationId?: string;
+  }): Promise<{ ordId: string }> {
+    const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
+    if (mode !== "demo") {
+      throw new Error("OKX_TRADING_MODE must be demo for demo order submit.");
+    }
+    const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
+    const order = await adapter.placeSpotLimitOrder(input.queued.intent);
+    pendingDemoOrders.delete(input.approvedId);
+    const createdAt = new Date().toISOString();
+    const managedTrade: ManagedTrade = {
+      tradeId: `trade-${input.queued.proposal.proposalId}`,
+      status: "planned",
+      symbol: input.queued.symbol,
+      entrySide: input.queued.intent.side,
+      entryOrdId: order.ordId,
+      entryClOrdId: order.clOrdId,
+      requestedQty: round6(input.queued.intent.qtyBase),
+      entryFilledQty: 0,
+      entryAvgPrice: 0,
+      exitFilledQty: 0,
+      exitAvgPrice: 0,
+      remainingQty: round6(input.queued.intent.qtyBase),
+      stopPrice: round6(input.queued.stopPrice),
+      takeProfitPrice: round6(input.queued.takeProfitPrice),
+      maxHoldSec: input.queued.maxHoldSec,
+      flattenAt: input.queued.flattenAt,
+      createdAt,
+      updatedAt: createdAt,
+      feeUsd: 0,
+      realizedPnlUsd: 0,
+      exitSubmittedAt: undefined,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    };
+    upsertManagedTrade(managedTrade);
+    await publish(
+      createEvent(
+        "OrderSubmitted",
+        input.queued.symbol,
+        `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${input.queued.proposal.proposalId} managedTrade=${managedTrade.tradeId} approvalMode=${input.queued.approvalModeAtDecision} strategy=${input.queued.strategyVersion} policy=${input.queued.policyVersion}`,
+        "info",
+        [
+          "demo_execution",
+          "okx_demo",
+          `approval_mode:${input.queued.approvalModeAtDecision}`,
+          `strategy_version:${input.queued.strategyVersion}`,
+          `policy_version:${input.queued.policyVersion}`
+        ],
+        input.correlationId
+      )
+    );
+    await appendAudit(
+      "Demo order submitted",
+      `Approval ${input.approvedId} executed by ${input.actor}; ordId=${order.ordId} proposal=${input.queued.proposal.proposalId} approvalMode=${input.queued.approvalModeAtDecision} strategy=${input.queued.strategyVersion} policy=${input.queued.policyVersion}`,
+      input.queued.symbol,
+      "OrderSubmitted"
+    );
+    await refreshExchangeStatus();
+    return { ordId: order.ordId };
+  }
+
   async function evaluateManagedTradeExits(input: {
     adapter: OkxDemoAdapter;
     fills: OkxFillRecord[];
@@ -955,22 +1602,69 @@ export async function startMissionControlServer(
       return;
     }
     const pendingByOrdId = new Set(input.pendingOrders.map((order) => order.ordId));
+    const marketInputsCache = new Map<string, Awaited<ReturnType<typeof fetchSpotMarketInputs>>>();
     const markCache = new Map<string, number>();
     const nowEpoch = Date.parse(input.nowIso);
 
+    async function loadMarketInputs(symbol: string): Promise<Awaited<ReturnType<typeof fetchSpotMarketInputs>> | undefined> {
+      const cached = marketInputsCache.get(symbol);
+      if (cached) {
+        return cached;
+      }
+      try {
+        const market = await fetchSpotMarketInputs(symbol, process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com");
+        marketInputsCache.set(symbol, market);
+        return market;
+      } catch {
+        return undefined;
+      }
+    }
+
+    function alignPriceToTick(rawPrice: number, tickSz: number, side: "buy" | "sell"): number {
+      if (!Number.isFinite(rawPrice) || rawPrice <= 0 || !Number.isFinite(tickSz) || tickSz <= 0) {
+        return round6(Math.max(0.00000001, rawPrice));
+      }
+      const ratio = rawPrice / tickSz;
+      const units = side === "sell" ? Math.ceil(ratio - 1e-12) : Math.floor(ratio + 1e-12);
+      return round6(Math.max(tickSz, units * tickSz));
+    }
+
+    function extractOkxSCode(error: unknown): string | undefined {
+      if (!(error instanceof OkxApiError)) {
+        return undefined;
+      }
+      const details = (error.details ?? {}) as Record<string, unknown>;
+      const direct = details.sCode;
+      if (typeof direct === "string" || typeof direct === "number") {
+        return String(direct);
+      }
+      const data = details.data;
+      if (!Array.isArray(data) || data.length === 0) {
+        return undefined;
+      }
+      const first = data[0] as Record<string, unknown>;
+      if (typeof first.sCode === "string" || typeof first.sCode === "number") {
+        return String(first.sCode);
+      }
+      return undefined;
+    }
+
     function resolveExitOffsetBps(trade: ManagedTrade, reason: ExitReason): number {
       if (reason === "flatten" || reason === "time_stop") {
-        return Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10);
+        return Math.min(autoExitMaxOffsetBps, Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10));
       }
       if (trade.forcedFlattenEscalated) {
-        return Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10);
+        return Math.min(autoExitMaxOffsetBps, Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10));
       }
-      return autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 5;
+      return Math.min(autoExitMaxOffsetBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 5);
     }
 
     function classifyTransientExitSubmitFailure(error: unknown): { transient: boolean; message: string } {
       const message = error instanceof Error ? error.message : String(error);
       if (error instanceof OkxApiError) {
+        if (error.code === "OKX_ORDER_REJECTED" || error.code === "OKX_CANCEL_INPUT_ERROR" || error.code === "OKX_CONFIG_ERROR") {
+          return { transient: false, message };
+        }
         if (error.code === "OKX_NETWORK_ERROR") {
           return { transient: true, message };
         }
@@ -983,7 +1677,6 @@ export async function startMissionControlServer(
       }
       const normalized = message.toLowerCase();
       if (
-        normalized.includes("all operations failed") ||
         normalized.includes("fetch failed") ||
         normalized.includes("network") ||
         normalized.includes("timeout")
@@ -993,12 +1686,64 @@ export async function startMissionControlServer(
       return { transient: false, message };
     }
 
+    function formatAutoExitErrorDetail(error: unknown): string {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!(error instanceof OkxApiError)) {
+        return `error=${message}`;
+      }
+      const details = (error.details ?? {}) as Record<string, unknown>;
+      const status = typeof details.status === "number" ? details.status : undefined;
+      const apiCodeRaw = details.code;
+      const apiCode =
+        typeof apiCodeRaw === "string" || typeof apiCodeRaw === "number" ? String(apiCodeRaw) : undefined;
+      const apiMsgRaw = details.msg;
+      const apiMsg = typeof apiMsgRaw === "string" ? apiMsgRaw : undefined;
+      const sCodeRaw = details.sCode;
+      const sCode =
+        typeof sCodeRaw === "string" || typeof sCodeRaw === "number"
+          ? String(sCodeRaw)
+          : Array.isArray(details.data) &&
+            details.data.length > 0 &&
+            (typeof (details.data[0] as Record<string, unknown>).sCode === "string" ||
+              typeof (details.data[0] as Record<string, unknown>).sCode === "number")
+          ? String((details.data[0] as Record<string, unknown>).sCode)
+          : undefined;
+      const sMsgRaw = details.sMsg;
+      const sMsg =
+        typeof sMsgRaw === "string"
+          ? sMsgRaw
+          : Array.isArray(details.data) &&
+            details.data.length > 0 &&
+            typeof (details.data[0] as Record<string, unknown>).sMsg === "string"
+          ? String((details.data[0] as Record<string, unknown>).sMsg)
+          : undefined;
+      const parts = [`error=${message}`, `okxCode=${error.code}`];
+      if (status !== undefined) {
+        parts.push(`httpStatus=${status}`);
+      }
+      if (apiCode) {
+        parts.push(`apiCode=${apiCode}`);
+      }
+      if (apiMsg) {
+        parts.push(`apiMsg=${apiMsg}`);
+      }
+      if (sCode) {
+        parts.push(`sCode=${sCode}`);
+      }
+      if (sMsg) {
+        parts.push(`sMsg=${sMsg}`);
+      }
+      return parts.join(" ");
+    }
+
     for (const trade of managedTrades.values()) {
       const entryStats = fillStatsForOrder(input.fills, trade.entryOrdId);
       if (entryStats.qty > 0) {
         trade.entryFilledQty = entryStats.qty;
         trade.entryAvgPrice = entryStats.avgPrice;
         trade.status = entryStats.qty + 1e-9 < trade.requestedQty ? "entry_partially_filled" : "entry_filled";
+        // Never allow pending exit quantity to exceed what has actually filled.
+        trade.remainingQty = Math.max(0, round6(Math.min(trade.remainingQty, trade.entryFilledQty)));
       } else if (trade.status === "planned") {
         trade.status = "entry_submitted";
       }
@@ -1078,20 +1823,20 @@ export async function startMissionControlServer(
                 "OrderCancelled"
               );
             } catch (error: unknown) {
-              const message = error instanceof Error ? error.message : String(error);
+              const detail = formatAutoExitErrorDetail(error);
               await upsertAlert({
                 code: "AUTO_EXIT_CANCEL_FAILED",
                 severity: "warn",
                 source: "exchange",
                 title: "Auto-exit cancel failed",
-                detail: `tradeId=${trade.tradeId} error=${message}`,
+                detail: `tradeId=${trade.tradeId} ${detail}`,
                 symbol: trade.symbol
               });
               await publish(
                 createEvent(
                   "Error",
                   trade.symbol,
-                  `Auto-exit cancel failed tradeId=${trade.tradeId} error=${message}`,
+                  `Auto-exit cancel failed tradeId=${trade.tradeId} ${detail}`,
                   "warn",
                   ["managed_trade", "auto_exit_cancel_failed"]
                 )
@@ -1117,6 +1862,13 @@ export async function startMissionControlServer(
         input.marksBySymbol.get(trade.symbol) ??
         markCache.get(trade.symbol) ??
         (trade.entryAvgPrice > 0 ? trade.entryAvgPrice : undefined);
+      const marketInputs = await loadMarketInputs(trade.symbol);
+      if (marketInputs?.last && marketInputs.last > 0) {
+        markCache.set(trade.symbol, marketInputs.last);
+        if (mark === undefined || mark <= 0) {
+          mark = marketInputs.last;
+        }
+      }
       if (mark === undefined || mark <= 0) {
         try {
           const market = await fetchSpotMarketInputs(trade.symbol, process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com");
@@ -1160,13 +1912,40 @@ export async function startMissionControlServer(
       const exitSide: "buy" | "sell" = trade.entrySide === "buy" ? "sell" : "buy";
       const offsetBps = resolveExitOffsetBps(trade, reason);
       const offsetMultiplier = exitSide === "sell" ? 1 - offsetBps / 10_000 : 1 + offsetBps / 10_000;
-      const limitPrice = round6(Math.max(0.00000001, mark * offsetMultiplier));
+      let limitPrice = round6(Math.max(0.00000001, mark * offsetMultiplier));
+      if (
+        marketInputs &&
+        Number.isFinite(marketInputs.buyLmt) &&
+        Number.isFinite(marketInputs.sellLmt) &&
+        marketInputs.buyLmt !== undefined &&
+        marketInputs.sellLmt !== undefined &&
+        marketInputs.buyLmt >= marketInputs.sellLmt
+      ) {
+        limitPrice = Math.max(marketInputs.sellLmt, Math.min(marketInputs.buyLmt, limitPrice));
+      }
+      if (marketInputs && Number.isFinite(marketInputs.tickSz) && marketInputs.tickSz > 0) {
+        limitPrice = alignPriceToTick(limitPrice, marketInputs.tickSz, exitSide);
+      }
+      if (
+        marketInputs &&
+        Number.isFinite(marketInputs.buyLmt) &&
+        Number.isFinite(marketInputs.sellLmt) &&
+        marketInputs.buyLmt !== undefined &&
+        marketInputs.sellLmt !== undefined &&
+        marketInputs.buyLmt >= marketInputs.sellLmt
+      ) {
+        limitPrice = Math.max(marketInputs.sellLmt, Math.min(marketInputs.buyLmt, limitPrice));
+      }
+      limitPrice = round6(Math.max(0.00000001, limitPrice));
+      const exitQty = Math.max(0.00000001, round6(Math.min(trade.remainingQty, Math.max(0, trade.entryFilledQty - trade.exitFilledQty))));
+      // Use unique proposal IDs per retry attempt to avoid clOrdId collisions on repeated exit submissions.
+      const exitProposalId = `${trade.tradeId}-${reason}-${trade.exitRepriceCount}-${Date.parse(input.nowIso)}`;
       try {
         const order = await input.adapter.placeSpotLimitOrder({
-          proposalId: `${trade.tradeId}-${reason}-${trade.exitRepriceCount}`,
+          proposalId: exitProposalId,
           symbol: trade.symbol,
           side: exitSide,
-          qtyBase: Math.max(0.00000001, trade.remainingQty),
+          qtyBase: exitQty,
           limitPrice
         });
         trade.exitOrdId = order.ordId;
@@ -1192,6 +1971,7 @@ export async function startMissionControlServer(
           "OrderSubmitted"
         );
       } catch (error: unknown) {
+        const detail = formatAutoExitErrorDetail(error);
         const { transient, message } = classifyTransientExitSubmitFailure(error);
         if (transient) {
           trade.exitReason = reason;
@@ -1203,19 +1983,89 @@ export async function startMissionControlServer(
             severity: "warn",
             source: "exchange",
             title: "Auto-exit submit transient failure",
-            detail: `tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+            detail: `tradeId=${trade.tradeId} reason=${reason} ${detail}`,
             symbol: trade.symbol
           });
           await publish(
             createEvent(
               "System",
               trade.symbol,
-              `Auto-exit transient submit failure tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+              `Auto-exit transient submit failure tradeId=${trade.tradeId} reason=${reason} ${detail}`,
               "warn",
               ["managed_trade", "auto_exit_retry"]
             )
           );
           continue;
+        }
+        const sCode = extractOkxSCode(error);
+        const lowerMessage = message.toLowerCase();
+        const insufficientBalance = sCode === "51008" || lowerMessage.includes("insufficient");
+        if (insufficientBalance) {
+          const market = marketInputs ?? (await loadMarketInputs(trade.symbol));
+          const lotSz = market?.lotSz && Number.isFinite(market.lotSz) ? market.lotSz : 0.00000001;
+          const minSz = market?.minSz && Number.isFinite(market.minSz) ? market.minSz : lotSz;
+          const currentQty = Math.max(0, round6(trade.remainingQty));
+          let recoveredQty = round6(currentQty - lotSz);
+          if (recoveredQty < minSz && currentQty > minSz + 1e-9) {
+            recoveredQty = round6(minSz);
+          }
+          if (recoveredQty > 0 && recoveredQty + 1e-9 < currentQty) {
+            trade.remainingQty = recoveredQty;
+            trade.exitReason = reason;
+            trade.status = "exit_pending";
+            trade.updatedAt = input.nowIso;
+            upsertManagedTrade(trade);
+            await upsertAlert({
+              code: "AUTO_EXIT_QTY_RECOVERY",
+              severity: "warn",
+              source: "exchange",
+              title: "Auto-exit quantity reduced after insufficient balance",
+              detail: `tradeId=${trade.tradeId} reason=${reason} prevQty=${currentQty} nextQty=${recoveredQty} lotSz=${lotSz} minSz=${minSz} ${detail}`,
+              symbol: trade.symbol
+            });
+            await publish(
+              createEvent(
+                "System",
+                trade.symbol,
+                `Auto-exit quantity recovery tradeId=${trade.tradeId} reason=${reason} prevQty=${currentQty} nextQty=${recoveredQty} ${detail}`,
+                "warn",
+                ["managed_trade", "auto_exit_qty_recovery"]
+              )
+            );
+            continue;
+          }
+          if (currentQty <= minSz + 1e-9) {
+            trade.remainingQty = 0;
+            trade.status = "closed";
+            trade.closedAt = input.nowIso;
+            trade.exitReason = "flatten";
+            trade.updatedAt = input.nowIso;
+            upsertManagedTrade(trade);
+            await upsertAlert({
+              code: "AUTO_EXIT_DUST_CLOSED",
+              severity: "warn",
+              source: "exchange",
+              title: "Auto-exit dust remainder closed",
+              detail: `tradeId=${trade.tradeId} reason=${reason} qty=${currentQty} minSz=${minSz} ${detail}`,
+              symbol: trade.symbol
+            });
+            await publish(
+              createEvent(
+                "OrderFilled",
+                trade.symbol,
+                `Managed trade dust-closed tradeId=${trade.tradeId} reason=flatten qty=${currentQty}`,
+                "warn",
+                ["managed_trade", "auto_exit_dust_closed"]
+              )
+            );
+            await appendAudit(
+              "Managed trade dust-closed",
+              `tradeId=${trade.tradeId} reason=flatten dustQty=${currentQty} minSz=${minSz}`,
+              trade.symbol,
+              "OrderFilled"
+            );
+            continue;
+          }
         }
         trade.exitRepriceCount += 1;
         if (trade.exitRepriceCount > autoExitMaxReprices) {
@@ -1230,14 +2080,14 @@ export async function startMissionControlServer(
           severity: "error",
           source: "exchange",
           title: "Auto-exit submit failed",
-          detail: `tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+          detail: `tradeId=${trade.tradeId} reason=${reason} ${detail}`,
           symbol: trade.symbol
         });
         await publish(
           createEvent(
             "Error",
             trade.symbol,
-            `Auto-exit submit failed tradeId=${trade.tradeId} reason=${reason} error=${message}`,
+            `Auto-exit submit failed tradeId=${trade.tradeId} reason=${reason} ${detail}`,
             "error",
             ["managed_trade", "auto_exit_error"]
           )
@@ -1451,6 +2301,7 @@ export async function startMissionControlServer(
         pendingOrders: openOrdersStatus.orders,
         nowIso: now
       });
+      await evaluateStrategyDegradationTriggers(now);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const currentEqUsd = Math.max(0, toFiniteNumber(portfolioStatus.totalEq));
@@ -1565,6 +2416,8 @@ export async function startMissionControlServer(
         ["circuit_breaker", "state_change"]
       )
     );
+    await fallbackApprovalModeToManual("reconciliation drift circuit breaker triggered", symbol, "critical");
+    await rollbackStrategyOnDegradation("reconciliation drift circuit breaker triggered", actor, symbol);
     driftConsecutive = 0;
     driftFirstSeenAtEpoch = undefined;
   }
@@ -1903,6 +2756,21 @@ export async function startMissionControlServer(
       inMemoryIncidents = opsStore.listIncidents();
       metrics.openIncidents = inMemoryIncidents.filter((item) => item.status !== "resolved").length;
     }
+    if (inMemoryIncidents.some((item) => item.status !== "resolved")) {
+      await fallbackApprovalModeToManual(
+        `open incident present (count=${inMemoryIncidents.filter((item) => item.status !== "resolved").length})`,
+        saved.symbol ?? lifecycle.getSnapshotState().activeSymbol,
+        "warn"
+      );
+    }
+    if (saved.severity === "critical") {
+      await fallbackApprovalModeToManual(`critical alert raised: ${saved.code}`, saved.symbol ?? lifecycle.getSnapshotState().activeSymbol, "critical");
+      await rollbackStrategyOnDegradation(
+        `critical alert raised: ${saved.code}`,
+        "system",
+        saved.symbol ?? lifecycle.getSnapshotState().activeSymbol
+      );
+    }
     return saved;
   }
 
@@ -2089,6 +2957,374 @@ export async function startMissionControlServer(
       events: inMemoryEvents.slice(0, 200)
     };
     res.json(snapshot);
+  });
+
+  app.get("/entry-autonomy/config", (_req, res) => {
+    res.json({
+      config: entryAutonomyConfig,
+      status: entryAutonomyStatus
+    });
+  });
+
+  app.post("/entry-autonomy/config", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const nextApprovalModeRaw = typeof req.body?.approvalMode === "string" ? req.body.approvalMode : entryAutonomyConfig.approvalMode;
+    const nextApprovalMode: EntryApprovalMode = nextApprovalModeRaw === "policy_auto" ? "policy_auto" : "manual";
+    const next: EntryAutonomyConfig = {
+      approvalMode: nextApprovalMode,
+      allowedSymbols:
+        Array.isArray(req.body?.allowedSymbols) && req.body.allowedSymbols.length > 0
+          ? req.body.allowedSymbols.map((item: unknown) => String(item)).filter((item: string) => item.trim().length > 0)
+          : entryAutonomyConfig.allowedSymbols,
+      maxPerOrderNotionalUsd:
+        typeof req.body?.maxPerOrderNotionalUsd === "number" && Number.isFinite(req.body.maxPerOrderNotionalUsd)
+          ? Math.max(1, req.body.maxPerOrderNotionalUsd)
+          : entryAutonomyConfig.maxPerOrderNotionalUsd,
+      maxOpenExposureUsd:
+        typeof req.body?.maxOpenExposureUsd === "number" && Number.isFinite(req.body.maxOpenExposureUsd)
+          ? Math.max(1, req.body.maxOpenExposureUsd)
+          : entryAutonomyConfig.maxOpenExposureUsd,
+      maxDailyLossUsd:
+        typeof req.body?.maxDailyLossUsd === "number" && Number.isFinite(req.body.maxDailyLossUsd)
+          ? Math.max(0.5, req.body.maxDailyLossUsd)
+          : entryAutonomyConfig.maxDailyLossUsd,
+      maxWeeklyLossUsd:
+        typeof req.body?.maxWeeklyLossUsd === "number" && Number.isFinite(req.body.maxWeeklyLossUsd)
+          ? Math.max(1, req.body.maxWeeklyLossUsd)
+          : entryAutonomyConfig.maxWeeklyLossUsd,
+      lossStreakCooldownCount:
+        typeof req.body?.lossStreakCooldownCount === "number" && Number.isFinite(req.body.lossStreakCooldownCount)
+          ? Math.max(1, Math.floor(req.body.lossStreakCooldownCount))
+          : entryAutonomyConfig.lossStreakCooldownCount,
+      cooldownMinutes:
+        typeof req.body?.cooldownMinutes === "number" && Number.isFinite(req.body.cooldownMinutes)
+          ? Math.max(1, Math.floor(req.body.cooldownMinutes))
+          : entryAutonomyConfig.cooldownMinutes,
+      strategyVersion: strategyPromotionState.activeVersion,
+      policyVersion:
+        typeof req.body?.policyVersion === "string" && req.body.policyVersion.trim().length > 0
+          ? req.body.policyVersion.trim()
+          : entryAutonomyConfig.policyVersion
+    };
+    entryAutonomyConfig = next;
+    entryAutonomyStatus.approvalMode = next.approvalMode;
+    if (next.approvalMode === "manual") {
+      entryAutonomyStatus.fallbackActive = false;
+      entryAutonomyStatus.lastFallbackAt = undefined;
+      entryAutonomyStatus.lastFallbackReason = undefined;
+    }
+    persistEntryAutonomyState();
+    await appendAudit(
+      "Entry autonomy config updated",
+      `approvalMode=${entryAutonomyConfig.approvalMode} allowedSymbols=${entryAutonomyConfig.allowedSymbols.join(",")} maxPerOrder=${entryAutonomyConfig.maxPerOrderNotionalUsd} maxExposure=${entryAutonomyConfig.maxOpenExposureUsd} dailyCap=${entryAutonomyConfig.maxDailyLossUsd} weeklyCap=${entryAutonomyConfig.maxWeeklyLossUsd} cooldownCount=${entryAutonomyConfig.lossStreakCooldownCount} cooldownMin=${entryAutonomyConfig.cooldownMinutes} strategy=${entryAutonomyConfig.strategyVersion} policy=${entryAutonomyConfig.policyVersion}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Entry autonomy config updated by ${typed.userId}`,
+        "info",
+        ["entry_autonomy", `approval_mode:${entryAutonomyConfig.approvalMode}`]
+      )
+    );
+    res.json({
+      config: entryAutonomyConfig,
+      status: entryAutonomyStatus
+    });
+  });
+
+  app.get("/strategy/promotion", (_req, res) => {
+    res.json({
+      state: strategyPromotionState,
+      effective: {
+        strategyVersion: strategyPromotionState.activeVersion,
+        policyVersion: entryAutonomyConfig.policyVersion,
+        approvalMode: entryAutonomyConfig.approvalMode
+      }
+    });
+  });
+
+  app.get("/strategy/degradation-config", (_req, res) => {
+    res.json({
+      config: strategyDegradationConfig
+    });
+  });
+
+  app.post("/strategy/degradation-config", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    strategyDegradationConfig = {
+      enabled:
+        typeof req.body?.enabled === "boolean"
+          ? req.body.enabled
+          : strategyDegradationConfig.enabled,
+      maxDailyLossUsd:
+        typeof req.body?.maxDailyLossUsd === "number" && Number.isFinite(req.body.maxDailyLossUsd)
+          ? Math.max(0.5, req.body.maxDailyLossUsd)
+          : strategyDegradationConfig.maxDailyLossUsd,
+      maxDrawdownPct:
+        typeof req.body?.maxDrawdownPct === "number" && Number.isFinite(req.body.maxDrawdownPct)
+          ? req.body.maxDrawdownPct
+          : strategyDegradationConfig.maxDrawdownPct,
+      maxConsecutiveLosingTrades:
+        typeof req.body?.maxConsecutiveLosingTrades === "number" && Number.isFinite(req.body.maxConsecutiveLosingTrades)
+          ? Math.max(1, Math.floor(req.body.maxConsecutiveLosingTrades))
+          : strategyDegradationConfig.maxConsecutiveLosingTrades
+    };
+    persistStrategyDegradationConfig();
+    await appendAudit(
+      "Strategy degradation config updated",
+      `enabled=${strategyDegradationConfig.enabled} maxDailyLossUsd=${strategyDegradationConfig.maxDailyLossUsd} maxDrawdownPct=${strategyDegradationConfig.maxDrawdownPct} maxConsecutiveLosingTrades=${strategyDegradationConfig.maxConsecutiveLosingTrades}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    res.json({ config: strategyDegradationConfig });
+  });
+
+  app.post("/strategy/register", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const version = typeof req.body?.version === "string" ? req.body.version.trim() : "";
+    if (!version) {
+      writeError(res, 400, {
+        ok: false,
+        code: "INVALID_INPUT",
+        message: "version is required",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    if (findStrategy(version)) {
+      writeError(res, 409, {
+        ok: false,
+        code: "STRATEGY_EXISTS",
+        message: `Strategy ${version} already exists`,
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    upsertStrategyVersion({
+      version,
+      stage: "research",
+      status: "candidate",
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      notes: typeof req.body?.notes === "string" ? req.body.notes : undefined,
+      artifacts:
+        req.body?.artifacts && typeof req.body.artifacts === "object"
+          ? {
+              researchReportUrl:
+                typeof req.body.artifacts.researchReportUrl === "string" ? req.body.artifacts.researchReportUrl : undefined,
+              shadowReportUrl:
+                typeof req.body.artifacts.shadowReportUrl === "string" ? req.body.artifacts.shadowReportUrl : undefined,
+              canaryReportUrl:
+                typeof req.body.artifacts.canaryReportUrl === "string" ? req.body.artifacts.canaryReportUrl : undefined
+            }
+          : undefined
+    });
+    if (Boolean(req.body?.challenger)) {
+      strategyPromotionState.challengerVersion = version;
+    }
+    strategyPromotionState.history.unshift({
+      at: nowIso,
+      action: "register",
+      version,
+      actor: typed.userId,
+      toStage: "research",
+      reason: "registered"
+    });
+    strategyPromotionState.history = strategyPromotionState.history.slice(0, 400);
+    persistStrategyPromotionState();
+    await appendAudit("Strategy registered", `version=${version}; actor=${typed.userId}`, lifecycle.getSnapshotState().activeSymbol, "System");
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Strategy registered version=${version} by ${typed.userId}`,
+        "info",
+        ["strategy_promotion", "register"]
+      )
+    );
+    res.status(201).json({ state: strategyPromotionState });
+  });
+
+  app.post("/strategy/promote", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const version = typeof req.body?.version === "string" ? req.body.version.trim() : "";
+    const targetStageRaw = typeof req.body?.targetStage === "string" ? req.body.targetStage.trim() : "";
+    const targetStage: StrategyPromotionStage | undefined =
+      targetStageRaw === "research" || targetStageRaw === "shadow" || targetStageRaw === "paper_canary" || targetStageRaw === "limited_prod"
+        ? targetStageRaw
+        : undefined;
+    if (!version || !targetStage) {
+      writeError(res, 400, {
+        ok: false,
+        code: "INVALID_INPUT",
+        message: "version and valid targetStage are required",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const current = findStrategy(version);
+    if (!current) {
+      writeError(res, 404, {
+        ok: false,
+        code: "STRATEGY_NOT_FOUND",
+        message: `Strategy ${version} not found`,
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const currentRank = stageRank(current.stage);
+    const targetRank = stageRank(targetStage);
+    if (targetRank > currentRank + 1) {
+      writeError(res, 409, {
+        ok: false,
+        code: "PROMOTION_ORDER_INVALID",
+        message: `Cannot skip promotion stages from ${current.stage} to ${targetStage}`,
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const blockers = await evaluatePromotionGates(targetStage, nowIso);
+    if (blockers.length > 0) {
+      writeError(res, 409, {
+        ok: false,
+        code: "PROMOTION_GATES_FAILED",
+        message: "Promotion gates failed",
+        correlationId: typed.correlationId,
+        details: {
+          blockerCount: blockers.length
+        }
+      });
+      return;
+    }
+    const promoted: StrategyVersionRecord = {
+      ...current,
+      stage: targetStage,
+      status: targetStage === "limited_prod" ? "active" : "candidate",
+      updatedAt: nowIso,
+      artifacts:
+        req.body?.artifacts && typeof req.body.artifacts === "object"
+          ? {
+              researchReportUrl:
+                typeof req.body.artifacts.researchReportUrl === "string"
+                  ? req.body.artifacts.researchReportUrl
+                  : current.artifacts?.researchReportUrl,
+              shadowReportUrl:
+                typeof req.body.artifacts.shadowReportUrl === "string"
+                  ? req.body.artifacts.shadowReportUrl
+                  : current.artifacts?.shadowReportUrl,
+              canaryReportUrl:
+                typeof req.body.artifacts.canaryReportUrl === "string"
+                  ? req.body.artifacts.canaryReportUrl
+                  : current.artifacts?.canaryReportUrl
+            }
+          : current.artifacts
+    };
+    upsertStrategyVersion(promoted);
+    if (targetStage === "limited_prod") {
+      strategyPromotionState.previousStableVersion = strategyPromotionState.activeVersion;
+      setActiveStrategyVersion(version);
+      strategyPromotionState.championVersion = version;
+    } else if (targetStage === "paper_canary") {
+      strategyPromotionState.challengerVersion = version;
+    }
+    strategyPromotionState.history.unshift({
+      at: nowIso,
+      action: "promote",
+      version,
+      actor: typed.userId,
+      fromStage: current.stage,
+      toStage: targetStage,
+      reason: typeof req.body?.reason === "string" ? req.body.reason : undefined
+    });
+    strategyPromotionState.history = strategyPromotionState.history.slice(0, 400);
+    persistStrategyPromotionState();
+    await appendAudit(
+      "Strategy promoted",
+      `version=${version} from=${current.stage} to=${targetStage}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Strategy promoted version=${version} from=${current.stage} to=${targetStage} by ${typed.userId}`,
+        "info",
+        ["strategy_promotion", "promote", `stage:${targetStage}`]
+      )
+    );
+    res.json({ state: strategyPromotionState });
+  });
+
+  app.post("/strategy/rollback", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const reason = typeof req.body?.reason === "string" && req.body.reason.trim().length > 0 ? req.body.reason.trim() : "manual rollback";
+    const rolled = await rollbackStrategyOnDegradation(
+      reason,
+      typed.userId,
+      lifecycle.getSnapshotState().activeSymbol,
+      true
+    );
+    if (!rolled) {
+      writeError(res, 409, {
+        ok: false,
+        code: "ROLLBACK_NOT_AVAILABLE",
+        message: "No previous stable strategy available for rollback",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    res.json({ state: strategyPromotionState });
   });
 
   app.get("/auto-exit/config", (_req, res) => {
@@ -2617,65 +3853,20 @@ export async function startMissionControlServer(
     }
 
     try {
-      const mode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
-      if (mode !== "demo") {
-        throw new Error("OKX_TRADING_MODE must be demo for demo order submit.");
-      }
-      const adapter = new OkxDemoAdapter(loadOkxDemoConfigFromEnv(process.env));
-      const order = await adapter.placeSpotLimitOrder(queued.intent);
-      pendingDemoOrders.delete(approvedId);
-      const createdAt = new Date().toISOString();
-      const managedTrade: ManagedTrade = {
-        tradeId: `trade-${queued.proposal.proposalId}`,
-        status: "planned",
-        symbol: queued.symbol,
-        entrySide: queued.intent.side,
-        entryOrdId: order.ordId,
-        entryClOrdId: order.clOrdId,
-        requestedQty: round6(queued.intent.qtyBase),
-        entryFilledQty: 0,
-        entryAvgPrice: 0,
-        exitFilledQty: 0,
-        exitAvgPrice: 0,
-        remainingQty: round6(queued.intent.qtyBase),
-        stopPrice: round6(queued.stopPrice),
-        takeProfitPrice: round6(queued.takeProfitPrice),
-        maxHoldSec: queued.maxHoldSec,
-        flattenAt: queued.flattenAt,
-        createdAt,
-        updatedAt: createdAt,
-        feeUsd: 0,
-        realizedPnlUsd: 0,
-        exitSubmittedAt: undefined,
-        exitRepriceCount: 0,
-        forcedFlattenEscalated: false
-      };
-      upsertManagedTrade(managedTrade);
-      await publish(
-        createEvent(
-          "OrderSubmitted",
-          queued.symbol,
-          `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${queued.proposal.proposalId} managedTrade=${managedTrade.tradeId}`,
-          "info",
-          ["demo_execution", "okx_demo"],
-          typed.correlationId
-        )
-      );
-      await appendAudit(
-        "Demo order submitted",
-        `Approval ${approvedId} executed by ${typed.userId}; ordId=${order.ordId} proposal=${queued.proposal.proposalId}`,
-        queued.symbol,
-        "OrderSubmitted"
-      );
-      await refreshExchangeStatus();
+      const submitted = await executeQueuedDemoOrder({
+        approvedId,
+        queued,
+        actor: typed.userId,
+        correlationId: typed.correlationId
+      });
       res.json({
         ok: true,
         code: "OK",
-        message: `Demo order submitted (${order.ordId})`,
+        message: `Demo order submitted (${submitted.ordId})`,
         state: lifecycle.getSnapshotState().state,
         details: {
           approvalId: approvedId,
-          ordId: order.ordId
+          ordId: submitted.ordId
         }
       } satisfies ControlActionResponse);
     } catch (error: unknown) {
@@ -2867,6 +4058,7 @@ export async function startMissionControlServer(
         worker.pause();
       } else if (action === "stop" || action === "emergency_stop") {
         worker.stop();
+        await fallbackApprovalModeToManual(`control action ${action} activated`, lifecycle.getSnapshotState().activeSymbol, "critical");
       }
     }
     if (result.ok && action === "cancel_all") {

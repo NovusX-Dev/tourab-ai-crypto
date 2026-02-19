@@ -269,6 +269,23 @@ export default function App() {
     dashboard.setManagedTrades(items);
   }
 
+  async function refreshM6AutonomyState() {
+    const [entryAutonomyRes, strategyPromotionRes, strategyDegradationRes] = await Promise.allSettled([
+      client.getEntryAutonomyConfig(),
+      client.getStrategyPromotion(),
+      client.getStrategyDegradationConfig()
+    ]);
+    if (entryAutonomyRes.status === "fulfilled") {
+      dashboard.setEntryAutonomy(entryAutonomyRes.value);
+    }
+    if (strategyPromotionRes.status === "fulfilled") {
+      dashboard.setStrategyPromotion(strategyPromotionRes.value.state);
+    }
+    if (strategyDegradationRes.status === "fulfilled") {
+      dashboard.setStrategyDegradation(strategyDegradationRes.value);
+    }
+  }
+
   async function saveAutoExitConfig(next: Parameters<typeof client.updateAutoExitConfig>[2]) {
     try {
       const updated = await client.updateAutoExitConfig(dashboard.role, currentUserId, next);
@@ -277,6 +294,58 @@ export default function App() {
       await refreshManagedTrades();
     } catch (_error: unknown) {
       pushToast("error", "AUTO_EXIT_UPDATE_FAILED", "Failed to update auto-exit config.");
+    }
+  }
+
+  async function saveEntryAutonomyConfig(next: Parameters<typeof client.updateEntryAutonomyConfig>[2]) {
+    try {
+      const updated = await client.updateEntryAutonomyConfig(dashboard.role, currentUserId, next);
+      dashboard.setEntryAutonomy(updated);
+      pushToast("success", "ENTRY_AUTONOMY_UPDATED", `Approval mode set to ${updated.status.approvalMode}.`);
+    } catch (_error: unknown) {
+      pushToast("error", "ENTRY_AUTONOMY_UPDATE_FAILED", "Failed to update entry autonomy policy.");
+    }
+  }
+
+  async function registerStrategyVersion(input: Parameters<typeof client.registerStrategyVersion>[2]) {
+    try {
+      const updated = await client.registerStrategyVersion(dashboard.role, currentUserId, input);
+      dashboard.setStrategyPromotion(updated.state);
+      pushToast("success", "STRATEGY_REGISTERED", `Registered ${input.version}.`);
+    } catch (_error: unknown) {
+      pushToast("error", "STRATEGY_REGISTER_FAILED", `Failed to register ${input.version}.`);
+    }
+  }
+
+  async function promoteStrategyVersion(input: Parameters<typeof client.promoteStrategyVersion>[2]) {
+    try {
+      const updated = await client.promoteStrategyVersion(dashboard.role, currentUserId, input);
+      dashboard.setStrategyPromotion(updated.state);
+      await refreshM6AutonomyState();
+      pushToast("success", "STRATEGY_PROMOTED", `${input.version} -> ${input.targetStage}`);
+    } catch (_error: unknown) {
+      pushToast("error", "STRATEGY_PROMOTE_FAILED", `Failed to promote ${input.version}.`);
+    }
+  }
+
+  async function rollbackStrategy(reason?: string) {
+    try {
+      const updated = await client.rollbackStrategy(dashboard.role, currentUserId, reason);
+      dashboard.setStrategyPromotion(updated.state);
+      await refreshM6AutonomyState();
+      pushToast("warning", "STRATEGY_ROLLBACK", `Rolled back to ${updated.state.activeVersion}.`);
+    } catch (_error: unknown) {
+      pushToast("error", "STRATEGY_ROLLBACK_FAILED", "Rollback failed.");
+    }
+  }
+
+  async function saveStrategyDegradationConfig(next: Parameters<typeof client.updateStrategyDegradationConfig>[2]) {
+    try {
+      const updated = await client.updateStrategyDegradationConfig(dashboard.role, currentUserId, next);
+      dashboard.setStrategyDegradation(updated);
+      pushToast("success", "DEGRADATION_UPDATED", "Strategy degradation thresholds updated.");
+    } catch (_error: unknown) {
+      pushToast("error", "DEGRADATION_UPDATE_FAILED", "Failed to update strategy degradation thresholds.");
     }
   }
 
@@ -443,6 +512,7 @@ export default function App() {
     void refreshAlerts();
     void refreshIncidents();
     void refreshManagedTrades();
+    void refreshM6AutonomyState();
   }, []);
 
   useEffect(() => {
@@ -451,6 +521,7 @@ export default function App() {
       void refreshAlerts();
       void refreshIncidents();
       void refreshManagedTrades();
+      void refreshM6AutonomyState();
     }, 5000);
     return () => {
       clearInterval(timer);
@@ -521,9 +592,17 @@ export default function App() {
         <AutonomyPanel
           config={dashboard.autoExitConfig}
           managedTrades={dashboard.managedTrades}
+          entryAutonomy={dashboard.entryAutonomy}
+          strategyPromotion={dashboard.strategyPromotion}
+          strategyDegradation={dashboard.strategyDegradation}
           canEdit={dashboard.role !== "read_only"}
           onSaveConfig={saveAutoExitConfig}
           onRefreshTrades={refreshManagedTrades}
+          onSaveEntryAutonomy={saveEntryAutonomyConfig}
+          onRegisterStrategy={registerStrategyVersion}
+          onPromoteStrategy={promoteStrategyVersion}
+          onRollbackStrategy={rollbackStrategy}
+          onSaveDegradationConfig={saveStrategyDegradationConfig}
         />
       );
     }
@@ -537,6 +616,9 @@ export default function App() {
     dashboard.portfolio,
     dashboard.openOrders,
     dashboard.autoExitConfig,
+    dashboard.entryAutonomy,
+    dashboard.strategyPromotion,
+    dashboard.strategyDegradation,
     dashboard.managedTrades,
     dashboard.demoQueue,
     pendingApprovals,
@@ -556,7 +638,7 @@ export default function App() {
       .map((item) => Date.parse(item.expiresAt))
       .filter((value) => Number.isFinite(value))
       .sort((a, b) => a - b)[0];
-    const approvalMode = "manual";
+    const approvalMode = dashboard.entryAutonomy.status.approvalMode;
     const managedTradeErrorCount = dashboard.managedTrades.filter((item) => item.status === "error").length;
     const autonomyReady = dashboard.autoExitConfig.enabled && managedTradeErrorCount === 0 && approvalMode === "manual";
     return [
@@ -630,6 +712,7 @@ export default function App() {
     dashboard.portfolio,
     dashboard.openOrders,
     dashboard.autoExitConfig,
+    dashboard.entryAutonomy,
     dashboard.managedTrades,
     pendingApprovals
   ]);

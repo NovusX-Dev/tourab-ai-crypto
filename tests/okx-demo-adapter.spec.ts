@@ -62,6 +62,39 @@ describe("OkxDemoAdapter", () => {
     });
   });
 
+  it("uses distinct clOrdId values for long proposal IDs that share a prefix", async () => {
+    const calls: string[] = [];
+    const fetchMock: typeof fetch = async (_url, init) => {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { clOrdId?: string };
+      calls.push(String(body.clOrdId ?? ""));
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ ordId: "111", clOrdId: String(body.clOrdId ?? ""), sCode: "0", sMsg: "" }]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    const intentA: ExecutionIntent = {
+      ...intent,
+      proposalId: "trade-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa-time_stop-0-1771492279281"
+    };
+    const intentB: ExecutionIntent = {
+      ...intent,
+      proposalId: "trade-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa-time_stop-0-1771492279282"
+    };
+    await adapter.placeSpotLimitOrder(intentA);
+    await adapter.placeSpotLimitOrder(intentB);
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).not.toBe(calls[1]);
+    expect(calls[0].length).toBeLessThanOrEqual(32);
+    expect(calls[1].length).toBeLessThanOrEqual(32);
+  });
+
   it("calls private balance endpoint with signed demo headers", async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const fetchMock: typeof fetch = async (url, init) => {

@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { ExecutionIntent } from "@tourab/shared";
 
 export interface OkxDemoConfig {
@@ -98,7 +98,10 @@ function toOkxSide(side: ExecutionIntent["side"]): "buy" | "sell" {
 function makeClientOrderId(proposalId: string): string {
   const seed = `tourab${proposalId}`.replace(/[^a-zA-Z0-9]/g, "");
   const normalized = seed.length > 0 ? seed : "touraborder";
-  return normalized.slice(0, 32);
+  const hash = createHash("sha256").update(normalized).digest("hex").slice(0, 10);
+  const prefixMax = 32 - hash.length;
+  const prefix = normalized.slice(0, Math.max(0, prefixMax));
+  return `${prefix}${hash}`;
 }
 
 function signRequest(timestamp: string, method: string, requestPath: string, body: string, secret: string): string {

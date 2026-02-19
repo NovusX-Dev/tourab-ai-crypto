@@ -13,7 +13,16 @@ import type {
   UserRole,
   WsMessage
 } from "@tourab/shared";
-import type { AutoExitConfig, ManagedTradeItem, Milestone5EvidenceSummary } from "../types";
+import type {
+  AutoExitConfig,
+  EntryAutonomyConfig,
+  EntryAutonomyStatus,
+  ManagedTradeItem,
+  Milestone5EvidenceSummary,
+  StrategyDegradationConfig,
+  StrategyPromotionStage,
+  StrategyPromotionState
+} from "../types";
 
 const ACTION_PATH: Record<ControlAction, string> = {
   start: "/start",
@@ -572,6 +581,219 @@ export class LiveBotApiClient implements BotApiClient {
       }
       this.setDataSource("mock_fallback");
       return mockBotApiClient.getMilestone5Evidence();
+    }
+  }
+
+  async getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/entry-autonomy/config`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Entry autonomy config fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as { config: EntryAutonomyConfig; status: EntryAutonomyStatus };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getEntryAutonomyConfig();
+    }
+  }
+
+  async updateEntryAutonomyConfig(
+    role: UserRole,
+    userId: string,
+    input: Partial<EntryAutonomyConfig>
+  ): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/entry-autonomy/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Entry autonomy config update failed: ${res.status}`);
+      }
+      return (await res.json()) as { config: EntryAutonomyConfig; status: EntryAutonomyStatus };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.updateEntryAutonomyConfig(role, userId, input);
+    }
+  }
+
+  async getStrategyPromotion(): Promise<{ state: StrategyPromotionState }> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/strategy/promotion`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Strategy promotion fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as { state: StrategyPromotionState };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getStrategyPromotion();
+    }
+  }
+
+  async registerStrategyVersion(
+    role: UserRole,
+    userId: string,
+    input: {
+      version: string;
+      notes?: string;
+      challenger?: boolean;
+      artifacts?: { researchReportUrl?: string; shadowReportUrl?: string; canaryReportUrl?: string };
+    }
+  ): Promise<{ state: StrategyPromotionState }> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/strategy/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Strategy register failed: ${res.status}`);
+      }
+      return (await res.json()) as { state: StrategyPromotionState };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.registerStrategyVersion(role, userId, input);
+    }
+  }
+
+  async promoteStrategyVersion(
+    role: UserRole,
+    userId: string,
+    input: {
+      version: string;
+      targetStage: StrategyPromotionStage;
+      reason?: string;
+      artifacts?: { researchReportUrl?: string; shadowReportUrl?: string; canaryReportUrl?: string };
+    }
+  ): Promise<{ state: StrategyPromotionState }> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/strategy/promote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Strategy promote failed: ${res.status}`);
+      }
+      return (await res.json()) as { state: StrategyPromotionState };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.promoteStrategyVersion(role, userId, input);
+    }
+  }
+
+  async rollbackStrategy(role: UserRole, userId: string, reason?: string): Promise<{ state: StrategyPromotionState }> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/strategy/rollback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(reason ? { reason } : {})
+      });
+      if (!res.ok) {
+        throw new Error(`Strategy rollback failed: ${res.status}`);
+      }
+      return (await res.json()) as { state: StrategyPromotionState };
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.rollbackStrategy(role, userId, reason);
+    }
+  }
+
+  async getStrategyDegradationConfig(): Promise<StrategyDegradationConfig> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/strategy/degradation-config`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Strategy degradation config fetch failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { config: StrategyDegradationConfig };
+      return payload.config;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getStrategyDegradationConfig();
+    }
+  }
+
+  async updateStrategyDegradationConfig(
+    role: UserRole,
+    userId: string,
+    input: Partial<StrategyDegradationConfig>
+  ): Promise<StrategyDegradationConfig> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/strategy/degradation-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Strategy degradation config update failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { config: StrategyDegradationConfig };
+      return payload.config;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.updateStrategyDegradationConfig(role, userId, input);
     }
   }
 }

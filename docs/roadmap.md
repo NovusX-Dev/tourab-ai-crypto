@@ -1,12 +1,12 @@
 # Roadmap
 
-## Status Snapshot (as of 2026-02-17)
+## Status Snapshot (as of 2026-02-19)
 - Milestone 1: substantially delivered.
 - Milestone 2: delivered.
 - Milestone 3: production-grade complete.
 - Milestone 4: production-grade complete.
 - Milestone 5: in progress.
-- Milestone 6: pending.
+- Milestone 6: in progress.
 - Milestone 7: pending.
 - Milestone 8: pending.
 - Milestone 9: pending.
@@ -103,6 +103,19 @@ Completion criteria:
   - `research` -> `shadow` -> `paper canary` -> `limited prod`.
 - Add automatic rollback to previous stable strategy on degradation triggers.
 - Keep emergency-stop and cancel-all always human-controlled.
+
+Implementation status (current):
+- Implemented:
+  - entry autonomy policy config/status API (`GET/POST /entry-autonomy/config`) with `approval_mode = manual | policy_auto`,
+  - policy-auto guardrails (symbol allowlist, notional/exposure caps, loss budgets, cooldown, readiness/incident/critical-alert/reconciliation checks),
+  - automatic fallback to `manual` on drift circuit, critical alerts/incidents, and `stop`/`emergency-stop` control actions with audit/event evidence,
+  - strategy promotion framework (`register/promote/rollback`) with stage ordering and limited-prod gate enforcement,
+  - degradation-triggered strategy rollback and persisted strategy/degradation state,
+  - Mission Control M6 Autonomy UI for entry policy, strategy promotion, and degradation thresholds,
+  - contract coverage for promotion gates and fallback-trigger evidence (drift, stop, emergency-stop).
+- Pending before declaring complete:
+  - explicit automated verification of submitted-order attribution tags/fields for `approval_mode`, `strategy_version`, and `policy_version` in a deterministic test path,
+  - full acceptance walkthrough for promotion pipeline to limited-prod eligibility under fresh M5 readiness evidence.
 
 Completion criteria:
 - New strategy versions cannot reach limited prod without passing promotion gates.

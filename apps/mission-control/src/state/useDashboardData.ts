@@ -9,6 +9,8 @@ import type {
   BotEvent,
   BotStateSnapshot,
   DemoQueuedIntent,
+  EntryAutonomyConfig,
+  EntryAutonomyStatus,
   ExchangeStatus,
   IncidentItem,
   LogEntry,
@@ -19,6 +21,8 @@ import type {
   PortfolioStatus,
   ReconciliationStatus,
   RiskStatus,
+  StrategyDegradationConfig,
+  StrategyPromotionState,
   UserRole
 } from "../types";
 import { filterEvents, type QuickFilter } from "../logic/eventFilters";
@@ -93,6 +97,35 @@ const EMPTY_AUTO_EXIT_CONFIG: AutoExitConfig = {
   takeProfitRMultiple: 1.5,
   exitOffsetBps: 5
 };
+const EMPTY_ENTRY_AUTONOMY_CONFIG: EntryAutonomyConfig = {
+  approvalMode: "manual",
+  allowedSymbols: ["BTC-USDT"],
+  maxPerOrderNotionalUsd: 10,
+  maxOpenExposureUsd: 20,
+  maxDailyLossUsd: 5,
+  maxWeeklyLossUsd: 15,
+  lossStreakCooldownCount: 3,
+  cooldownMinutes: 60,
+  strategyVersion: "champion-v1",
+  policyVersion: "m6-policy-v1"
+};
+const EMPTY_ENTRY_AUTONOMY_STATUS: EntryAutonomyStatus = {
+  approvalMode: "manual",
+  fallbackActive: false,
+  lastPolicyAutoBlockers: []
+};
+const EMPTY_STRATEGY_PROMOTION: StrategyPromotionState = {
+  activeVersion: "champion-v1",
+  championVersion: "champion-v1",
+  versions: [],
+  history: []
+};
+const EMPTY_STRATEGY_DEGRADATION: StrategyDegradationConfig = {
+  enabled: true,
+  maxDailyLossUsd: 5,
+  maxDrawdownPct: -5,
+  maxConsecutiveLosingTrades: 4
+};
 const EMPTY_MANAGED_TRADES: ManagedTradeItem[] = [];
 const EMPTY_MILESTONE5_EVIDENCE: Milestone5EvidenceSummary = {
   policyVersion: "calendar-day-v1",
@@ -129,6 +162,12 @@ export function useDashboardData(client: BotApiClient) {
   const [openOrders, setOpenOrders] = useState<OpenOrdersStatus>(EMPTY_OPEN_ORDERS);
   const [demoQueue, setDemoQueue] = useState<DemoQueuedIntent[]>(EMPTY_DEMO_QUEUE);
   const [autoExitConfig, setAutoExitConfig] = useState<AutoExitConfig>(EMPTY_AUTO_EXIT_CONFIG);
+  const [entryAutonomy, setEntryAutonomy] = useState<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }>({
+    config: EMPTY_ENTRY_AUTONOMY_CONFIG,
+    status: EMPTY_ENTRY_AUTONOMY_STATUS
+  });
+  const [strategyPromotion, setStrategyPromotion] = useState<StrategyPromotionState>(EMPTY_STRATEGY_PROMOTION);
+  const [strategyDegradation, setStrategyDegradation] = useState<StrategyDegradationConfig>(EMPTY_STRATEGY_DEGRADATION);
   const [managedTrades, setManagedTrades] = useState<ManagedTradeItem[]>(EMPTY_MANAGED_TRADES);
   const [milestone5Evidence, setMilestone5Evidence] = useState<Milestone5EvidenceSummary>(EMPTY_MILESTONE5_EVIDENCE);
   const [metrics, setMetrics] = useState<OpsMetrics>(EMPTY_METRICS);
@@ -146,11 +185,15 @@ export function useDashboardData(client: BotApiClient) {
     let mounted = true;
     async function refreshSnapshot() {
       const snapshot = await client.getSnapshot();
-      const [autoExitRes, managedTradesRes, m5EvidenceRes] = await Promise.allSettled([
+      const [autoExitRes, managedTradesRes, m5EvidenceRes, entryAutonomyRes, strategyPromotionRes, strategyDegradationRes] =
+        await Promise.allSettled([
         client.getAutoExitConfig(),
         client.listManagedTrades(),
-        client.getMilestone5Evidence()
-      ]);
+        client.getMilestone5Evidence(),
+        client.getEntryAutonomyConfig(),
+        client.getStrategyPromotion(),
+        client.getStrategyDegradationConfig()
+        ]);
       if (!mounted) {
         return;
       }
@@ -173,6 +216,15 @@ export function useDashboardData(client: BotApiClient) {
       }
       if (m5EvidenceRes.status === "fulfilled") {
         setMilestone5Evidence(m5EvidenceRes.value);
+      }
+      if (entryAutonomyRes.status === "fulfilled") {
+        setEntryAutonomy(entryAutonomyRes.value);
+      }
+      if (strategyPromotionRes.status === "fulfilled") {
+        setStrategyPromotion(strategyPromotionRes.value.state);
+      }
+      if (strategyDegradationRes.status === "fulfilled") {
+        setStrategyDegradation(strategyDegradationRes.value);
       }
       setMetrics(snapshot.metrics);
       setEvents((prev) => {
@@ -282,6 +334,12 @@ export function useDashboardData(client: BotApiClient) {
     demoQueue,
     autoExitConfig,
     setAutoExitConfig,
+    entryAutonomy,
+    setEntryAutonomy,
+    strategyPromotion,
+    setStrategyPromotion,
+    strategyDegradation,
+    setStrategyDegradation,
     managedTrades,
     setManagedTrades,
     milestone5Evidence,

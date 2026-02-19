@@ -31,6 +31,73 @@ export interface AutoExitConfig {
   exitOffsetBps: number;
 }
 
+export type EntryApprovalMode = "manual" | "policy_auto";
+
+export interface EntryAutonomyConfig {
+  approvalMode: EntryApprovalMode;
+  allowedSymbols: string[];
+  maxPerOrderNotionalUsd: number;
+  maxOpenExposureUsd: number;
+  maxDailyLossUsd: number;
+  maxWeeklyLossUsd: number;
+  lossStreakCooldownCount: number;
+  cooldownMinutes: number;
+  strategyVersion: string;
+  policyVersion: string;
+}
+
+export interface EntryAutonomyStatus {
+  approvalMode: EntryApprovalMode;
+  fallbackActive: boolean;
+  lastFallbackReason?: string;
+  lastFallbackAt?: string;
+  lastPolicyAutoDecisionAt?: string;
+  lastPolicyAutoBlockers: string[];
+}
+
+export type StrategyPromotionStage = "research" | "shadow" | "paper_canary" | "limited_prod";
+export type StrategyVersionStatus = "active" | "candidate" | "retired" | "rolled_back";
+
+export interface StrategyVersionRecord {
+  version: string;
+  stage: StrategyPromotionStage;
+  status: StrategyVersionStatus;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+  artifacts?: {
+    researchReportUrl?: string;
+    shadowReportUrl?: string;
+    canaryReportUrl?: string;
+  };
+}
+
+export interface StrategyPromotionHistoryItem {
+  at: string;
+  action: "register" | "promote" | "rollback";
+  version: string;
+  actor: string;
+  fromStage?: StrategyPromotionStage;
+  toStage?: StrategyPromotionStage;
+  reason?: string;
+}
+
+export interface StrategyPromotionState {
+  activeVersion: string;
+  championVersion: string;
+  challengerVersion?: string;
+  previousStableVersion?: string;
+  versions: StrategyVersionRecord[];
+  history: StrategyPromotionHistoryItem[];
+}
+
+export interface StrategyDegradationConfig {
+  enabled: boolean;
+  maxDailyLossUsd: number;
+  maxDrawdownPct: number;
+  maxConsecutiveLosingTrades: number;
+}
+
 export interface ManagedTradeItem {
   tradeId: string;
   status: string;

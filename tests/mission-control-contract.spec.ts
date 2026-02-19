@@ -21,6 +21,19 @@ interface SnapshotResponse {
   openOrders: { orders: Array<{ ordId: string; instId: string }>; lastUpdatedAt: string; lastError?: string };
 }
 
+interface EntryAutonomyConfigResponse {
+  config: {
+    approvalMode: "manual" | "policy_auto";
+    policyVersion: string;
+  };
+  status: {
+    approvalMode: "manual" | "policy_auto";
+    fallbackActive: boolean;
+    lastFallbackReason?: string;
+    lastFallbackAt?: string;
+  };
+}
+
 async function postControl(baseHttpUrl: string, path: string): Promise<void> {
   const res = await fetch(`${baseHttpUrl}${path}`, {
     method: "POST",
@@ -729,6 +742,375 @@ describe("mission-control contract", () => {
       } else {
         process.env.TOURAB_M5_EVIDENCE_DIR = previousEvidenceDir;
       }
+    }
+  });
+
+  it("enforces strategy promotion gates before limited_prod", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const register = await fetch(`${handle.baseHttpUrl}/strategy/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ version: "challenger-v2", notes: "contract test" })
+      });
+      expect(register.status).toBe(201);
+
+      const promoteShadow = await fetch(`${handle.baseHttpUrl}/strategy/promote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ version: "challenger-v2", targetStage: "shadow" })
+      });
+      expect(promoteShadow.ok).toBe(true);
+
+      const reconcileReady = await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          positions: "ok",
+          pnl: "ok",
+          orders: "ok"
+        })
+      });
+      expect(reconcileReady.ok).toBe(true);
+
+      const promoteCanary = await fetch(`${handle.baseHttpUrl}/strategy/promote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ version: "challenger-v2", targetStage: "paper_canary" })
+      });
+      expect(promoteCanary.ok).toBe(true);
+
+      const promoteLimited = await fetch(`${handle.baseHttpUrl}/strategy/promote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ version: "challenger-v2", targetStage: "limited_prod" })
+      });
+      expect(promoteLimited.status).toBe(409);
+      const gatePayload = (await promoteLimited.json()) as { code: string };
+      expect(gatePayload.code).toBe("PROMOTION_GATES_FAILED");
+
+      const stateRes = await fetch(`${handle.baseHttpUrl}/strategy/promotion`);
+      expect(stateRes.ok).toBe(true);
+      const statePayload = (await stateRes.json()) as {
+        state: { versions: Array<{ version: string; stage: string }> };
+      };
+      expect(statePayload.state.versions.some((item) => item.version === "challenger-v2" && item.stage === "paper_canary")).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("updates strategy degradation config and persists strategy artifacts", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const cfgUpdate = await fetch(`${handle.baseHttpUrl}/strategy/degradation-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          enabled: true,
+          maxDailyLossUsd: 7,
+          maxDrawdownPct: -4.5,
+          maxConsecutiveLosingTrades: 3
+        })
+      });
+      expect(cfgUpdate.ok).toBe(true);
+      const cfgPayload = (await cfgUpdate.json()) as {
+        config: { maxDailyLossUsd: number; maxDrawdownPct: number; maxConsecutiveLosingTrades: number };
+      };
+      expect(cfgPayload.config.maxDailyLossUsd).toBe(7);
+      expect(cfgPayload.config.maxDrawdownPct).toBe(-4.5);
+      expect(cfgPayload.config.maxConsecutiveLosingTrades).toBe(3);
+
+      const register = await fetch(`${handle.baseHttpUrl}/strategy/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          version: "artifact-strategy-v1",
+          artifacts: {
+            researchReportUrl: "https://example.test/research",
+            shadowReportUrl: "https://example.test/shadow"
+          }
+        })
+      });
+      expect(register.status).toBe(201);
+
+      const stateRes = await fetch(`${handle.baseHttpUrl}/strategy/promotion`);
+      expect(stateRes.ok).toBe(true);
+      const statePayload = (await stateRes.json()) as {
+        state: {
+          versions: Array<{
+            version: string;
+            artifacts?: { researchReportUrl?: string; shadowReportUrl?: string };
+          }>;
+        };
+      };
+      const row = statePayload.state.versions.find((item) => item.version === "artifact-strategy-v1");
+      expect(row?.artifacts?.researchReportUrl).toBe("https://example.test/research");
+      expect(row?.artifacts?.shadowReportUrl).toBe("https://example.test/shadow");
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to manual on reconciliation drift circuit and records M6 fallback evidence", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const enablePolicyAuto = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          approvalMode: "policy_auto",
+          policyVersion: "m6-policy-contract"
+        })
+      });
+      expect(enablePolicyAuto.ok).toBe(true);
+
+      await postControl(handle.baseHttpUrl, "/start");
+      const reconcileOne = await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ orders: "drift" })
+      });
+      expect(reconcileOne.ok).toBe(true);
+      const reconcileTwo = await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ orders: "drift" })
+      });
+      expect(reconcileTwo.ok).toBe(true);
+
+      const entryAutonomyRes = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`);
+      expect(entryAutonomyRes.ok).toBe(true);
+      const entryAutonomy = (await entryAutonomyRes.json()) as EntryAutonomyConfigResponse;
+      expect(entryAutonomy.config.approvalMode).toBe("manual");
+      expect(entryAutonomy.status.approvalMode).toBe("manual");
+      expect(entryAutonomy.status.fallbackActive).toBe(true);
+      expect(entryAutonomy.status.lastFallbackReason).toBeTruthy();
+      expect(typeof entryAutonomy.status.lastFallbackAt).toBe("string");
+
+      const snapshotRes = await fetch(`${handle.baseHttpUrl}/snapshot`);
+      expect(snapshotRes.ok).toBe(true);
+      const snapshot = (await snapshotRes.json()) as SnapshotResponse;
+      expect(snapshot.audit.some((item) => item.title === "Approval mode fallback")).toBe(true);
+      expect(snapshot.alerts.some((item) => item.code === "RECONCILIATION_DRIFT_CIRCUIT")).toBe(true);
+      expect(snapshot.alerts.some((item) => item.code === "APPROVAL_MODE_FALLBACK")).toBe(true);
+
+      const eventsRes = await fetch(`${handle.baseHttpUrl}/events?limit=40`);
+      expect(eventsRes.ok).toBe(true);
+      const eventsPayload = (await eventsRes.json()) as {
+        items: Array<{ message?: string; tags?: string[] }>;
+      };
+      expect(
+        eventsPayload.items.some(
+          (item) => (item.message ?? "").includes("Approval mode fallback to manual") || (item.tags ?? []).includes("entry_autonomy")
+        )
+      ).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to manual when stop is executed under policy_auto mode", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const enablePolicyAuto = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          approvalMode: "policy_auto"
+        })
+      });
+      expect(enablePolicyAuto.ok).toBe(true);
+
+      await postControl(handle.baseHttpUrl, "/start");
+
+      const stopDenied = await postControlRaw(handle.baseHttpUrl, "/stop");
+      expect(stopDenied.status).toBe(409);
+      const deniedPayload = (await stopDenied.json()) as { details?: { approvalId?: string } };
+      const approvalId = deniedPayload.details?.approvalId as string;
+      expect(approvalId).toBeTruthy();
+
+      const approveRes = await fetch(`${handle.baseHttpUrl}/approvals/${approvalId}/approve`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        }
+      });
+      expect(approveRes.ok).toBe(true);
+
+      const stopApproved = await postControlRaw(handle.baseHttpUrl, "/stop", {
+        "x-approval-id": approvalId
+      });
+      expect(stopApproved.ok).toBe(true);
+
+      const entryAutonomyRes = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`);
+      expect(entryAutonomyRes.ok).toBe(true);
+      const entryAutonomy = (await entryAutonomyRes.json()) as EntryAutonomyConfigResponse;
+      expect(entryAutonomy.config.approvalMode).toBe("manual");
+      expect(entryAutonomy.status.fallbackActive).toBe(true);
+      expect(entryAutonomy.status.lastFallbackReason).toContain("control action stop activated");
+      expect(typeof entryAutonomy.status.lastFallbackAt).toBe("string");
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to manual when emergency-stop is executed under policy_auto mode", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const enablePolicyAuto = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          approvalMode: "policy_auto"
+        })
+      });
+      expect(enablePolicyAuto.ok).toBe(true);
+
+      await postControl(handle.baseHttpUrl, "/start");
+
+      const denied = await postControlRaw(handle.baseHttpUrl, "/emergency-stop");
+      expect(denied.status).toBe(409);
+      const deniedPayload = (await denied.json()) as { details?: { approvalId?: string } };
+      const approvalId = deniedPayload.details?.approvalId as string;
+      expect(approvalId).toBeTruthy();
+
+      const approveOne = await fetch(`${handle.baseHttpUrl}/approvals/${approvalId}/approve`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "alice"
+        }
+      });
+      expect(approveOne.ok).toBe(true);
+      const approveTwo = await fetch(`${handle.baseHttpUrl}/approvals/${approvalId}/approve`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": "operator",
+          "x-user-id": "bob"
+        }
+      });
+      expect(approveTwo.ok).toBe(true);
+
+      const execute = await postControlRaw(handle.baseHttpUrl, "/emergency-stop", {
+        "x-approval-id": approvalId,
+        "x-user-id": "bob"
+      });
+      expect(execute.ok).toBe(true);
+
+      const entryAutonomyRes = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`);
+      expect(entryAutonomyRes.ok).toBe(true);
+      const entryAutonomy = (await entryAutonomyRes.json()) as EntryAutonomyConfigResponse;
+      expect(entryAutonomy.config.approvalMode).toBe("manual");
+      expect(entryAutonomy.status.fallbackActive).toBe(true);
+      expect(entryAutonomy.status.lastFallbackReason).toContain("control action emergency_stop activated");
+      expect(typeof entryAutonomy.status.lastFallbackAt).toBe("string");
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
     }
   });
 });

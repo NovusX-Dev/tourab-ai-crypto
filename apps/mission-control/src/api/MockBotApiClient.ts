@@ -44,7 +44,7 @@ export class MockBotApiClient implements BotApiClient {
     };
   }
 
-  setAuthToken(_token: string | undefined): void {
+  setAuthToken(_: string | undefined): void {
     return;
   }
 
@@ -493,7 +493,7 @@ export class MockBotApiClient implements BotApiClient {
     return this.reconciliation;
   }
 
-  async clearEventStreamsAndLogs(role: UserRole, _userId: string): Promise<{
+  async clearEventStreamsAndLogs(role: UserRole, _: string): Promise<{
     ok: boolean;
     code: string;
     message: string;

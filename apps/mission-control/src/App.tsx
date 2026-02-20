@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createDefaultBotApiClient } from "./api/LiveBotApiClient";
 import { ApprovalsPanel } from "./components/ApprovalsPanel";
 import { AlertsPanel } from "./components/AlertsPanel";
@@ -70,6 +70,8 @@ export default function App() {
   const previousOpenAlertIdsRef = useRef<string[]>([]);
 
   const dashboard = useDashboardData(client);
+  const { setSymbolFilter, setPinnedSymbol, setManagedTrades, setEntryAutonomy, setStrategyPromotion, setStrategyDegradation } =
+    dashboard;
 
   useEffect(() => {
     client.setAuthToken(authToken || undefined);
@@ -108,7 +110,7 @@ export default function App() {
 
   const scopedSymbol = operatorScope === "btc" ? "BTC-USDT" : operatorScope === "eth" ? "ETH-USDT" : "";
 
-  function playApprovalChime() {
+  const playApprovalChime = useCallback(() => {
     if (approvalSoundMuted || typeof window === "undefined") {
       return;
     }
@@ -136,9 +138,9 @@ export default function App() {
     setTimeout(() => {
       void ctx.close();
     }, totalDurationMs);
-  }
+  }, [approvalSoundMuted]);
 
-  function playAlertChime() {
+  const playAlertChime = useCallback(() => {
     if (approvalSoundMuted || typeof window === "undefined") {
       return;
     }
@@ -165,20 +167,20 @@ export default function App() {
     setTimeout(() => {
       void ctx.close();
     }, 500);
-  }
+  }, [approvalSoundMuted]);
 
   function handleTheme(next: ThemeName) {
     setTheme(next);
     applyTheme(next);
   }
 
-  function pushToast(tone: ToastTone, title: string, body: string) {
+  const pushToast = useCallback((tone: ToastTone, title: string, body: string) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setToasts((prev) => [{ id, tone, title, body }, ...prev].slice(0, 5));
     setTimeout(() => {
       setToasts((prev) => prev.filter((item) => item.id !== id));
     }, 4500);
-  }
+  }, []);
 
   const previousConnectionHealthRef = useRef(dashboard.connectionHealth);
   useEffect(() => {
@@ -192,12 +194,12 @@ export default function App() {
       }
     }
     previousConnectionHealthRef.current = next;
-  }, [dashboard.connectionHealth]);
+  }, [dashboard.connectionHealth, pushToast]);
 
   useEffect(() => {
-    dashboard.setSymbolFilter(scopedSymbol);
-    dashboard.setPinnedSymbol("");
-  }, [scopedSymbol]);
+    setSymbolFilter(scopedSymbol);
+    setPinnedSymbol("");
+  }, [scopedSymbol, setPinnedSymbol, setSymbolFilter]);
 
   const lastCircuitEventRef = useRef<string>("");
   useEffect(() => {
@@ -211,7 +213,7 @@ export default function App() {
       pushToast("error", "CIRCUIT_BREAKER", latest.message);
       void refreshAlerts();
     }
-  }, [dashboard.events]);
+  }, [dashboard.events, pushToast, refreshAlerts]);
 
   useEffect(() => {
     const pending = pendingApprovals.filter((item) => item.status === "pending");
@@ -223,7 +225,7 @@ export default function App() {
       playApprovalChime();
     }
     previousPendingApprovalIdsRef.current = nextPendingIds;
-  }, [pendingApprovals, tab]);
+  }, [pendingApprovals, playApprovalChime, tab]);
 
   useEffect(() => {
     if (tab === "approvals") {
@@ -241,7 +243,7 @@ export default function App() {
       playAlertChime();
     }
     previousOpenAlertIdsRef.current = nextOpenIds;
-  }, [alerts, tab]);
+  }, [alerts, playAlertChime, tab]);
 
   useEffect(() => {
     if (tab === "alerts") {
@@ -249,42 +251,42 @@ export default function App() {
     }
   }, [tab]);
 
-  async function refreshApprovals() {
+  const refreshApprovals = useCallback(async () => {
     const items = await client.listApprovals();
     setPendingApprovals(items);
-  }
+  }, []);
 
-  async function refreshAlerts() {
+  const refreshAlerts = useCallback(async () => {
     const items = await client.listAlerts();
     setAlerts(items);
-  }
+  }, []);
 
-  async function refreshIncidents() {
+  const refreshIncidents = useCallback(async () => {
     const items = await client.listIncidents();
     setIncidents(items);
-  }
+  }, []);
 
-  async function refreshManagedTrades() {
+  const refreshManagedTrades = useCallback(async () => {
     const items = await client.listManagedTrades();
-    dashboard.setManagedTrades(items);
-  }
+    setManagedTrades(items);
+  }, [setManagedTrades]);
 
-  async function refreshM6AutonomyState() {
+  const refreshM6AutonomyState = useCallback(async () => {
     const [entryAutonomyRes, strategyPromotionRes, strategyDegradationRes] = await Promise.allSettled([
       client.getEntryAutonomyConfig(),
       client.getStrategyPromotion(),
       client.getStrategyDegradationConfig()
     ]);
     if (entryAutonomyRes.status === "fulfilled") {
-      dashboard.setEntryAutonomy(entryAutonomyRes.value);
+      setEntryAutonomy(entryAutonomyRes.value);
     }
     if (strategyPromotionRes.status === "fulfilled") {
-      dashboard.setStrategyPromotion(strategyPromotionRes.value.state);
+      setStrategyPromotion(strategyPromotionRes.value.state);
     }
     if (strategyDegradationRes.status === "fulfilled") {
-      dashboard.setStrategyDegradation(strategyDegradationRes.value);
+      setStrategyDegradation(strategyDegradationRes.value);
     }
-  }
+  }, [setEntryAutonomy, setStrategyDegradation, setStrategyPromotion]);
 
   async function saveAutoExitConfig(next: Parameters<typeof client.updateAutoExitConfig>[2]) {
     try {
@@ -513,7 +515,7 @@ export default function App() {
     void refreshIncidents();
     void refreshManagedTrades();
     void refreshM6AutonomyState();
-  }, []);
+  }, [refreshAlerts, refreshApprovals, refreshIncidents, refreshM6AutonomyState, refreshManagedTrades]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -526,9 +528,9 @@ export default function App() {
     return () => {
       clearInterval(timer);
     };
-  }, []);
+  }, [refreshAlerts, refreshApprovals, refreshIncidents, refreshM6AutonomyState, refreshManagedTrades]);
 
-  const rightPanel = useMemo(() => {
+  const rightPanel = (() => {
     if (tab === "risk") {
       return <RiskPanel risk={dashboard.risk} />;
     }
@@ -607,27 +609,7 @@ export default function App() {
       );
     }
     return <LogsPanel logs={dashboard.logs} onClearStreamsAndLogs={() => void clearStreamsAndLogs()} />;
-  }, [
-    tab,
-    dashboard.risk,
-    dashboard.audit,
-    dashboard.logs,
-    dashboard.metrics,
-    dashboard.portfolio,
-    dashboard.openOrders,
-    dashboard.autoExitConfig,
-    dashboard.entryAutonomy,
-    dashboard.strategyPromotion,
-    dashboard.strategyDegradation,
-    dashboard.managedTrades,
-    dashboard.demoQueue,
-    pendingApprovals,
-    selectedAuditId,
-    currentUserId,
-    alerts,
-    incidents,
-    dashboard.role
-  ]);
+  })();
 
   const readinessItems = useMemo(() => {
     const now = Date.now();

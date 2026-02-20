@@ -40,9 +40,9 @@ export default tseslint.config(
     rules: {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         {
-          argsIgnorePattern: "^(?:_|action)$",
+          argsIgnorePattern: "^(?:_.*|action)$",
           varsIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^_"
         }
@@ -54,10 +54,10 @@ export default tseslint.config(
       "import/no-duplicates": "off",
       "promise/always-return": "off",
       "promise/catch-or-return": "error",
-      "prefer-const": "warn",
-      "no-extra-boolean-cast": "warn",
+      "prefer-const": "error",
+      "no-extra-boolean-cast": "error",
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true }

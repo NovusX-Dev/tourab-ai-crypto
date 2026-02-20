@@ -54,7 +54,6 @@ loadEnvFromProjectRoot(process.cwd(), { override: true });
 const DEFAULT_PORT = Number(process.env.TOURAB_MISSION_CONTROL_PORT ?? "7071");
 const DEFAULT_EVENT_STORE_PATH = process.env.TOURAB_EVENT_STORE_PATH ?? "logs/mission-events.sqlite";
 const DEFAULT_ALERT_STORE_PATH = process.env.TOURAB_ALERT_STORE_PATH ?? "logs/mission-alerts.jsonl";
-const DEFAULT_OPS_STORE_PATH = process.env.TOURAB_OPS_STORE_PATH ?? "logs/mission-ops.sqlite";
 const DEFAULT_M5_EVIDENCE_DIR = "logs";
 const REPLAY_DEFAULT = 200;
 const DEFAULT_DRIFT_CIRCUIT_ACTION = (process.env.TOURAB_DRIFT_CIRCUIT_ACTION ?? "pause") as "pause" | "stop";
@@ -261,10 +260,6 @@ function fillStatsForOrder(fills: OkxFillRecord[], ordId: string | undefined): {
 
 function dayStartIso(day: string): string {
   return `${day}T00:00:00.000Z`;
-}
-
-function dayEndIso(day: string): string {
-  return `${day}T23:59:59.999Z`;
 }
 
 function asUtcDay(isoLike: string | undefined): string | undefined {
@@ -823,13 +818,13 @@ export async function startMissionControlServer(
       strategyVersion: (process.env.TOURAB_STRATEGY_VERSION ?? DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION).trim(),
       policyVersion: (process.env.TOURAB_POLICY_VERSION ?? DEFAULT_ENTRY_AUTONOMY_POLICY_VERSION).trim()
     };
-  let entryAutonomyStatus: EntryAutonomyStatus =
+  const entryAutonomyStatus: EntryAutonomyStatus =
     opsStore.loadRuntimeState<EntryAutonomyStatus>("entry_autonomy_status") ?? {
       approvalMode: entryAutonomyConfig.approvalMode,
       fallbackActive: false,
       lastPolicyAutoBlockers: []
     };
-  let strategyPromotionState: StrategyPromotionState =
+  const strategyPromotionState: StrategyPromotionState =
     opsStore.loadRuntimeState<StrategyPromotionState>("strategy_promotion_state") ?? {
       activeVersion: entryAutonomyConfig.strategyVersion,
       championVersion: entryAutonomyConfig.strategyVersion,
@@ -2604,7 +2599,7 @@ export async function startMissionControlServer(
 
     const reportDays = [...reportDayMap.values()]
       .sort((a, b) => b.day.localeCompare(a.day))
-      .map(({ endedAt: _endedAt, ...rest }) => rest);
+      .map(({ endedAt: _, ...rest }) => rest);
     const days = [...reportDays];
     if (!days.some((item) => item.day === todayDay)) {
       days.unshift(liveToday);
@@ -3150,7 +3145,7 @@ export async function startMissionControlServer(
             }
           : undefined
     });
-    if (Boolean(req.body?.challenger)) {
+    if (req.body?.challenger) {
       strategyPromotionState.challengerVersion = version;
     }
     strategyPromotionState.history.unshift({

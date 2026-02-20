@@ -1,6 +1,6 @@
 # Project Index
 
-Generated: 2026-02-20 08:15:42 UTC
+Generated: 2026-02-20 08:27:47 UTC
 
 ## Summary
 - Root: `.`
@@ -511,7 +511,7 @@ Generated: 2026-02-20 08:15:42 UTC
 | `apps/dashboard/src/mission-control/sqlite-event-store.ts` | 4967 | 2026-02-18 16:51:12 | `639918252486f4000bd224c1567bbb2a5e2962d61371baa597d7a416cf896e6c` |
 | `apps/dashboard/src/mission-control/sqlite-ops-store.ts` | 19330 | 2026-02-18 16:51:18 | `3398179bb8ac94ec6f705aa3eaf0ce89957b2a3cfe6183bee41eb33e1f476435` |
 | `apps/dashboard/src/mission-control/worker-manager.ts` | 7187 | 2026-02-17 14:43:08 | `11daaf642e071ead8a3c3c88dc99ca85a10fd218221007a054f5c09925b28bc4` |
-| `apps/dashboard/src/mission-control-server.ts` | 155676 | 2026-02-19 14:43:56 | `8ac5807c9cc4afb7f2c9554de51f988140ab4260ad5cad27482810a5daca117f` |
+| `apps/dashboard/src/mission-control-server.ts` | 155491 | 2026-02-20 08:18:57 | `e3e4f1cda80eb3723b7e9599a3158bdc9dec2cb84378622f6fc309b8abdba1ba` |
 | `apps/dashboard/src/okx-demo-auto-loop-cli.ts` | 10196 | 2026-02-17 14:03:52 | `1a99e46e1bfceb646ce6a5c56bbe5ecde6bf9e8ee6a1c55f1a9c610b0d683c01` |
 | `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4304 | 2026-02-17 14:03:47 | `abf004a0c761c5feec4c7916124fb349256ff5a616acbc0dd708653107d72edf` |
 | `apps/dashboard/src/okx-demo-diagnostic-cli.ts` | 6491 | 2026-02-18 13:10:48 | `d3ed9b32a93474eef8fac634fa6c0a4bf2ed275a45fc333b0a3a46702afdd225` |
@@ -543,13 +543,13 @@ Generated: 2026-02-20 08:15:42 UTC
 | `apps/mission-control/node_modules/.vite/deps/react-dom.js.map` | 93 | 2026-02-17 08:51:22 | `ed562b0bba7ee7214e56ac7f728054b3496bec4597c94a4eb7b4179e6f5cb1c9` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js` | 1005187 | 2026-02-17 08:51:22 | `f14b7bce848f545229136f9afb30e703ae9582a00e355ba92207e4aa8399f858` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js.map` | 1559234 | 2026-02-17 08:51:22 | `6137b61d61b94540bff33a497aa550caed7b5fc5a22a550fdbe0109e9ae8ee22` |
-| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 471 | 2026-02-20 08:12:25 | `78a6d208ead3cd6865859fa027b50d0f659c7829af0fea5538d2fa7044775df8` |
+| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 473 | 2026-02-20 08:21:03 | `280736d02530dd4bd7fcd21ecc9393a5e9822f080e7d0d8831d675583c9c4471` |
 | `apps/mission-control/package.json` | 669 | 2026-02-16 17:42:43 | `3024c620c459bc2e3913d4089b1595f968279f16f76d94c51d93ade2b841ce8e` |
 | `apps/mission-control/README.md` | 5011 | 2026-02-17 13:32:41 | `8a2923353fdf2206681aa99dde2fdb85ab98505b108c85766f90d9f3c9a11c14` |
 | `apps/mission-control/src/api/BotApiClient.ts` | 4773 | 2026-02-18 18:06:37 | `aaa1293e1c0250b1ff2d07504a832b29749d9675c495d12d91f3838054cbe57e` |
 | `apps/mission-control/src/api/LiveBotApiClient.ts` | 25528 | 2026-02-18 18:07:17 | `85aab146233cdeeaf57678b3e378c68a95d21c341d39061c555f14ead6419d3e` |
-| `apps/mission-control/src/api/MockBotApiClient.ts` | 24188 | 2026-02-18 18:07:48 | `e8be02ec34f4008fb929a20a2c4d7106fb88d6efda6952a9eccde0799e8c8623` |
-| `apps/mission-control/src/App.tsx` | 34055 | 2026-02-18 18:11:19 | `d541827bf9ff5b7d723d0c53f2f764bc3c0311bb7578fa84369c2b359ad6434b` |
+| `apps/mission-control/src/api/MockBotApiClient.ts` | 24177 | 2026-02-20 08:18:35 | `3f3016329ce8e35f097eb98ac94d8613cb8b0269bdaf107c104582e03d57188d` |
+| `apps/mission-control/src/App.tsx` | 34285 | 2026-02-20 08:19:00 | `a557b7c0657700c49037538b829398bb5033bf453ade8878223617f0283ac3b3` |
 | `apps/mission-control/src/components/AlertsPanel.tsx` | 3632 | 2026-02-17 16:06:34 | `792a42567de09e706d2b5098a8612e178d6aa58bd9ad5beb1c9fb064d0e26a89` |
 | `apps/mission-control/src/components/ApprovalsPanel.tsx` | 4599 | 2026-02-17 16:33:52 | `d2147ce924654de3c6c36aab79043f1088419978e1bfb0772984278856d775b6` |
 | `apps/mission-control/src/components/AuditTimeline.tsx` | 1307 | 2026-02-16 17:05:08 | `4b7dce32b967dd32649ec3395eefc00800bda128404c5335da450528aaa3b6ea` |
@@ -602,7 +602,7 @@ Generated: 2026-02-20 08:15:42 UTC
 | `docs/runbooks/reconciliation-drift-circuit.md` | 660 | 2026-02-17 08:14:21 | `e1c20250b36afbd059c08da1dc10747313821972de49feae9febdb22f0ae6217` |
 | `docs/tomorrow-work.md` | 789 | 2026-02-19 16:13:51 | `dd2f14a6566d6c18b0961a629564fa7f0f0736b6cae829d918b746da246a0484` |
 | `docs/ui-prompts.md` | 16045 | 2026-02-16 17:00:33 | `de5e884a5d4fc1f5b340efe9bc28adfcb313ccee16d4e9136b1c73818e832c3c` |
-| `eslint.config.mjs` | 1969 | 2026-02-20 08:09:47 | `1aa1559b4e5d46ab2bbd1a84c7b47c85eda9ec5f2a0244cb91598482195f7d5c` |
+| `eslint.config.mjs` | 1975 | 2026-02-20 08:19:22 | `7bc26fbaf896e1ba9bbc8a9d658cd60fe4eac6c53878f21fdc6e0a6c268d7be3` |
 | `logs/context.e2e.json` | 295 | 2026-02-17 13:49:59 | `30cbda451beabc5dd7ac3a11ba4e4c148bf6785692c71239c36148fb9b16205e` |
 | `logs/local-terminal.err.log` | 173 | 2026-02-17 20:04:53 | `d052ca9bf1d9124f21bb6832673ce32c6cbd451ab287e65d2af85805b9a71a31` |
 | `logs/local-terminal.out.log` | 6005 | 2026-02-17 20:04:50 | `3b2f9d873d6e051f27daf6cd854bae9aaf3459630737ead18dadb62228b4ceea` |
@@ -747,7 +747,7 @@ Generated: 2026-02-20 08:15:42 UTC
 | `logs/m6-acceptance-2026-02-19T08-04-49-497Z/summary.md` | 613 | 2026-02-19 08:04:50 | `1630c41db3deb9367036f779418d9ebb889fac155e97f1deb2b83d1a1a85d412` |
 | `logs/m6-acceptance-2026-02-19T15-24-28-150Z/report.json` | 98547 | 2026-02-19 15:24:29 | `e2631a9713b657b5a13a46a6f44ff0539f4c80674b391b33c27fd04b26112219` |
 | `logs/m6-acceptance-2026-02-19T15-24-28-150Z/summary.md` | 613 | 2026-02-19 15:24:29 | `3bcc1d755a9f2017202d2a1a3fc9564468ea59cf42a31fd0afd10dfaebe8c25a` |
-| `logs/mission-alerts.jsonl` | 11446 | 2026-02-20 08:12:08 | `6133ba15c112c85155d52a34a0a37f99914580a5384d1ad94d9d0c52939e8f75` |
+| `logs/mission-alerts.jsonl` | 11446 | 2026-02-20 08:20:42 | `b7af58a228cbe401b407112930ce1722320f7416b1c1551abcc570cae966422c` |
 | `logs/mission-control-server.err.log` | 1018 | 2026-02-18 16:48:58 | `d8612be586905cbd5e63c8d3fb277b383bb1d95ded1ab09b1d0bc81d1d41426f` |
 | `logs/mission-control-server.out.log` | 0 | 2026-02-18 16:48:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
 | `logs/mission-events.jsonl` | 208 | 2026-02-16 17:35:42 | `53aca00c56fcb146948c23e537e0c20c4c98ed17c5c575bdf37ce8ff226f081d` |

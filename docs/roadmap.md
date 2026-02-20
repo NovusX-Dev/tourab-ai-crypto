@@ -6,7 +6,7 @@
 - Milestone 3: production-grade complete.
 - Milestone 4: production-grade complete.
 - Milestone 5: in progress.
-- Milestone 6: in progress.
+- Milestone 6: engineering acceptance complete (production promotion remains gated by real M5 readiness evidence).
 - Milestone 7: pending.
 - Milestone 8: pending.
 - Milestone 9: pending.
@@ -112,10 +112,11 @@ Implementation status (current):
   - strategy promotion framework (`register/promote/rollback`) with stage ordering and limited-prod gate enforcement,
   - degradation-triggered strategy rollback and persisted strategy/degradation state,
   - Mission Control M6 Autonomy UI for entry policy, strategy promotion, and degradation thresholds,
-  - contract coverage for promotion gates and fallback-trigger evidence (drift, stop, emergency-stop).
-- Pending before declaring complete:
-  - explicit automated verification of submitted-order attribution tags/fields for `approval_mode`, `strategy_version`, and `policy_version` in a deterministic test path,
-  - full acceptance walkthrough for promotion pipeline to limited-prod eligibility under fresh M5 readiness evidence.
+  - contract coverage for promotion gates and fallback-trigger evidence (drift, stop, emergency-stop),
+  - deterministic attribution verification for submitted orders (`approval_mode`, `strategy_version`, `policy_version`) via `tests/m6-attribution-contract.spec.ts`,
+  - M6 promotion-pipeline acceptance walkthrough passed (`logs/m6-acceptance-2026-02-19T15-24-28-150Z/summary.md`) with `allStepsOk=true` and `limitedProdReached=true`.
+- Remaining operational gate (outside M6 engineering acceptance):
+  - run promotion decisions against fresh, real (non-seeded) M5 readiness evidence as part of live rollout governance.
 
 Completion criteria:
 - New strategy versions cannot reach limited prod without passing promotion gates.

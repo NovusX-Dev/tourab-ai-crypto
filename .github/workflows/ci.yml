@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Backend tests
+        run: npm run test
+
+      - name: Mission control tests
+        run: npm run mission-control:test
+
+      - name: Backend coverage gates
+        run: npm run test:coverage
+
+      - name: Mission control coverage gates
+        run: npm run mission-control:test:coverage

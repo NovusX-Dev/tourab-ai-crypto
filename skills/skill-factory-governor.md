@@ -23,12 +23,13 @@ Meta-skill for deciding when new project skills should be created, how to scope 
 3. Write shortest useful workflow and quality gates.
 4. Link canonical project files and tests.
 5. Add/update `skills/README.md` current skill list.
-6. Validate that new skill does not duplicate an existing one.
+6. Register the skill in root `AGENTS.md` under `### Available skills` with name, description, and file path.
+7. Validate that new skill does not duplicate an existing one.
 
 ## Proactive behavior policy
 - When a new recurring pattern is detected, propose a skill addition in end-of-task notes.
 - Do not auto-create skills for one-off tasks.
-- If approved by user, create the skill immediately and register it.
+- If approved by user, create the skill immediately and register it in both `skills/README.md` and `AGENTS.md`.
 
 ## Skill quality checklist
 - Clear summary and trigger cues.
@@ -43,5 +44,6 @@ Meta-skill for deciding when new project skills should be created, how to scope 
 
 ## References
 - `skills/README.md`
+- `AGENTS.md`
 - `docs/roadmap.md`
 - `docs/project-index.md`

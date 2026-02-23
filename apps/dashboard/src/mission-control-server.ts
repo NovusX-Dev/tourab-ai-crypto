@@ -753,6 +753,25 @@ interface LearningEvaluationTrendSummary {
   points: LearningEvaluationTrendPoint[];
 }
 
+interface LearningRetentionConfig {
+  closedTradeFeatureRetentionDays: number;
+}
+
+interface LearningRetentionPruneResult {
+  closedTradeFeaturesDeleted: number;
+}
+
+interface LearningRetentionStatus {
+  config: LearningRetentionConfig;
+  stats: {
+    featureCount: number;
+    oldestClosedAt?: string;
+    newestClosedAt?: string;
+  };
+  lastPruneAt?: string;
+  lastPruneResult?: LearningRetentionPruneResult;
+}
+
 function controlActionFromPath(path: string): ControlAction | undefined {
   if (path === "/start") return "start";
   if (path === "/pause") return "pause";
@@ -894,7 +913,7 @@ export async function startMissionControlServer(
   const logRequests = options.logRequests ?? true;
   const approvalTtlMs = options.approvalTtlMs ?? Number(process.env.TOURAB_APPROVAL_TTL_MS ?? 5 * 60_000);
   const driftCircuitAction = DEFAULT_DRIFT_CIRCUIT_ACTION;
-  const streamRetentionMs = parseBoundedInt(
+  let streamRetentionMs = parseBoundedInt(
     process.env.TOURAB_STREAM_RETENTION_MS,
     DEFAULT_STREAM_RETENTION_MS,
     60_000,
@@ -906,7 +925,7 @@ export async function startMissionControlServer(
     5_000,
     10 * 60_000
   );
-  const opsTradeRetentionMs = parseBoundedInt(
+  let opsTradeRetentionMs = parseBoundedInt(
     process.env.TOURAB_OPS_TRADE_RETENTION_MS,
     DEFAULT_OPS_TRADE_RETENTION_MS,
     60_000,
@@ -1056,6 +1075,17 @@ export async function startMissionControlServer(
         100
       )
     };
+  let learningRetentionConfig: LearningRetentionConfig =
+    opsStore.loadRuntimeState<LearningRetentionConfig>("learning_retention_config") ?? {
+      closedTradeFeatureRetentionDays: Math.max(1, Math.floor(opsTradeRetentionMs / (24 * 60 * 60_000)))
+    };
+  learningRetentionConfig.closedTradeFeatureRetentionDays = Math.max(
+    1,
+    Math.min(3650, Math.floor(learningRetentionConfig.closedTradeFeatureRetentionDays))
+  );
+  opsTradeRetentionMs = learningRetentionConfig.closedTradeFeatureRetentionDays * 24 * 60 * 60_000;
+  let learningRetentionLastPruneAt: string | undefined;
+  let learningRetentionLastPruneResult: LearningRetentionPruneResult | undefined;
   const autoExitStaleTimeoutSec = parseBoundedInt(
     process.env.TOURAB_AUTO_EXIT_STALE_TIMEOUT_SEC,
     DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC,
@@ -1404,6 +1434,24 @@ export async function startMissionControlServer(
 
   function persistLearningAlertThresholds(): void {
     opsStore.saveRuntimeState("learning_alert_thresholds", learningAlertThresholds);
+  }
+
+  function persistLearningRetentionConfig(): void {
+    opsStore.saveRuntimeState("learning_retention_config", learningRetentionConfig);
+  }
+
+  function buildLearningRetentionStatus(): LearningRetentionStatus {
+    const stats = opsStore.getClosedTradeFeatureStats();
+    return {
+      config: learningRetentionConfig,
+      stats: {
+        featureCount: stats.count,
+        oldestClosedAt: stats.oldestClosedAt,
+        newestClosedAt: stats.newestClosedAt
+      },
+      lastPruneAt: learningRetentionLastPruneAt,
+      lastPruneResult: learningRetentionLastPruneResult
+    };
   }
 
   const startupIso = new Date().toISOString();
@@ -2807,7 +2855,13 @@ export async function startMissionControlServer(
     return code === "ERR_SQLITE_ERROR" && (errcode === 5 || message.includes("database is locked"));
   }
 
-  async function pruneRetentionData(): Promise<void> {
+  async function pruneRetentionData(): Promise<{
+    eventsDeleted: number;
+    auditDeleted: number;
+    incidentsDeleted: number;
+    managedTradesDeleted: number;
+    closedTradeFeaturesDeleted: number;
+  }> {
     try {
       const cutoffIso = new Date(Date.now() - streamRetentionMs).toISOString();
       const eventsDeleted = eventStore.deleteOlderThan(cutoffIso);
@@ -2816,6 +2870,10 @@ export async function startMissionControlServer(
       const opsTradeCutoffIso = new Date(Date.now() - opsTradeRetentionMs).toISOString();
       const managedTradesDeleted = opsStore.deleteManagedTradesOlderThan(opsTradeCutoffIso);
       const closedTradeFeaturesDeleted = opsStore.deleteClosedTradeFeaturesOlderThan(opsTradeCutoffIso);
+      learningRetentionLastPruneAt = new Date().toISOString();
+      learningRetentionLastPruneResult = {
+        closedTradeFeaturesDeleted
+      };
       if (
         eventsDeleted === 0 &&
         auditDeleted === 0 &&
@@ -2823,7 +2881,13 @@ export async function startMissionControlServer(
         managedTradesDeleted === 0 &&
         closedTradeFeaturesDeleted === 0
       ) {
-        return;
+        return {
+          eventsDeleted,
+          auditDeleted,
+          incidentsDeleted,
+          managedTradesDeleted,
+          closedTradeFeaturesDeleted
+        };
       }
       inMemoryEvents = await eventStore.readAll();
       const latestAudit = opsStore.listAudit(300);
@@ -2834,14 +2898,27 @@ export async function startMissionControlServer(
       if (managedTradesDeleted > 0) {
         for (const [tradeId, trade] of managedTrades.entries()) {
           const reference = trade.closedAt ?? trade.updatedAt;
-          if (reference < cutoffIso) {
+          if (reference < opsTradeCutoffIso) {
             managedTrades.delete(tradeId);
           }
         }
       }
+      return {
+        eventsDeleted,
+        auditDeleted,
+        incidentsDeleted,
+        managedTradesDeleted,
+        closedTradeFeaturesDeleted
+      };
     } catch (error: unknown) {
       if (isSqliteBusyError(error)) {
-        return;
+        return {
+          eventsDeleted: 0,
+          auditDeleted: 0,
+          incidentsDeleted: 0,
+          managedTradesDeleted: 0,
+          closedTradeFeaturesDeleted: 0
+        };
       }
       throw error;
     }
@@ -4099,6 +4176,84 @@ export async function startMissionControlServer(
     res.json({ governance: learningGovernanceState });
   });
 
+  app.post("/learning/governance/promote", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const requestedVersion = typeof req.body?.targetVersion === "string" ? req.body.targetVersion.trim() : "";
+    if (!requestedVersion) {
+      writeError(res, 400, {
+        ok: false,
+        code: "INVALID_LEARNING_PROMOTION_REQUEST",
+        message: "targetVersion is required",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const validationReportRef =
+      typeof req.body?.validationReportRef === "string" ? req.body.validationReportRef.trim() : "";
+    const approvalRecordRef = typeof req.body?.approvalRecordRef === "string" ? req.body.approvalRecordRef.trim() : "";
+    const gateResultRef = typeof req.body?.gateResultRef === "string" ? req.body.gateResultRef.trim() : "";
+    const blockers: string[] = [];
+    if (!validationReportRef) {
+      blockers.push("validationReportRef is required.");
+    }
+    if (!approvalRecordRef) {
+      blockers.push("approvalRecordRef is required.");
+    }
+    if (!gateResultRef) {
+      blockers.push("gateResultRef is required.");
+    }
+    if (blockers.length > 0) {
+      writeError(res, 409, {
+        ok: false,
+        code: "LEARNING_PROMOTION_GATES_FAILED",
+        message: "Learning promotion blocked: missing governed evidence references.",
+        correlationId: typed.correlationId,
+        details: { blockers: blockers.join(" | ") }
+      });
+      return;
+    }
+    if (requestedVersion === learningGovernanceState.activeModelVersion) {
+      res.json({ governance: learningGovernanceState, changed: false });
+      return;
+    }
+    const reason =
+      typeof req.body?.reason === "string" && req.body.reason.trim().length > 0
+        ? req.body.reason.trim()
+        : "manual learning promotion";
+    const previousActive = learningGovernanceState.activeModelVersion;
+    learningGovernanceState.previousStableModelVersion = previousActive;
+    learningGovernanceState.activeModelVersion = requestedVersion;
+    learningGovernanceState.mode = "shadow_eval";
+    learningGovernanceState.rollbackCandidateVersion = undefined;
+    const nowIso = new Date().toISOString();
+    persistLearningGovernanceState(nowIso);
+    await appendAudit(
+      "Learning model promoted",
+      `from=${previousActive} to=${requestedVersion}; reason=${reason}; actor=${typed.userId}; validation=${validationReportRef}; approval=${approvalRecordRef}; gate=${gateResultRef}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Learning model promoted from ${previousActive} to ${requestedVersion} by ${typed.userId}`,
+        "info",
+        ["learning_governance", "promote", "m7"]
+      )
+    );
+    res.json({ governance: learningGovernanceState, changed: true });
+  });
+
   app.get("/learning/evaluation", (req, res) => {
     const rawLookback = Number(req.query.lookbackDays);
     const rawLimit = Number(req.query.limit);
@@ -4183,6 +4338,60 @@ export async function startMissionControlServer(
     );
     await evaluateLearningAlertThresholds(new Date().toISOString());
     res.json({ config: learningAlertThresholds });
+  });
+
+  app.get("/learning/retention-config", (_req, res) => {
+    res.json(buildLearningRetentionStatus());
+  });
+
+  app.post("/learning/retention-config", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const nextDays =
+      typeof req.body?.closedTradeFeatureRetentionDays === "number" && Number.isFinite(req.body.closedTradeFeatureRetentionDays)
+        ? Math.max(1, Math.min(3650, Math.floor(req.body.closedTradeFeatureRetentionDays)))
+        : learningRetentionConfig.closedTradeFeatureRetentionDays;
+    learningRetentionConfig = {
+      closedTradeFeatureRetentionDays: nextDays
+    };
+    opsTradeRetentionMs = learningRetentionConfig.closedTradeFeatureRetentionDays * 24 * 60 * 60_000;
+    persistLearningRetentionConfig();
+    await appendAudit(
+      "Learning retention config updated",
+      `closedTradeFeatureRetentionDays=${learningRetentionConfig.closedTradeFeatureRetentionDays}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    res.json(buildLearningRetentionStatus());
+  });
+
+  app.post("/learning/retention/prune", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    await pruneRetentionData();
+    await appendAudit(
+      "Learning retention prune applied",
+      `closedTradeFeaturesDeleted=${learningRetentionLastPruneResult?.closedTradeFeaturesDeleted ?? 0}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    res.json(buildLearningRetentionStatus());
   });
 
   app.post("/learning/governance/rollback", async (req, res) => {

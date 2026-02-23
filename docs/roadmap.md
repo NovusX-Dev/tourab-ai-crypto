@@ -8,7 +8,7 @@
 - Milestone 5: in progress.
   - Latest M5 evidence (`logs/m5-evidence-2026-02-23T08-28-23-766Z/summary.md`): today `pass=true`, `qualifiedDays=5/7`, `streakDays=3`, `milestoneReady=false`.
 - Milestone 6: engineering acceptance complete (production promotion remains gated by real M5 readiness evidence).
-- Milestone 7: in progress.
+- Milestone 7: complete (governed learning pipeline + walk-forward acceptance gating).
 - Milestone 8: pending.
 - Milestone 9: pending.
 
@@ -208,8 +208,33 @@ Implementation status (current):
   - learning incident export/report validation artifact:
     - `logs/m7-incidents-export-validation-2026-02-23T05-52-05-317-03-00`
     - `GET /learning/incidents/export?lookbackDays=30` returned `count=3`, `openCount=3`, all `LEARNING_*`, in-window.
-- Pending:
-  - optional historical retention UX improvements.
+- Code-and-test reality check (2026-02-23):
+  - verified implemented and test-covered:
+    - feature store ingestion/persistence, learning evaluation + trend + threshold controls, incident export/reporting, rollback hook, and offline `snapshot -> retrain -> gate` workflow.
+  - implemented now (Track 3 step 1):
+    - governed runtime promotion endpoint:
+      - `POST /learning/governance/promote`
+      - enforces operator role and governed evidence references (`validationReportRef`, `approvalRecordRef`, `gateResultRef`) before activating a new model version.
+      - emits audit/event evidence and updates `activeModelVersion` / `previousStableModelVersion`.
+  - targeted validation executed:
+    - `tests/m7-learning-contract.spec.ts`
+    - `tests/m7-promotion-gate.spec.ts`
+    - `tests/m7-walk-forward.spec.ts`
+    - M7-relevant coverage in `tests/mission-control-contract.spec.ts`
+- Walk-forward stability + acceptance gate evidence (2026-02-23):
+  - walk-forward artifact:
+    - `logs/m7-walk-forward-2026-02-23T09-55-24-508Z/walk-forward-report.json`
+    - result: `windowsEvaluated=5`, `windowsPassed=4`, `passRatePct=80`, `pass=true`.
+  - gate artifact (with walk-forward required):
+    - `logs/m7-gate-2026-02-23T09-55-30-036Z/gate-result.json`
+    - result: `pass=true` with `walkForwardStabilityPass=true`.
+- Implemented (Track 2 step 7: historical retention UX improvements):
+  - backend learning retention API:
+    - `GET /learning/retention-config`
+    - `POST /learning/retention-config`
+    - `POST /learning/retention/prune`
+  - runtime policy controls for closed-trade feature history retention + operator-triggered prune with audit evidence.
+  - Mission Control Autonomy panel now exposes Learning Retention controls (days, stats, last prune result, manual prune action).
 
 Completion criteria:
 - Learning updates are never deployed directly without validation and approval.

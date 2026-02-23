@@ -116,8 +116,41 @@ export interface M7PromotionGateResult {
     shadowOrCanaryEvidencePass: boolean;
     approvalRecordedPass: boolean;
     modelVersionMatchPass: boolean;
+    walkForwardStabilityPass: boolean;
   };
   failedChecks: string[];
+}
+
+export interface M7WalkForwardWindowSummary {
+  index: number;
+  testStart: string;
+  testEnd: string;
+  trades: number;
+  expectancyUsd: number;
+  winRatePct: number;
+  controlViolationRatePct: number;
+  pass: boolean;
+}
+
+export interface M7WalkForwardReport {
+  schemaVersion: "m7-walk-forward-report-v1";
+  generatedAt: string;
+  candidateModelVersion: string;
+  datasetId: string;
+  config: {
+    minTradesPerWindow: number;
+    minWindows: number;
+    minPassRatePct: number;
+    minExpectancyUsd: number;
+    maxControlViolationRatePct: number;
+  };
+  summary: {
+    windowsEvaluated: number;
+    windowsPassed: number;
+    passRatePct: number;
+    pass: boolean;
+  };
+  windows: M7WalkForwardWindowSummary[];
 }
 
 export function round6(value: number): number {
@@ -134,6 +167,103 @@ function mean(values: number[]): number {
   }
   const total = values.reduce((acc, item) => acc + item, 0);
   return total / values.length;
+}
+
+function clampPct(value: number): number {
+  return Math.max(0, Math.min(100, value));
+}
+
+function toWindowSummary(input: {
+  index: number;
+  testStart: string;
+  testEnd: string;
+  records: ClosedTradeFeatureRecord[];
+  minTradesPerWindow: number;
+  minExpectancyUsd: number;
+  maxControlViolationRatePct: number;
+}): M7WalkForwardWindowSummary {
+  const trades = input.records.length;
+  const wins = input.records.filter((item) => item.realizedPnlUsd > 0).length;
+  const expectancyUsd = round6(mean(input.records.map((item) => item.realizedPnlUsd)));
+  const winRatePct = round6(trades > 0 ? (wins / trades) * 100 : 0);
+  const violations = input.records.filter((item) => item.exitReason === "manual" || item.exitReason === "circuit_breaker").length;
+  const controlViolationRatePct = round6(trades > 0 ? (violations / trades) * 100 : 0);
+  const pass =
+    trades >= input.minTradesPerWindow &&
+    expectancyUsd >= input.minExpectancyUsd &&
+    controlViolationRatePct <= input.maxControlViolationRatePct;
+  return {
+    index: input.index,
+    testStart: input.testStart,
+    testEnd: input.testEnd,
+    trades,
+    expectancyUsd,
+    winRatePct,
+    controlViolationRatePct,
+    pass
+  };
+}
+
+export function buildWalkForwardReport(input: {
+  generatedAt: string;
+  candidateModelVersion: string;
+  datasetId: string;
+  records: ClosedTradeFeatureRecord[];
+  windowCount: number;
+  minTradesPerWindow: number;
+  minWindows: number;
+  minPassRatePct: number;
+  minExpectancyUsd: number;
+  maxControlViolationRatePct: number;
+}): M7WalkForwardReport {
+  const sorted = [...input.records].sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+  const windows: M7WalkForwardWindowSummary[] = [];
+  const boundedWindowCount = Math.max(1, Math.floor(input.windowCount));
+  const sliceSize = Math.max(1, Math.floor(sorted.length / boundedWindowCount));
+  let index = 0;
+  for (let i = 0; i < sorted.length; i += sliceSize) {
+    const bucket = sorted.slice(i, i + sliceSize);
+    if (bucket.length === 0) {
+      continue;
+    }
+    windows.push(
+      toWindowSummary({
+        index,
+        testStart: bucket[0].closedAt,
+        testEnd: bucket[bucket.length - 1].closedAt,
+        records: bucket,
+        minTradesPerWindow: input.minTradesPerWindow,
+        minExpectancyUsd: input.minExpectancyUsd,
+        maxControlViolationRatePct: input.maxControlViolationRatePct
+      })
+    );
+    index += 1;
+  }
+  const windowsEvaluated = windows.length;
+  const windowsPassed = windows.filter((item) => item.pass).length;
+  const passRatePct = round6(windowsEvaluated > 0 ? (windowsPassed / windowsEvaluated) * 100 : 0);
+  const pass =
+    windowsEvaluated >= Math.max(1, Math.floor(input.minWindows)) && passRatePct >= clampPct(input.minPassRatePct);
+  return {
+    schemaVersion: "m7-walk-forward-report-v1",
+    generatedAt: input.generatedAt,
+    candidateModelVersion: input.candidateModelVersion,
+    datasetId: input.datasetId,
+    config: {
+      minTradesPerWindow: Math.max(1, Math.floor(input.minTradesPerWindow)),
+      minWindows: Math.max(1, Math.floor(input.minWindows)),
+      minPassRatePct: clampPct(input.minPassRatePct),
+      minExpectancyUsd: input.minExpectancyUsd,
+      maxControlViolationRatePct: clampPct(input.maxControlViolationRatePct)
+    },
+    summary: {
+      windowsEvaluated,
+      windowsPassed,
+      passRatePct,
+      pass
+    },
+    windows
+  };
 }
 
 export function buildDatasetSnapshot(input: {
@@ -280,23 +410,27 @@ export function evaluateM7PromotionGate(input: {
   run: M7OfflineTrainingRun;
   validation: M7IndependentValidationReport;
   approval: M7ApprovalRecord;
+  walkForward: M7WalkForwardReport;
   minTradesRequired: number;
 }): M7PromotionGateResult {
   const modelVersionMatchPass =
     input.validation.candidateModelVersion === input.run.candidateModelVersion &&
-    input.approval.candidateModelVersion === input.run.candidateModelVersion;
+    input.approval.candidateModelVersion === input.run.candidateModelVersion &&
+    input.walkForward.candidateModelVersion === input.run.candidateModelVersion;
   const datasetVolumePass = input.run.metrics.totalTrades >= input.minTradesRequired;
   const independentValidationPass = input.validation.status === "pass" && input.validation.checks.independentValidationPassed;
   const riskReviewPass = input.validation.checks.riskReviewSigned;
   const shadowOrCanaryEvidencePass = input.validation.checks.shadowOrCanaryEvidenceAttached;
   const approvalRecordedPass = input.approval.approved;
+  const walkForwardStabilityPass = input.walkForward.summary.pass;
   const checks = {
     datasetVolumePass,
     independentValidationPass,
     riskReviewPass,
     shadowOrCanaryEvidencePass,
     approvalRecordedPass,
-    modelVersionMatchPass
+    modelVersionMatchPass,
+    walkForwardStabilityPass
   };
   const failedChecks = Object.entries(checks)
     .filter(([, pass]) => !pass)

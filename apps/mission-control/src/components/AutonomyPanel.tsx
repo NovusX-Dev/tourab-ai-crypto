@@ -7,6 +7,7 @@ import type {
   LearningAlertConfig,
   LearningEvaluationSummary,
   LearningEvaluationTrendSummary,
+  LearningRetentionStatus,
   ManagedTradeItem,
   StrategyDegradationConfig,
   StrategyPromotionStage,
@@ -22,6 +23,7 @@ interface AutonomyPanelProps {
   learningEvaluation: LearningEvaluationSummary;
   learningEvaluationTrend: LearningEvaluationTrendSummary;
   learningAlertConfig: LearningAlertConfig;
+  learningRetention: LearningRetentionStatus;
   trendFocus?: "expectancy" | "drawdown" | "slippage" | "controlViolationRate";
   canEdit: boolean;
   onSaveConfig: (next: Partial<AutoExitConfig>) => Promise<void>;
@@ -42,6 +44,8 @@ interface AutonomyPanelProps {
   onRollbackStrategy: (reason?: string) => Promise<void>;
   onSaveDegradationConfig: (next: Partial<StrategyDegradationConfig>) => Promise<void>;
   onSaveLearningAlertConfig: (next: Partial<LearningAlertConfig>) => Promise<void>;
+  onSaveLearningRetentionConfig: (next: { closedTradeFeatureRetentionDays: number }) => Promise<void>;
+  onRunLearningRetentionPrune: () => Promise<void>;
 }
 
 function fmtUsd(value: number): string {
@@ -66,6 +70,7 @@ export function AutonomyPanel({
   learningEvaluation,
   learningEvaluationTrend,
   learningAlertConfig,
+  learningRetention,
   trendFocus,
   canEdit,
   onSaveConfig,
@@ -76,6 +81,8 @@ export function AutonomyPanel({
   onRollbackStrategy,
   onSaveDegradationConfig,
   onSaveLearningAlertConfig
+  onSaveLearningRetentionConfig,
+  onRunLearningRetentionPrune
 }: AutonomyPanelProps) {
   const [enabled, setEnabled] = useState(config.enabled);
   const [maxHoldSec, setMaxHoldSec] = useState(String(config.maxHoldSec));
@@ -118,6 +125,7 @@ export function AutonomyPanel({
   const [learningMaxDrawdownPct, setLearningMaxDrawdownPct] = useState(String(learningAlertConfig.maxDrawdownPct));
   const [learningMaxSlippageBps, setLearningMaxSlippageBps] = useState(String(learningAlertConfig.maxSlippageBps));
   const [learningMaxControlViolationRatePct, setLearningMaxControlViolationRatePct] = useState(String(learningAlertConfig.maxControlViolationRatePct));
+  const [learningRetentionDays, setLearningRetentionDays] = useState(String(learningRetention.config.closedTradeFeatureRetentionDays));
   const [trendBreachFilter, setTrendBreachFilter] = useState<"all" | "breached_any" | "expectancy" | "drawdown" | "slippage" | "controlViolationRate">("all");
   const [trendModelFilter, setTrendModelFilter] = useState("all");
   const [trendStrategyFilter, setTrendStrategyFilter] = useState("all");
@@ -159,6 +167,10 @@ export function AutonomyPanel({
     setLearningMaxSlippageBps(String(learningAlertConfig.maxSlippageBps));
     setLearningMaxControlViolationRatePct(String(learningAlertConfig.maxControlViolationRatePct));
   }, [learningAlertConfig]);
+
+  useEffect(() => {
+    setLearningRetentionDays(String(learningRetention.config.closedTradeFeatureRetentionDays));
+  }, [learningRetention]);
 
   useEffect(() => {
     if (strategyPromotion.versions.length > 0 && !promoteVersion) {
@@ -292,6 +304,15 @@ export function AutonomyPanel({
       maxControlViolationRatePct: parseNumberOr(
         learningMaxControlViolationRatePct,
         learningAlertConfig.maxControlViolationRatePct
+      )
+    });
+  }
+
+  async function saveLearningRetentionConfig(): Promise<void> {
+    await onSaveLearningRetentionConfig({
+      closedTradeFeatureRetentionDays: Math.max(
+        1,
+        Math.floor(parseNumberOr(learningRetentionDays, learningRetention.config.closedTradeFeatureRetentionDays))
       )
     });
   }
@@ -598,6 +619,40 @@ export function AutonomyPanel({
         <div className="approval-actions">
           <button className="btn btn-primary" onClick={() => void saveLearningAlertThresholds()} disabled={!canEdit}>
             Save Learning Thresholds
+          </button>
+        </div>
+      </div>
+
+      <div className="risk-card">
+        <div className="panel-title">Learning Retention (M7)</div>
+        <div className="hint">Retention policy and manual prune for closed-trade feature history.</div>
+        <div className="log-filters">
+          <label>
+            Feature Retention Days
+            <input value={learningRetentionDays} onChange={(event) => setLearningRetentionDays(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Feature Rows
+            <input value={String(learningRetention.stats.featureCount)} disabled />
+          </label>
+          <label>
+            Oldest Closed At
+            <input value={learningRetention.stats.oldestClosedAt ?? "-"} disabled />
+          </label>
+          <label>
+            Newest Closed At
+            <input value={learningRetention.stats.newestClosedAt ?? "-"} disabled />
+          </label>
+        </div>
+        <div className="hint">
+          {`last prune=${learningRetention.lastPruneAt ? formatTime(learningRetention.lastPruneAt) : "never"} deleted=${learningRetention.lastPruneResult?.closedTradeFeaturesDeleted ?? 0}`}
+        </div>
+        <div className="approval-actions">
+          <button className="btn btn-primary" onClick={() => void saveLearningRetentionConfig()} disabled={!canEdit}>
+            Save Retention
+          </button>
+          <button className="btn btn-ghost" onClick={() => void onRunLearningRetentionPrune()} disabled={!canEdit}>
+            Run Prune Now
           </button>
         </div>
       </div>

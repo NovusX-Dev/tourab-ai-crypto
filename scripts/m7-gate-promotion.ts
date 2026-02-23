@@ -4,19 +4,22 @@ import {
   evaluateM7PromotionGate,
   type M7ApprovalRecord,
   type M7IndependentValidationReport,
-  type M7OfflineTrainingRun
+  type M7OfflineTrainingRun,
+  type M7WalkForwardReport
 } from "../apps/dashboard/src/learning/m7-research-pipeline.js";
 
 function parseArgs(argv: string[]): {
   retrainDir: string;
   validationReportPath: string;
   approvalRecordPath: string;
+  walkForwardReportPath: string;
   minTradesRequired: number;
   outDir: string;
 } {
   let retrainDir = "";
   let validationReportPath = "";
   let approvalRecordPath = "";
+  let walkForwardReportPath = "";
   let minTradesRequired = 30;
   let outDir = join("logs", `m7-gate-${new Date().toISOString().replace(/[:.]/g, "-")}`);
   for (let i = 0; i < argv.length; i += 1) {
@@ -30,6 +33,9 @@ function parseArgs(argv: string[]): {
       i += 1;
     } else if (token === "--approval-record" && value) {
       approvalRecordPath = value;
+      i += 1;
+    } else if (token === "--walk-forward-report" && value) {
+      walkForwardReportPath = value;
       i += 1;
     } else if (token === "--min-trades" && value) {
       minTradesRequired = Math.max(1, Math.floor(Number(value) || minTradesRequired));
@@ -48,13 +54,17 @@ function parseArgs(argv: string[]): {
   if (!approvalRecordPath) {
     approvalRecordPath = join(retrainDir, "approval-record.json");
   }
-  return { retrainDir, validationReportPath, approvalRecordPath, minTradesRequired, outDir };
+  if (!walkForwardReportPath) {
+    walkForwardReportPath = join(retrainDir, "walk-forward-report.json");
+  }
+  return { retrainDir, validationReportPath, approvalRecordPath, walkForwardReportPath, minTradesRequired, outDir };
 }
 
 async function ensureWorkflowTemplates(input: {
   run: M7OfflineTrainingRun;
   validationReportPath: string;
   approvalRecordPath: string;
+  walkForwardReportPath: string;
 }): Promise<{ missingRequiredFiles: boolean; messages: string[] }> {
   const messages: string[] = [];
   let missingRequiredFiles = false;
@@ -97,6 +107,12 @@ async function ensureWorkflowTemplates(input: {
     missingRequiredFiles = true;
     messages.push(`Missing approval record: wrote template ${input.approvalRecordPath}.template.json`);
   }
+  try {
+    await readFile(input.walkForwardReportPath, "utf-8");
+  } catch {
+    missingRequiredFiles = true;
+    messages.push(`Missing walk-forward report: expected ${input.walkForwardReportPath}`);
+  }
   return { missingRequiredFiles, messages };
 }
 
@@ -108,7 +124,8 @@ async function main(): Promise<void> {
   const templates = await ensureWorkflowTemplates({
     run,
     validationReportPath: args.validationReportPath,
-    approvalRecordPath: args.approvalRecordPath
+    approvalRecordPath: args.approvalRecordPath,
+    walkForwardReportPath: args.walkForwardReportPath
   });
   if (templates.missingRequiredFiles) {
     const summaryPath = join(args.outDir, "summary.md");
@@ -128,10 +145,12 @@ async function main(): Promise<void> {
 
   const validation = JSON.parse(await readFile(args.validationReportPath, "utf-8")) as M7IndependentValidationReport;
   const approval = JSON.parse(await readFile(args.approvalRecordPath, "utf-8")) as M7ApprovalRecord;
+  const walkForward = JSON.parse(await readFile(args.walkForwardReportPath, "utf-8")) as M7WalkForwardReport;
   const result = evaluateM7PromotionGate({
     run,
     validation,
     approval,
+    walkForward,
     minTradesRequired: args.minTradesRequired
   });
   const resultPath = join(args.outDir, "gate-result.json");

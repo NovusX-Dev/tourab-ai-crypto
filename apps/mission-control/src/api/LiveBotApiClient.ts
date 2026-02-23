@@ -20,6 +20,7 @@ import type {
   LearningEvaluationSummary,
   LearningAlertConfig,
   LearningIncidentExportReport,
+  LearningRetentionStatus,
   LearningEvaluationTrendSummary,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
@@ -707,6 +708,78 @@ export class LiveBotApiClient implements BotApiClient {
       }
       this.setDataSource("mock_fallback");
       return mockBotApiClient.updateLearningAlertConfig(role, userId, input);
+    }
+  }
+
+  async getLearningRetentionStatus(): Promise<LearningRetentionStatus> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/learning/retention-config`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Learning retention config fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as LearningRetentionStatus;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getLearningRetentionStatus();
+    }
+  }
+
+  async updateLearningRetentionConfig(
+    role: UserRole,
+    userId: string,
+    input: { closedTradeFeatureRetentionDays: number }
+  ): Promise<LearningRetentionStatus> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/learning/retention-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Learning retention config update failed: ${res.status}`);
+      }
+      return (await res.json()) as LearningRetentionStatus;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.updateLearningRetentionConfig(role, userId, input);
+    }
+  }
+
+  async runLearningRetentionPrune(role: UserRole, userId: string): Promise<LearningRetentionStatus> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/learning/retention/prune`, {
+        method: "POST",
+        headers: {
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Learning retention prune failed: ${res.status}`);
+      }
+      return (await res.json()) as LearningRetentionStatus;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.runLearningRetentionPrune(role, userId);
     }
   }
 

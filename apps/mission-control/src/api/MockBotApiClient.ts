@@ -14,6 +14,7 @@ import type {
   LearningEvaluationSummary,
   LearningAlertConfig,
   LearningIncidentExportReport,
+  LearningRetentionStatus,
   LearningEvaluationTrendSummary,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
@@ -216,6 +217,14 @@ export class MockBotApiClient implements BotApiClient {
         breaches: { expectancy: true, drawdown: true, slippage: true, controlViolationRate: true }
       }
     ]
+  };
+  private learningRetention: LearningRetentionStatus = {
+    config: {
+      closedTradeFeatureRetentionDays: 90
+    },
+    stats: {
+      featureCount: 0
+    }
   };
   private metrics = {
     controlRequestsTotal: 0,
@@ -791,6 +800,35 @@ export class MockBotApiClient implements BotApiClient {
   ): Promise<LearningAlertConfig> {
     this.learningAlertConfig = { ...this.learningAlertConfig, ...input };
     return { ...this.learningAlertConfig };
+  }
+
+  async getLearningRetentionStatus(): Promise<LearningRetentionStatus> {
+    return JSON.parse(JSON.stringify(this.learningRetention)) as LearningRetentionStatus;
+  }
+
+  async updateLearningRetentionConfig(
+    _role: UserRole,
+    _userId: string,
+    input: { closedTradeFeatureRetentionDays: number }
+  ): Promise<LearningRetentionStatus> {
+    this.learningRetention = {
+      ...this.learningRetention,
+      config: {
+        closedTradeFeatureRetentionDays: Math.max(1, Math.floor(input.closedTradeFeatureRetentionDays))
+      }
+    };
+    return this.getLearningRetentionStatus();
+  }
+
+  async runLearningRetentionPrune(_role: UserRole, _userId: string): Promise<LearningRetentionStatus> {
+    this.learningRetention = {
+      ...this.learningRetention,
+      lastPruneAt: new Date().toISOString(),
+      lastPruneResult: {
+        closedTradeFeaturesDeleted: 0
+      }
+    };
+    return this.getLearningRetentionStatus();
   }
 
   async getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }> {

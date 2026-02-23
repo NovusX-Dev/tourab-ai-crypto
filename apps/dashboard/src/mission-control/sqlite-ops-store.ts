@@ -440,6 +440,29 @@ export class SqliteOpsStore {
     return result.changes ?? 0;
   }
 
+  getClosedTradeFeatureStats(): { count: number; oldestClosedAt?: string; newestClosedAt?: string } {
+    const row = this.db
+      .prepare(
+        `SELECT
+           COUNT(*) as count,
+           MIN(closed_at) as oldest_closed_at,
+           MAX(closed_at) as newest_closed_at
+         FROM closed_trade_features`
+      )
+      .get() as
+      | {
+          count?: number;
+          oldest_closed_at?: string | null;
+          newest_closed_at?: string | null;
+        }
+      | undefined;
+    return {
+      count: Math.max(0, Math.floor(Number(row?.count ?? 0))),
+      oldestClosedAt: row?.oldest_closed_at ?? undefined,
+      newestClosedAt: row?.newest_closed_at ?? undefined
+    };
+  }
+
   listAudit(limit = 300): AuditItem[] {
     const rows = this.db
       .prepare(

@@ -247,3 +247,20 @@ export interface LearningIncidentExportReport {
   evaluation: LearningEvaluationSummary;
   items: IncidentItem[];
 }
+
+export interface LearningRetentionConfig {
+  closedTradeFeatureRetentionDays: number;
+}
+
+export interface LearningRetentionStatus {
+  config: LearningRetentionConfig;
+  stats: {
+    featureCount: number;
+    oldestClosedAt?: string;
+    newestClosedAt?: string;
+  };
+  lastPruneAt?: string;
+  lastPruneResult?: {
+    closedTradeFeaturesDeleted: number;
+  };
+}

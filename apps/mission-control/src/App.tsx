@@ -20,7 +20,7 @@ import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { formatEquityRoundedThousands } from "./format";
 import { applyTheme, getInitialTheme, type ThemeName } from "./theme";
 import { useDashboardData } from "./state/useDashboardData";
-import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, IncidentItem } from "./types";
+import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, IncidentItem, LearningRetentionStatus } from "./types";
 
 const client = createDefaultBotApiClient();
 
@@ -35,6 +35,15 @@ interface ToastItem {
   title: string;
   body: string;
 }
+
+const EMPTY_LEARNING_RETENTION: LearningRetentionStatus = {
+  config: {
+    closedTradeFeatureRetentionDays: 90
+  },
+  stats: {
+    featureCount: 0
+  }
+};
 
 export default function App() {
   const [theme, setTheme] = useState<ThemeName>(() => {
@@ -53,6 +62,7 @@ export default function App() {
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const [learningRetention, setLearningRetention] = useState<LearningRetentionStatus>(EMPTY_LEARNING_RETENTION);
   const [currentUserId, setCurrentUserId] = useState("operator-1");
   const [authToken, setAuthToken] = useState<string>(() => {
     if (typeof window === "undefined") {
@@ -275,11 +285,12 @@ export default function App() {
   }, [setManagedTrades]);
 
   const refreshM6AutonomyState = useCallback(async () => {
-    const [entryAutonomyRes, strategyPromotionRes, strategyDegradationRes, learningAlertConfigRes] = await Promise.allSettled([
+    const [entryAutonomyRes, strategyPromotionRes, strategyDegradationRes, learningAlertConfigRes, learningRetentionRes] = await Promise.allSettled([
       client.getEntryAutonomyConfig(),
       client.getStrategyPromotion(),
       client.getStrategyDegradationConfig(),
-      client.getLearningAlertConfig()
+      client.getLearningAlertConfig(),
+      client.getLearningRetentionStatus()
     ]);
     if (entryAutonomyRes.status === "fulfilled") {
       setEntryAutonomy(entryAutonomyRes.value);
@@ -292,6 +303,9 @@ export default function App() {
     }
     if (learningAlertConfigRes.status === "fulfilled") {
       dashboard.setLearningAlertConfig(learningAlertConfigRes.value);
+    }
+    if (learningRetentionRes.status === "fulfilled") {
+      setLearningRetention(learningRetentionRes.value);
     }
   }, [setEntryAutonomy, setStrategyDegradation, setStrategyPromotion]);
 
@@ -365,6 +379,30 @@ export default function App() {
       pushToast("success", "LEARNING_ALERT_CONFIG_UPDATED", "Learning alert thresholds updated.");
     } catch (_error: unknown) {
       pushToast("error", "LEARNING_ALERT_CONFIG_UPDATE_FAILED", "Failed to update learning alert thresholds.");
+    }
+  }
+
+  async function saveLearningRetentionConfig(next: { closedTradeFeatureRetentionDays: number }) {
+    try {
+      const updated = await client.updateLearningRetentionConfig(dashboard.role, currentUserId, next);
+      setLearningRetention(updated);
+      pushToast("success", "LEARNING_RETENTION_UPDATED", "Learning retention policy updated.");
+    } catch (_error: unknown) {
+      pushToast("error", "LEARNING_RETENTION_UPDATE_FAILED", "Failed to update learning retention policy.");
+    }
+  }
+
+  async function runLearningRetentionPrune() {
+    try {
+      const updated = await client.runLearningRetentionPrune(dashboard.role, currentUserId);
+      setLearningRetention(updated);
+      pushToast(
+        "success",
+        "LEARNING_RETENTION_PRUNE_APPLIED",
+        `Deleted ${updated.lastPruneResult?.closedTradeFeaturesDeleted ?? 0} closed-trade feature rows.`
+      );
+    } catch (_error: unknown) {
+      pushToast("error", "LEARNING_RETENTION_PRUNE_FAILED", "Failed to apply learning retention prune.");
     }
   }
 
@@ -658,6 +696,7 @@ export default function App() {
           learningEvaluation={dashboard.learningEvaluation}
           learningEvaluationTrend={dashboard.learningEvaluationTrend}
           learningAlertConfig={dashboard.learningAlertConfig}
+          learningRetention={learningRetention}
           trendFocus={learningTrendFocus}
           canEdit={dashboard.role !== "read_only"}
           onSaveConfig={saveAutoExitConfig}
@@ -668,6 +707,8 @@ export default function App() {
           onRollbackStrategy={rollbackStrategy}
           onSaveDegradationConfig={saveStrategyDegradationConfig}
           onSaveLearningAlertConfig={saveLearningAlertConfig}
+          onSaveLearningRetentionConfig={saveLearningRetentionConfig}
+          onRunLearningRetentionPrune={runLearningRetentionPrune}
         />
       );
     }

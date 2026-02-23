@@ -28,4 +28,7 @@ When you say we are done for today, I will append the next day plan here.
     - all exported items are `LEARNING_*` and inside the 30-day window
 - Documentation sync:
   - update `docs/roadmap.md` status snapshot and M7 notes with latest real run outputs.
+  - latest M7 close evidence (`2026-02-23`):
+    - walk-forward: `logs/m7-walk-forward-2026-02-23T09-55-24-508Z/walk-forward-report.json` (`pass=true`)
+    - gate with walk-forward: `logs/m7-gate-2026-02-23T09-55-30-036Z/gate-result.json` (`pass=true`)
   - leave this file as next-day execution only (no historical backlog).

@@ -11,6 +11,7 @@ import type {
   LearningAlertConfig,
   LearningEvaluationTrendSummary,
   LearningIncidentExportReport,
+  LearningRetentionStatus,
   Milestone5EvidenceSummary,
   StrategyDegradationConfig,
   StrategyPromotionStage,
@@ -83,6 +84,13 @@ export interface BotApiClient {
   ): Promise<LearningIncidentExportReport>;
   getLearningAlertConfig(): Promise<LearningAlertConfig>;
   updateLearningAlertConfig(role: UserRole, userId: string, input: Partial<LearningAlertConfig>): Promise<LearningAlertConfig>;
+  getLearningRetentionStatus(): Promise<LearningRetentionStatus>;
+  updateLearningRetentionConfig(
+    role: UserRole,
+    userId: string,
+    input: { closedTradeFeatureRetentionDays: number }
+  ): Promise<LearningRetentionStatus>;
+  runLearningRetentionPrune(role: UserRole, userId: string): Promise<LearningRetentionStatus>;
   getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }>;
   updateEntryAutonomyConfig(
     role: UserRole,

@@ -3,7 +3,8 @@ import {
   evaluateM7PromotionGate,
   type M7ApprovalRecord,
   type M7IndependentValidationReport,
-  type M7OfflineTrainingRun
+  type M7OfflineTrainingRun,
+  type M7WalkForwardReport
 } from "../apps/dashboard/src/learning/m7-research-pipeline.js";
 
 const RUN: M7OfflineTrainingRun = {
@@ -78,12 +79,45 @@ const APPROVAL: M7ApprovalRecord = {
   approvalTicket: "APP-123"
 };
 
+const WALK_FORWARD: M7WalkForwardReport = {
+  schemaVersion: "m7-walk-forward-report-v1",
+  generatedAt: "2026-02-20T01:04:00.000Z",
+  candidateModelVersion: RUN.candidateModelVersion,
+  datasetId: RUN.dataset.datasetId,
+  config: {
+    minTradesPerWindow: 5,
+    minWindows: 3,
+    minPassRatePct: 75,
+    minExpectancyUsd: 0,
+    maxControlViolationRatePct: 35
+  },
+  summary: {
+    windowsEvaluated: 4,
+    windowsPassed: 3,
+    passRatePct: 75,
+    pass: true
+  },
+  windows: [
+    {
+      index: 0,
+      testStart: "2026-02-15T00:00:00.000Z",
+      testEnd: "2026-02-16T00:00:00.000Z",
+      trades: 10,
+      expectancyUsd: 0.01,
+      winRatePct: 60,
+      controlViolationRatePct: 10,
+      pass: true
+    }
+  ]
+};
+
 describe("m7 promotion gate", () => {
   it("passes when all required checks are green", () => {
     const result = evaluateM7PromotionGate({
       run: RUN,
       validation: VALIDATION,
       approval: APPROVAL,
+      walkForward: WALK_FORWARD,
       minTradesRequired: 30
     });
     expect(result.pass).toBe(true);
@@ -111,11 +145,19 @@ describe("m7 promotion gate", () => {
         ...APPROVAL,
         approved: false
       },
+      walkForward: {
+        ...WALK_FORWARD,
+        summary: {
+          ...WALK_FORWARD.summary,
+          pass: false
+        }
+      },
       minTradesRequired: 30
     });
     expect(result.pass).toBe(false);
     expect(result.failedChecks).toContain("datasetVolumePass");
     expect(result.failedChecks).toContain("independentValidationPass");
     expect(result.failedChecks).toContain("approvalRecordedPass");
+    expect(result.failedChecks).toContain("walkForwardStabilityPass");
   });
 });

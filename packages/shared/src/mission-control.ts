@@ -331,3 +331,43 @@ export interface ApprovalRequest {
   rejectedBy?: string;
   rejectedReason?: string;
 }
+
+export type LearningGovernanceMode = "research_only" | "shadow_eval";
+
+export interface LearningGovernanceState {
+  enabled: boolean;
+  mode: LearningGovernanceMode;
+  activeModelVersion: string;
+  previousStableModelVersion?: string;
+  rollbackCandidateVersion?: string;
+  lastRollbackAt?: string;
+  lastRollbackReason?: string;
+  updatedAt: string;
+}
+
+export interface ClosedTradeFeatureRecord {
+  tradeId: string;
+  symbol: string;
+  entrySide: "buy" | "sell";
+  exitReason: string;
+  status: "closed";
+  closedAt: string;
+  holdSec: number;
+  entryFilledQty: number;
+  exitFilledQty: number;
+  entryAvgPrice: number;
+  exitAvgPrice: number;
+  feeUsd: number;
+  realizedPnlUsd: number;
+  realizedPnlBps: number;
+  featureSchemaVersion: string;
+  policyVersion: string;
+  strategyVersion: string;
+  modelVersion: string;
+  extractedAt: string;
+}
+
+export interface LearningFeatureSnapshot {
+  governance: LearningGovernanceState;
+  items: ClosedTradeFeatureRecord[];
+}

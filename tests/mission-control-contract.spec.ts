@@ -5,6 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, it } from "vitest";
 import WebSocket, { type RawData } from "ws";
 import type { WsMessage } from "@tourab/shared";
+import { SqliteOpsStore, type ManagedTradeRecord } from "../apps/dashboard/src/mission-control/sqlite-ops-store.js";
 import { startMissionControlServer } from "../apps/dashboard/src/mission-control-server.js";
 
 interface EventQueryResponse {
@@ -745,6 +746,217 @@ describe("mission-control contract", () => {
     }
   });
 
+  it("exposes learning evaluation summary with model/strategy buckets", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const store = await SqliteOpsStore.open(opsStorePath);
+    const now = new Date();
+    const createdAt = new Date(now.getTime() - 5 * 60_000).toISOString();
+    const closedAt = new Date(now.getTime() - 60_000).toISOString();
+    const managedTrade: ManagedTradeRecord = {
+      tradeId: "m7-eval-1",
+      status: "closed",
+      symbol: "BTC-USDT",
+      entrySide: "buy",
+      entryOrdId: "entry-1",
+      entryClOrdId: "entry-cl-1",
+      requestedQty: 0.001,
+      entryFilledQty: 0.001,
+      entryAvgPrice: 50000,
+      exitOrdId: "exit-1",
+      exitClOrdId: "exit-cl-1",
+      exitFilledQty: 0.001,
+      exitAvgPrice: 50100,
+      remainingQty: 0,
+      exitReason: "take_profit",
+      stopPrice: 49500,
+      takeProfitPrice: 50100,
+      maxHoldSec: 600,
+      createdAt,
+      updatedAt: closedAt,
+      closedAt,
+      feeUsd: 0.05,
+      realizedPnlUsd: 0.05,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    };
+    store.upsertManagedTrade(managedTrade);
+    store.close();
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, opsStorePath, logRequests: false });
+    try {
+      const res = await fetch(`${handle.baseHttpUrl}/learning/evaluation?lookbackDays=30`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as {
+        closedTrades: number;
+        totals: { slippageProxyBps: number };
+        byModelVersion: Array<{ version: string; trades: number }>;
+        byStrategyVersion: Array<{ version: string; trades: number }>;
+      };
+      expect(payload.closedTrades).toBeGreaterThanOrEqual(1);
+      expect(payload.totals.slippageProxyBps).toBeGreaterThanOrEqual(0);
+      expect(payload.byModelVersion.some((item) => item.version === "m7-baseline-v1" && item.trades >= 1)).toBe(true);
+      expect(payload.byStrategyVersion.some((item) => item.version === "champion-v1" && item.trades >= 1)).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("raises learning evaluation alert incidents when thresholds are breached", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const store = await SqliteOpsStore.open(opsStorePath);
+    const now = new Date();
+    const createdAt = new Date(now.getTime() - 10 * 60_000).toISOString();
+    const closedAt = new Date(now.getTime() - 2 * 60_000).toISOString();
+    store.upsertManagedTrade({
+      tradeId: "m7-alert-breach-1",
+      status: "closed",
+      symbol: "BTC-USDT",
+      entrySide: "buy",
+      entryOrdId: "entry-1",
+      entryClOrdId: "entry-cl-1",
+      requestedQty: 0.001,
+      entryFilledQty: 0.001,
+      entryAvgPrice: 50000,
+      exitOrdId: "exit-1",
+      exitClOrdId: "exit-cl-1",
+      exitFilledQty: 0.001,
+      exitAvgPrice: 49900,
+      remainingQty: 0,
+      exitReason: "circuit_breaker",
+      stopPrice: 49500,
+      takeProfitPrice: 50500,
+      maxHoldSec: 600,
+      createdAt,
+      updatedAt: closedAt,
+      closedAt,
+      feeUsd: 0.02,
+      realizedPnlUsd: -0.12,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    });
+    store.close();
+
+    const previousEnabled = process.env.TOURAB_LEARNING_ALERTS_ENABLED;
+    const previousMinTrades = process.env.TOURAB_LEARNING_ALERT_MIN_TRADES;
+    const previousExpectancyMin = process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD;
+    process.env.TOURAB_LEARNING_ALERTS_ENABLED = "1";
+    process.env.TOURAB_LEARNING_ALERT_MIN_TRADES = "1";
+    process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD = "0";
+
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const alertsRes = await fetch(`${handle.baseHttpUrl}/alerts?status=open`);
+      expect(alertsRes.ok).toBe(true);
+      const alertsPayload = (await alertsRes.json()) as { items: Array<{ code: string; status: string }> };
+      expect(alertsPayload.items.some((item) => item.code === "LEARNING_EXPECTANCY_DEGRADATION" && item.status === "open")).toBe(true);
+
+      const incidentsRes = await fetch(`${handle.baseHttpUrl}/incidents`);
+      expect(incidentsRes.ok).toBe(true);
+      const incidentsPayload = (await incidentsRes.json()) as { items: Array<{ sourceAlertCode?: string; runbookRef: string }> };
+      expect(
+        incidentsPayload.items.some(
+          (item) =>
+            item.sourceAlertCode === "LEARNING_EXPECTANCY_DEGRADATION" &&
+            item.runbookRef === "docs/runbooks/learning-evaluation-guard.md"
+        )
+      ).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+      if (previousEnabled === undefined) {
+        delete process.env.TOURAB_LEARNING_ALERTS_ENABLED;
+      } else {
+        process.env.TOURAB_LEARNING_ALERTS_ENABLED = previousEnabled;
+      }
+      if (previousMinTrades === undefined) {
+        delete process.env.TOURAB_LEARNING_ALERT_MIN_TRADES;
+      } else {
+        process.env.TOURAB_LEARNING_ALERT_MIN_TRADES = previousMinTrades;
+      }
+      if (previousExpectancyMin === undefined) {
+        delete process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD;
+      } else {
+        process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD = previousExpectancyMin;
+      }
+    }
+  });
+
+  it("exposes learning evaluation trend summary with breach flags", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const store = await SqliteOpsStore.open(opsStorePath);
+    const now = new Date();
+    const createdAt = new Date(now.getTime() - 20 * 60_000).toISOString();
+    const closedAt = new Date(now.getTime() - 5 * 60_000).toISOString();
+    store.upsertManagedTrade({
+      tradeId: "m7-trend-1",
+      status: "closed",
+      symbol: "BTC-USDT",
+      entrySide: "buy",
+      entryOrdId: "entry-1",
+      entryClOrdId: "entry-cl-1",
+      requestedQty: 0.001,
+      entryFilledQty: 0.001,
+      entryAvgPrice: 50000,
+      exitOrdId: "exit-1",
+      exitClOrdId: "exit-cl-1",
+      exitFilledQty: 0.001,
+      exitAvgPrice: 49900,
+      remainingQty: 0,
+      exitReason: "manual",
+      stopPrice: 49500,
+      takeProfitPrice: 50500,
+      maxHoldSec: 600,
+      createdAt,
+      updatedAt: closedAt,
+      closedAt,
+      feeUsd: 0.02,
+      realizedPnlUsd: -0.1,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    });
+    store.close();
+    const previousMinTrades = process.env.TOURAB_LEARNING_ALERT_MIN_TRADES;
+    const previousExpectancyMin = process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD;
+    process.env.TOURAB_LEARNING_ALERT_MIN_TRADES = "1";
+    process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD = "0";
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, opsStorePath, logRequests: false });
+    try {
+      const res = await fetch(`${handle.baseHttpUrl}/learning/evaluation-trend?lookbackDays=30&bucketDays=1&limit=50`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as {
+        points: Array<{ breaches: { expectancy: boolean }; closedTrades: number }>;
+      };
+      expect(payload.points.length).toBeGreaterThanOrEqual(1);
+      expect(payload.points.some((item) => item.closedTrades >= 1 && item.breaches.expectancy)).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+      if (previousMinTrades === undefined) {
+        delete process.env.TOURAB_LEARNING_ALERT_MIN_TRADES;
+      } else {
+        process.env.TOURAB_LEARNING_ALERT_MIN_TRADES = previousMinTrades;
+      }
+      if (previousExpectancyMin === undefined) {
+        delete process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD;
+      } else {
+        process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD = previousExpectancyMin;
+      }
+    }
+  });
+
   it("enforces strategy promotion gates before limited_prod", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
     const eventStorePath = join(tempDir, "events.jsonl");
@@ -896,6 +1108,151 @@ describe("mission-control contract", () => {
       const row = statePayload.state.versions.find((item) => item.version === "artifact-strategy-v1");
       expect(row?.artifacts?.researchReportUrl).toBe("https://example.test/research");
       expect(row?.artifacts?.shadowReportUrl).toBe("https://example.test/shadow");
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("updates and persists learning alert config with role enforcement", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const first = await startMissionControlServer({ port: 0, eventStorePath, opsStorePath, logRequests: false });
+    try {
+      const forbidden = await fetch(`${first.baseHttpUrl}/learning/alert-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "read_only",
+          "x-user-id": "viewer-user"
+        },
+        body: JSON.stringify({ minTrades: 12 })
+      });
+      expect(forbidden.status).toBe(403);
+
+      const updateRes = await fetch(`${first.baseHttpUrl}/learning/alert-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          enabled: true,
+          lookbackDays: 45,
+          limit: 1500,
+          minTrades: 20,
+          expectancyMinUsd: 0.01,
+          maxDrawdownPct: 4.5,
+          maxSlippageBps: 12,
+          maxControlViolationRatePct: 10
+        })
+      });
+      expect(updateRes.ok).toBe(true);
+      const updatedPayload = (await updateRes.json()) as {
+        config: {
+          lookbackDays: number;
+          minTrades: number;
+          maxDrawdownPct: number;
+          maxSlippageBps: number;
+        };
+      };
+      expect(updatedPayload.config.lookbackDays).toBe(45);
+      expect(updatedPayload.config.minTrades).toBe(20);
+      expect(updatedPayload.config.maxDrawdownPct).toBe(4.5);
+      expect(updatedPayload.config.maxSlippageBps).toBe(12);
+    } finally {
+      await first.close();
+    }
+
+    const second = await startMissionControlServer({ port: 0, eventStorePath, opsStorePath, logRequests: false });
+    try {
+      const configRes = await fetch(`${second.baseHttpUrl}/learning/alert-config`);
+      expect(configRes.ok).toBe(true);
+      const payload = (await configRes.json()) as {
+        config: { lookbackDays: number; minTrades: number; maxDrawdownPct: number; maxSlippageBps: number };
+      };
+      expect(payload.config.lookbackDays).toBe(45);
+      expect(payload.config.minTrades).toBe(20);
+      expect(payload.config.maxDrawdownPct).toBe(4.5);
+      expect(payload.config.maxSlippageBps).toBe(12);
+    } finally {
+      await second.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("exports learning incident report with M7-only filtering and summary totals", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const store = await SqliteOpsStore.open(opsStorePath);
+    const nowIso = new Date().toISOString();
+    store.createIncident({
+      id: "learning-incident-1",
+      severity: "sev2",
+      taxonomy: "ops_durability",
+      title: "Learning expectancy below threshold",
+      detail: "Expectancy below configured threshold.",
+      runbookRef: "docs/runbooks/learning-evaluation-guard.md",
+      sourceAlertCode: "LEARNING_EXPECTANCY_DEGRADATION"
+    });
+    store.createIncident({
+      id: "learning-incident-2",
+      severity: "sev2",
+      taxonomy: "ops_durability",
+      title: "Learning slippage elevated",
+      detail: "Slippage above configured threshold.",
+      runbookRef: "docs/runbooks/learning-evaluation-guard.md",
+      sourceAlertCode: "LEARNING_SLIPPAGE_ELEVATED"
+    });
+    store.updateIncidentStatus("learning-incident-2", "resolved", "ops-user");
+    store.createIncident({
+      id: "non-learning-incident-1",
+      severity: "sev3",
+      taxonomy: "exchange_reliability",
+      title: "Exchange timeout",
+      detail: "Non-learning incident should be excluded.",
+      runbookRef: "docs/runbooks/exchange-reliability.md",
+      sourceAlertCode: "RUNTIME_ERROR_EVENT"
+    });
+    store.close();
+
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const res = await fetch(`${handle.baseHttpUrl}/learning/incidents/export?lookbackDays=30`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as {
+        exportedAt: string;
+        lookbackDays: number;
+        count: number;
+        openCount: number;
+        resolvedCount: number;
+        totals: {
+          byCode: Array<{ code: string; count: number }>;
+          byStatus: Array<{ status: string; count: number }>;
+        };
+        items: Array<{ id: string; sourceAlertCode?: string }>;
+      };
+
+      expect(payload.lookbackDays).toBe(30);
+      expect(payload.count).toBe(2);
+      expect(payload.openCount).toBe(1);
+      expect(payload.resolvedCount).toBe(1);
+      expect(payload.items.every((item) => item.sourceAlertCode?.startsWith("LEARNING_"))).toBe(true);
+      expect(payload.items.some((item) => item.id === "non-learning-incident-1")).toBe(false);
+      expect(payload.totals.byCode.some((item) => item.code === "LEARNING_EXPECTANCY_DEGRADATION")).toBe(true);
+      expect(payload.totals.byCode.some((item) => item.code === "LEARNING_SLIPPAGE_ELEVATED")).toBe(true);
+      expect(payload.totals.byStatus.some((item) => item.status === "open" && item.count >= 1)).toBe(true);
+      expect(payload.totals.byStatus.some((item) => item.status === "resolved" && item.count >= 1)).toBe(true);
+      expect(Number.isFinite(Date.parse(payload.exportedAt))).toBe(true);
+      expect(Date.parse(payload.exportedAt)).toBeGreaterThanOrEqual(Date.parse(nowIso) - 60_000);
     } finally {
       await handle.close();
       await rm(tempDir, { recursive: true, force: true });

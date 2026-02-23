@@ -4,6 +4,9 @@ import type {
   AutoExitConfig,
   EntryAutonomyConfig,
   EntryAutonomyStatus,
+  LearningAlertConfig,
+  LearningEvaluationSummary,
+  LearningEvaluationTrendSummary,
   ManagedTradeItem,
   StrategyDegradationConfig,
   StrategyPromotionStage,
@@ -16,6 +19,10 @@ interface AutonomyPanelProps {
   entryAutonomy: { config: EntryAutonomyConfig; status: EntryAutonomyStatus };
   strategyPromotion: StrategyPromotionState;
   strategyDegradation: StrategyDegradationConfig;
+  learningEvaluation: LearningEvaluationSummary;
+  learningEvaluationTrend: LearningEvaluationTrendSummary;
+  learningAlertConfig: LearningAlertConfig;
+  trendFocus?: "expectancy" | "drawdown" | "slippage" | "controlViolationRate";
   canEdit: boolean;
   onSaveConfig: (next: Partial<AutoExitConfig>) => Promise<void>;
   onRefreshTrades: () => Promise<void>;
@@ -34,10 +41,15 @@ interface AutonomyPanelProps {
   }) => Promise<void>;
   onRollbackStrategy: (reason?: string) => Promise<void>;
   onSaveDegradationConfig: (next: Partial<StrategyDegradationConfig>) => Promise<void>;
+  onSaveLearningAlertConfig: (next: Partial<LearningAlertConfig>) => Promise<void>;
 }
 
 function fmtUsd(value: number): string {
   return `$${value.toFixed(2)}`;
+}
+
+function fmtBps(value: number): string {
+  return `${value.toFixed(2)} bps`;
 }
 
 function parseNumberOr<T extends number>(raw: string, fallback: T): number {
@@ -51,6 +63,10 @@ export function AutonomyPanel({
   entryAutonomy,
   strategyPromotion,
   strategyDegradation,
+  learningEvaluation,
+  learningEvaluationTrend,
+  learningAlertConfig,
+  trendFocus,
   canEdit,
   onSaveConfig,
   onRefreshTrades,
@@ -58,7 +74,8 @@ export function AutonomyPanel({
   onRegisterStrategy,
   onPromoteStrategy,
   onRollbackStrategy,
-  onSaveDegradationConfig
+  onSaveDegradationConfig,
+  onSaveLearningAlertConfig
 }: AutonomyPanelProps) {
   const [enabled, setEnabled] = useState(config.enabled);
   const [maxHoldSec, setMaxHoldSec] = useState(String(config.maxHoldSec));
@@ -93,6 +110,17 @@ export function AutonomyPanel({
   const [degradeDailyLoss, setDegradeDailyLoss] = useState(String(strategyDegradation.maxDailyLossUsd));
   const [degradeDrawdownPct, setDegradeDrawdownPct] = useState(String(strategyDegradation.maxDrawdownPct));
   const [degradeConsecLosses, setDegradeConsecLosses] = useState(String(strategyDegradation.maxConsecutiveLosingTrades));
+  const [learningAlertEnabled, setLearningAlertEnabled] = useState(learningAlertConfig.enabled);
+  const [learningLookbackDays, setLearningLookbackDays] = useState(String(learningAlertConfig.lookbackDays));
+  const [learningLimit, setLearningLimit] = useState(String(learningAlertConfig.limit));
+  const [learningMinTrades, setLearningMinTrades] = useState(String(learningAlertConfig.minTrades));
+  const [learningExpectancyMinUsd, setLearningExpectancyMinUsd] = useState(String(learningAlertConfig.expectancyMinUsd));
+  const [learningMaxDrawdownPct, setLearningMaxDrawdownPct] = useState(String(learningAlertConfig.maxDrawdownPct));
+  const [learningMaxSlippageBps, setLearningMaxSlippageBps] = useState(String(learningAlertConfig.maxSlippageBps));
+  const [learningMaxControlViolationRatePct, setLearningMaxControlViolationRatePct] = useState(String(learningAlertConfig.maxControlViolationRatePct));
+  const [trendBreachFilter, setTrendBreachFilter] = useState<"all" | "breached_any" | "expectancy" | "drawdown" | "slippage" | "controlViolationRate">("all");
+  const [trendModelFilter, setTrendModelFilter] = useState("all");
+  const [trendStrategyFilter, setTrendStrategyFilter] = useState("all");
 
   useEffect(() => {
     setEnabled(config.enabled);
@@ -122,6 +150,17 @@ export function AutonomyPanel({
   }, [strategyDegradation]);
 
   useEffect(() => {
+    setLearningAlertEnabled(learningAlertConfig.enabled);
+    setLearningLookbackDays(String(learningAlertConfig.lookbackDays));
+    setLearningLimit(String(learningAlertConfig.limit));
+    setLearningMinTrades(String(learningAlertConfig.minTrades));
+    setLearningExpectancyMinUsd(String(learningAlertConfig.expectancyMinUsd));
+    setLearningMaxDrawdownPct(String(learningAlertConfig.maxDrawdownPct));
+    setLearningMaxSlippageBps(String(learningAlertConfig.maxSlippageBps));
+    setLearningMaxControlViolationRatePct(String(learningAlertConfig.maxControlViolationRatePct));
+  }, [learningAlertConfig]);
+
+  useEffect(() => {
     if (strategyPromotion.versions.length > 0 && !promoteVersion) {
       setPromoteVersion(strategyPromotion.versions[0].version);
     }
@@ -131,6 +170,45 @@ export function AutonomyPanel({
   const openTrades = managedTrades.filter((item) => item.status !== "closed");
   const closedTrades = managedTrades.filter((item) => item.status === "closed");
   const latestPromotion = useMemo(() => strategyPromotion.history[0], [strategyPromotion]);
+  const trendModelOptions = useMemo(
+    () =>
+      [...new Set(learningEvaluationTrend.points.flatMap((point) => point.modelVersions.map((entry) => entry.version)))]
+        .sort((a, b) => a.localeCompare(b)),
+    [learningEvaluationTrend]
+  );
+  const trendStrategyOptions = useMemo(
+    () =>
+      [...new Set(learningEvaluationTrend.points.flatMap((point) => point.strategyVersions.map((entry) => entry.version)))]
+        .sort((a, b) => a.localeCompare(b)),
+    [learningEvaluationTrend]
+  );
+  const filteredTrendPoints = useMemo(
+    () =>
+      learningEvaluationTrend.points.filter((row) => {
+        const breachPass =
+          trendBreachFilter === "all"
+            ? true
+            : trendBreachFilter === "breached_any"
+              ? row.breaches.expectancy || row.breaches.drawdown || row.breaches.slippage || row.breaches.controlViolationRate
+              : row.breaches[trendBreachFilter];
+        const modelPass = trendModelFilter === "all" ? true : row.modelVersions.some((item) => item.version === trendModelFilter);
+        const strategyPass =
+          trendStrategyFilter === "all" ? true : row.strategyVersions.some((item) => item.version === trendStrategyFilter);
+        return breachPass && modelPass && strategyPass;
+      }),
+    [learningEvaluationTrend, trendBreachFilter, trendModelFilter, trendStrategyFilter]
+  );
+  const latestTrendPoint = useMemo(
+    () => filteredTrendPoints[filteredTrendPoints.length - 1],
+    [filteredTrendPoints]
+  );
+
+  useEffect(() => {
+    if (!trendFocus) {
+      return;
+    }
+    setTrendBreachFilter(trendFocus);
+  }, [trendFocus]);
 
   async function saveAutoExit(): Promise<void> {
     await onSaveConfig({
@@ -199,6 +277,22 @@ export function AutonomyPanel({
       maxDailyLossUsd: parseNumberOr(degradeDailyLoss, strategyDegradation.maxDailyLossUsd),
       maxDrawdownPct: parseNumberOr(degradeDrawdownPct, strategyDegradation.maxDrawdownPct),
       maxConsecutiveLosingTrades: Math.floor(parseNumberOr(degradeConsecLosses, strategyDegradation.maxConsecutiveLosingTrades))
+    });
+  }
+
+  async function saveLearningAlertThresholds(): Promise<void> {
+    await onSaveLearningAlertConfig({
+      enabled: learningAlertEnabled,
+      lookbackDays: Math.floor(parseNumberOr(learningLookbackDays, learningAlertConfig.lookbackDays)),
+      limit: Math.floor(parseNumberOr(learningLimit, learningAlertConfig.limit)),
+      minTrades: Math.floor(parseNumberOr(learningMinTrades, learningAlertConfig.minTrades)),
+      expectancyMinUsd: parseNumberOr(learningExpectancyMinUsd, learningAlertConfig.expectancyMinUsd),
+      maxDrawdownPct: parseNumberOr(learningMaxDrawdownPct, learningAlertConfig.maxDrawdownPct),
+      maxSlippageBps: parseNumberOr(learningMaxSlippageBps, learningAlertConfig.maxSlippageBps),
+      maxControlViolationRatePct: parseNumberOr(
+        learningMaxControlViolationRatePct,
+        learningAlertConfig.maxControlViolationRatePct
+      )
     });
   }
 
@@ -403,6 +497,177 @@ export function AutonomyPanel({
         </div>
         <div className="approval-actions">
           <button className="btn btn-primary" onClick={() => void saveDegradationConfig()} disabled={!canEdit}>Save Degradation Config</button>
+        </div>
+      </div>
+
+      <div className="risk-card">
+        <div className="panel-title">Learning Evaluation (M7)</div>
+        <div className="hint">
+          {`lookback=${learningEvaluation.lookbackDays}d | closedTrades=${learningEvaluation.closedTrades} | generated=${formatTime(learningEvaluation.generatedAt)}`}
+        </div>
+        <div className="ops-grid" style={{ marginTop: 8 }}>
+          <article className="ops-card">
+            <div className="ops-label">Expectancy (net fees)</div>
+            <div className={`ops-value ${learningEvaluation.totals.expectancyNetFeesUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>
+              {fmtUsd(learningEvaluation.totals.expectancyNetFeesUsd)}
+            </div>
+          </article>
+          <article className="ops-card">
+            <div className="ops-label">Cumulative Net PnL</div>
+            <div className={`ops-value ${learningEvaluation.totals.cumulativeNetPnlUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>
+              {fmtUsd(learningEvaluation.totals.cumulativeNetPnlUsd)}
+            </div>
+          </article>
+          <article className="ops-card">
+            <div className="ops-label">Max Drawdown</div>
+            <div className="ops-value">{`${fmtUsd(learningEvaluation.totals.maxDrawdownUsd)} (${learningEvaluation.totals.maxDrawdownPct.toFixed(2)}%)`}</div>
+          </article>
+          <article className="ops-card">
+            <div className="ops-label">Slippage (proxy)</div>
+            <div className="ops-value">{fmtBps(learningEvaluation.totals.slippageProxyBps)}</div>
+          </article>
+          <article className="ops-card">
+            <div className="ops-label">Control Violations</div>
+            <div className={`ops-value ${learningEvaluation.totals.controlViolations > 0 ? "pnl-negative" : "pnl-positive"}`}>
+              {learningEvaluation.totals.controlViolations}
+            </div>
+          </article>
+        </div>
+        <div className="subhead">By Model Version</div>
+        {learningEvaluation.byModelVersion.length === 0 ? <div className="hint">No model-version evaluation data yet.</div> : null}
+        <div className="orders-list">
+          {learningEvaluation.byModelVersion.slice(0, 8).map((row) => (
+            <article key={row.version} className="order-row">
+              <div className="order-main">
+                <strong>{row.version}</strong>
+                <span className="tag">{`trades ${row.trades}`}</span>
+                <span className="tag">{`violations ${row.controlViolations}`}</span>
+              </div>
+              <div className={`order-meta ${row.expectancyNetFeesUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>{`expectancy ${fmtUsd(row.expectancyNetFeesUsd)}`}</div>
+              <div className="order-meta">{`drawdown ${fmtUsd(row.maxDrawdownUsd)} (${row.maxDrawdownPct.toFixed(2)}%)`}</div>
+              <div className="order-meta">{`slippage proxy ${fmtBps(row.slippageProxyBps)}`}</div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div className="risk-card">
+        <div className="panel-title">Learning Guard Thresholds (M7)</div>
+        <div className="hint">Runtime thresholds for `LEARNING_*` alerts.</div>
+        <div className="log-filters">
+          <label>
+            Enabled
+            <select value={learningAlertEnabled ? "1" : "0"} onChange={(event) => setLearningAlertEnabled(event.target.value === "1")} disabled={!canEdit}>
+              <option value="1">On</option>
+              <option value="0">Off</option>
+            </select>
+          </label>
+          <label>
+            Lookback Days
+            <input value={learningLookbackDays} onChange={(event) => setLearningLookbackDays(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Sample Limit
+            <input value={learningLimit} onChange={(event) => setLearningLimit(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Min Trades
+            <input value={learningMinTrades} onChange={(event) => setLearningMinTrades(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Min Expectancy USD
+            <input value={learningExpectancyMinUsd} onChange={(event) => setLearningExpectancyMinUsd(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Max Drawdown %
+            <input value={learningMaxDrawdownPct} onChange={(event) => setLearningMaxDrawdownPct(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Max Slippage (bps)
+            <input value={learningMaxSlippageBps} onChange={(event) => setLearningMaxSlippageBps(event.target.value)} disabled={!canEdit} />
+          </label>
+          <label>
+            Max Control Violations %
+            <input
+              value={learningMaxControlViolationRatePct}
+              onChange={(event) => setLearningMaxControlViolationRatePct(event.target.value)}
+              disabled={!canEdit}
+            />
+          </label>
+        </div>
+        <div className="approval-actions">
+          <button className="btn btn-primary" onClick={() => void saveLearningAlertThresholds()} disabled={!canEdit}>
+            Save Learning Thresholds
+          </button>
+        </div>
+      </div>
+
+      <div className="risk-card">
+        <div className="panel-title">Learning Trend (M7)</div>
+        <div className="hint">
+          {`lookback=${learningEvaluationTrend.lookbackDays}d bucket=${learningEvaluationTrend.bucketDays}d generated=${formatTime(learningEvaluationTrend.generatedAt)}`}
+        </div>
+        <div className="log-filters">
+          <label>
+            Breach Filter
+            <select value={trendBreachFilter} onChange={(event) => setTrendBreachFilter(event.target.value as typeof trendBreachFilter)}>
+              <option value="all">All</option>
+              <option value="breached_any">Any Breach</option>
+              <option value="expectancy">Expectancy</option>
+              <option value="drawdown">Drawdown</option>
+              <option value="slippage">Slippage</option>
+              <option value="controlViolationRate">Control Violation Rate</option>
+            </select>
+          </label>
+          <label>
+            Model Version
+            <select value={trendModelFilter} onChange={(event) => setTrendModelFilter(event.target.value)}>
+              <option value="all">All</option>
+              {trendModelOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Strategy Version
+            <select value={trendStrategyFilter} onChange={(event) => setTrendStrategyFilter(event.target.value)}>
+              <option value="all">All</option>
+              {trendStrategyOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {latestTrendPoint ? (
+          <div className="hint">
+            {`latest bucket trades=${latestTrendPoint.closedTrades} expectancy=${fmtUsd(latestTrendPoint.expectancyNetFeesUsd)} dd=${latestTrendPoint.maxDrawdownPct.toFixed(2)}% slip=${fmtBps(latestTrendPoint.slippageProxyBps)} cvRate=${latestTrendPoint.controlViolationRatePct.toFixed(2)}%`}
+          </div>
+        ) : (
+          <div className="hint">No trend points yet.</div>
+        )}
+        <div className="hint">
+          {`thresholds: expectancy>=${learningEvaluationTrend.thresholds.expectancyMinUsd} drawdown<=${learningEvaluationTrend.thresholds.maxDrawdownPct}% slippage<=${learningEvaluationTrend.thresholds.maxSlippageBps}bps cvRate<=${learningEvaluationTrend.thresholds.maxControlViolationRatePct}%`}
+        </div>
+        <div className="hint">{`visible buckets=${filteredTrendPoints.length}/${learningEvaluationTrend.points.length}`}</div>
+        <div className="orders-list">
+          {filteredTrendPoints.slice(-12).reverse().map((row) => (
+            <article key={`${row.bucketStartAt}-${row.bucketEndAt}`} className="order-row">
+              <div className="order-main">
+                <strong>{formatTime(row.bucketEndAt)}</strong>
+                <span className="tag">{`trades ${row.closedTrades}`}</span>
+                {row.modelVersions[0] ? <span className="tag">{`model ${row.modelVersions[0].version}`}</span> : null}
+                {row.strategyVersions[0] ? <span className="tag">{`strategy ${row.strategyVersions[0].version}`}</span> : null}
+                {row.breaches.expectancy ? <span className="tag sev-warn">expectancy</span> : null}
+                {row.breaches.drawdown ? <span className="tag sev-warn">drawdown</span> : null}
+                {row.breaches.slippage ? <span className="tag sev-warn">slippage</span> : null}
+                {row.breaches.controlViolationRate ? <span className="tag sev-warn">cv-rate</span> : null}
+              </div>
+              <div className={`order-meta ${row.expectancyNetFeesUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>{`expectancy ${fmtUsd(row.expectancyNetFeesUsd)}`}</div>
+              <div className="order-meta">{`drawdown ${row.maxDrawdownPct.toFixed(2)}%`}</div>
+              <div className="order-meta">{`slippage ${fmtBps(row.slippageProxyBps)}`}</div>
+              <div className="order-meta">{`control violations ${row.controlViolations} (${row.controlViolationRatePct.toFixed(2)}%)`}</div>
+            </article>
+          ))}
         </div>
       </div>
 

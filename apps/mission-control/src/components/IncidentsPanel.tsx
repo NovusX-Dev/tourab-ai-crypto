@@ -5,16 +5,29 @@ interface IncidentsPanelProps {
   items: IncidentItem[];
   currentUserId: string;
   onRefresh: () => void;
+  onExportLearningReport: () => void;
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
+  onOpenLearningTrend: (sourceAlertCode?: string) => void;
 }
 
-export function IncidentsPanel({ items, currentUserId, onRefresh, onAcknowledge, onResolve }: IncidentsPanelProps) {
+export function IncidentsPanel({
+  items,
+  currentUserId,
+  onRefresh,
+  onExportLearningReport,
+  onAcknowledge,
+  onResolve,
+  onOpenLearningTrend
+}: IncidentsPanelProps) {
   return (
     <section className="panel-content" aria-label="Incidents panel">
       <div className="panel-head">
         <div className="panel-title">Incidents</div>
-        <button className="btn btn-ghost" onClick={onRefresh}>Refresh</button>
+        <div className="alert-actions">
+          <button className="btn btn-ghost" onClick={onExportLearningReport}>Export M7 Incidents</button>
+          <button className="btn btn-ghost" onClick={onRefresh}>Refresh</button>
+        </div>
       </div>
 
       <div className="alerts-list">
@@ -36,6 +49,11 @@ export function IncidentsPanel({ items, currentUserId, onRefresh, onAcknowledge,
             {item.acknowledgedBy ? <div className="alert-meta">Ack: {item.acknowledgedBy}</div> : null}
             {item.resolvedBy ? <div className="alert-meta">Resolved: {item.resolvedBy}</div> : null}
             <div className="alert-actions">
+              {item.sourceAlertCode?.startsWith("LEARNING_") ? (
+                <button className="btn btn-ghost" onClick={() => onOpenLearningTrend(item.sourceAlertCode)}>
+                  Open M7 Trend
+                </button>
+              ) : null}
               <button className="btn btn-ghost" disabled={item.status !== "open"} onClick={() => onAcknowledge(item.id)}>
                 Acknowledge
               </button>

@@ -333,8 +333,7 @@ async function main(): Promise<void> {
     await sleep(args.pollMs);
   }
 
-  const pauseAttempt = await performControlAction(args.baseUrl, "/pause", operatorHeaders);
-  notes.push(`Drain phase pause action result: ${pauseAttempt.code ?? (pauseAttempt.ok ? "OK" : "UNKNOWN")}`);
+  notes.push("Drain phase started with approval auto-execution disabled; bot remains running for exit settlement.");
   const drainEndEpoch = Date.now() + args.drainSec * 1000;
   while (Date.now() < drainEndEpoch) {
     const snapshot = await getJson<SnapshotPayload>(`${args.baseUrl}/snapshot`);
@@ -462,6 +461,10 @@ async function main(): Promise<void> {
 
   const reportPath = join(args.outDir, "report.json");
   await writeFile(reportPath, JSON.stringify(report, null, 2), "utf-8");
+
+  const pauseAttempt = await performControlAction(args.baseUrl, "/pause", operatorHeaders);
+  notes.push(`Post-scoring pause action result: ${pauseAttempt.code ?? (pauseAttempt.ok ? "OK" : "UNKNOWN")}`);
+  await writeFile(reportPath, JSON.stringify({ ...report, notes }, null, 2), "utf-8");
 
   const summaryLines = [
     "# Milestone 5 Soak Report",

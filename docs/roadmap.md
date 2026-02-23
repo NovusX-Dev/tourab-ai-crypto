@@ -1,13 +1,14 @@
 # Roadmap
 
-## Status Snapshot (as of 2026-02-19)
+## Status Snapshot (as of 2026-02-23)
 - Milestone 1: substantially delivered.
 - Milestone 2: delivered.
 - Milestone 3: production-grade complete.
 - Milestone 4: production-grade complete.
 - Milestone 5: in progress.
+  - Latest M5 evidence (`logs/m5-evidence-2026-02-23T08-28-23-766Z/summary.md`): today `pass=true`, `qualifiedDays=5/7`, `streakDays=3`, `milestoneReady=false`.
 - Milestone 6: engineering acceptance complete (production promotion remains gated by real M5 readiness evidence).
-- Milestone 7: pending.
+- Milestone 7: in progress.
 - Milestone 8: pending.
 - Milestone 9: pending.
 
@@ -137,6 +138,78 @@ Completion criteria:
   - drawdown,
   - slippage,
   - control violations by model/version.
+
+Implementation status (current):
+- Implemented (Slice 1):
+  - shared M7 contracts for closed-trade feature records + learning-governance state/snapshot payloads,
+  - SQLite `closed_trade_features` store with idempotent upsert/list + retention pruning,
+  - automatic feature extraction/write on managed-trade `closed` transitions and startup backfill from existing closed trades,
+  - operator-visible governance hooks:
+    - `GET /learning/features`
+    - `GET /learning/governance`
+    - `POST /learning/governance/rollback` (audit + event evidence).
+- Implemented (Slice 2):
+  - offline dataset snapshot pipeline from Mission Control feature API:
+    - `npm run snapshot:m7 -- --base-url http://localhost:7071 --lookback-days 90`
+    - emits `dataset-manifest.json` + `closed-trade-features.ndjson` artifacts.
+  - deterministic offline retraining skeleton:
+    - `npm run retrain:m7 -- --dataset-dir <m7-dataset-dir>`
+    - emits governed training artifacts (`training-run.json`, `metrics.json`, `model-card.md`, `promotion-packet.json`) with deployment blocked until validation/approval checks.
+- Implemented (Slice 3 start):
+  - independent validation + approval promotion gate workflow:
+    - `npm run gate:m7 -- --retrain-dir <m7-retrain-dir> --min-trades 30`
+  - gate checks enforced:
+    - dataset volume threshold (`min-trades`),
+    - independent validation passed,
+    - risk review signed,
+    - shadow/canary evidence attached,
+    - operator approval recorded,
+    - candidate model version consistency.
+  - if validation/approval files are missing, gate writes JSON templates for operator completion.
+- Implemented (Track 2 start: online evaluation visibility):
+  - backend endpoint `GET /learning/evaluation` with lookback/limit query support,
+  - evaluation rollups for:
+    - expectancy net fees,
+    - cumulative net pnl + max drawdown,
+    - slippage proxy bps,
+    - control violations by model/strategy version,
+  - Mission Control Autonomy panel now shows M7 learning evaluation summary + by-model breakdown.
+- Implemented (Track 2 step 2: drift/instability alerting):
+  - periodic learning evaluation monitor with configurable thresholds:
+    - `TOURAB_LEARNING_ALERT_*` (expectancy, drawdown, slippage, control-violation-rate, min-trades, lookback),
+  - emits and auto-resolves `LEARNING_*` alerts as conditions breach/recover,
+  - escalates `LEARNING_*` alerts into incidents with runbook:
+    - `docs/runbooks/learning-evaluation-guard.md`.
+- Implemented (Track 2 step 3: operator threshold controls):
+  - backend runtime config API for learning guards:
+    - `GET /learning/alert-config`
+    - `POST /learning/alert-config` (operator/admin only),
+  - threshold config persisted in ops runtime state (`learning_alert_thresholds`) and applied immediately after updates,
+  - Mission Control Autonomy panel now provides editable M7 learning guard threshold controls.
+- Implemented (Track 2 step 4: trend slices + triage context):
+  - backend trend endpoint `GET /learning/evaluation-trend` with `lookbackDays`, `bucketDays`, and `limit`,
+  - each trend bucket includes breach flags mapped against current runtime learning thresholds,
+  - Mission Control Autonomy panel now surfaces recent trend buckets with breach tags and threshold overlays for faster incident triage.
+- Implemented (Track 2 step 5: triage ergonomics + deep links):
+  - trend panel filters for:
+    - breach type (`all`, `any breach`, expectancy, drawdown, slippage, control-violation-rate),
+    - model version cohort,
+    - strategy version cohort,
+  - `LEARNING_*` alerts/incidents now provide one-click "Open M7 Trend" deep links that switch to Autonomy and focus matching breach filter.
+- Implemented (Track 2 step 6: learning incident export/report actions):
+  - backend learning incident export endpoint:
+    - `GET /learning/incidents/export?lookbackDays=30&status=open|acknowledged|resolved`
+  - report includes filtered `LEARNING_*` incidents plus by-code/severity/status totals and current learning evaluation/config snapshot.
+  - Mission Control Incidents panel now exposes `Export M7 Incidents` JSON download action for operator reporting workflows.
+- Operational follow-up evidence (2026-02-23):
+  - governance rehearsal artifact capture:
+    - `logs/m7-governance-2026-02-23T05-48-24-372-03-00`
+    - challenger `m7-offline-2026-02-20-79f28d9b` remains `paper_canary` (`candidate`) and production promotion remains gated by M5 readiness.
+  - learning incident export/report validation artifact:
+    - `logs/m7-incidents-export-validation-2026-02-23T05-52-05-317-03-00`
+    - `GET /learning/incidents/export?lookbackDays=30` returned `count=3`, `openCount=3`, all `LEARNING_*`, in-window.
+- Pending:
+  - optional historical retention UX improvements.
 
 Completion criteria:
 - Learning updates are never deployed directly without validation and approval.

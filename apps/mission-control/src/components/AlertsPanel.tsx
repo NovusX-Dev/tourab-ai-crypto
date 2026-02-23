@@ -10,6 +10,7 @@ interface AlertsPanelProps {
   onClearErrors: () => void;
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
+  onOpenLearningTrend: (code: string) => void;
 }
 
 export function AlertsPanel({
@@ -19,7 +20,8 @@ export function AlertsPanel({
   onRefresh,
   onClearErrors,
   onAcknowledge,
-  onResolve
+  onResolve,
+  onOpenLearningTrend
 }: AlertsPanelProps) {
   const [nowEpochMs, setNowEpochMs] = useState(() => Date.now());
   const clearableErrors = items.filter(
@@ -79,6 +81,11 @@ export function AlertsPanel({
             {item.acknowledgedBy ? <div className="alert-meta">Ack: {item.acknowledgedBy}</div> : null}
             {item.resolvedBy ? <div className="alert-meta">Resolved: {item.resolvedBy}</div> : null}
             <div className="alert-actions">
+              {item.code.startsWith("LEARNING_") ? (
+                <button className="btn btn-ghost" onClick={() => onOpenLearningTrend(item.code)}>
+                  Open M7 Trend
+                </button>
+              ) : null}
               <button
                 className="btn btn-ghost"
                 disabled={!canManageAlerts || item.status !== "open"}

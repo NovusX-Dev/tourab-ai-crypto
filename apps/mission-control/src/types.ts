@@ -1,3 +1,5 @@
+import type { IncidentItem } from "@tourab/shared";
+
 export type {
   ApprovalRequest,
   AlertItem,
@@ -160,4 +162,88 @@ export interface Milestone5EvidenceSummary {
     tradeErrors: number;
   };
   days: Milestone5EvidenceDay[];
+}
+
+export interface LearningEvaluationBucket {
+  version: string;
+  trades: number;
+  expectancyNetFeesUsd: number;
+  cumulativeNetPnlUsd: number;
+  maxDrawdownUsd: number;
+  maxDrawdownPct: number;
+  slippageProxyBps: number;
+  controlViolations: number;
+}
+
+export interface LearningEvaluationSummary {
+  generatedAt: string;
+  lookbackDays: number;
+  closedTrades: number;
+  totals: {
+    expectancyNetFeesUsd: number;
+    cumulativeNetPnlUsd: number;
+    maxDrawdownUsd: number;
+    maxDrawdownPct: number;
+    slippageProxyBps: number;
+    controlViolations: number;
+  };
+  byModelVersion: LearningEvaluationBucket[];
+  byStrategyVersion: LearningEvaluationBucket[];
+}
+
+export interface LearningAlertConfig {
+  enabled: boolean;
+  lookbackDays: number;
+  limit: number;
+  minTrades: number;
+  expectancyMinUsd: number;
+  maxDrawdownPct: number;
+  maxSlippageBps: number;
+  maxControlViolationRatePct: number;
+}
+
+export interface LearningEvaluationTrendPoint {
+  bucketStartAt: string;
+  bucketEndAt: string;
+  closedTrades: number;
+  expectancyNetFeesUsd: number;
+  cumulativeNetPnlUsd: number;
+  maxDrawdownPct: number;
+  slippageProxyBps: number;
+  controlViolations: number;
+  controlViolationRatePct: number;
+  modelVersions: Array<{ version: string; trades: number }>;
+  strategyVersions: Array<{ version: string; trades: number }>;
+  breaches: {
+    expectancy: boolean;
+    drawdown: boolean;
+    slippage: boolean;
+    controlViolationRate: boolean;
+  };
+}
+
+export interface LearningEvaluationTrendSummary {
+  generatedAt: string;
+  lookbackDays: number;
+  bucketDays: number;
+  thresholds: LearningAlertConfig;
+  points: LearningEvaluationTrendPoint[];
+}
+
+export interface LearningIncidentExportReport {
+  exportedAt: string;
+  lookbackDays: number;
+  status: "all" | "open" | "acknowledged" | "resolved";
+  count: number;
+  openCount: number;
+  acknowledgedCount: number;
+  resolvedCount: number;
+  totals: {
+    byCode: Array<{ code: string; count: number }>;
+    bySeverity: Array<{ severity: string; count: number }>;
+    byStatus: Array<{ status: string; count: number }>;
+  };
+  alertConfig: LearningAlertConfig;
+  evaluation: LearningEvaluationSummary;
+  items: IncidentItem[];
 }

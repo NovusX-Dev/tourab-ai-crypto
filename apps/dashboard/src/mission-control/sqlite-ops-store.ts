@@ -1,7 +1,14 @@
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { AuditItem, BotStateSnapshot, IncidentItem, IncidentStatus, ReconciliationStatus } from "@tourab/shared";
+import type {
+  AuditItem,
+  BotStateSnapshot,
+  ClosedTradeFeatureRecord,
+  IncidentItem,
+  IncidentStatus,
+  ReconciliationStatus
+} from "@tourab/shared";
 
 export interface ManagedTradeRecord {
   tradeId: string;
@@ -131,6 +138,31 @@ export class SqliteOpsStore {
 
       CREATE INDEX IF NOT EXISTS idx_managed_trades_status ON managed_trades(status, updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_managed_trades_symbol ON managed_trades(symbol, updated_at DESC);
+
+      CREATE TABLE IF NOT EXISTS closed_trade_features (
+        trade_id TEXT PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        entry_side TEXT NOT NULL,
+        exit_reason TEXT NOT NULL,
+        status TEXT NOT NULL,
+        closed_at TEXT NOT NULL,
+        hold_sec INTEGER NOT NULL,
+        entry_filled_qty REAL NOT NULL,
+        exit_filled_qty REAL NOT NULL,
+        entry_avg_price REAL NOT NULL,
+        exit_avg_price REAL NOT NULL,
+        fee_usd REAL NOT NULL,
+        realized_pnl_usd REAL NOT NULL,
+        realized_pnl_bps REAL NOT NULL,
+        feature_schema_version TEXT NOT NULL,
+        policy_version TEXT NOT NULL,
+        strategy_version TEXT NOT NULL,
+        model_version TEXT NOT NULL,
+        extracted_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_closed_trade_features_closed_at ON closed_trade_features(closed_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_closed_trade_features_symbol ON closed_trade_features(symbol, closed_at DESC);
     `);
     this.ensureManagedTradeColumn("exit_submitted_at", "TEXT");
     this.ensureManagedTradeColumn("exit_reprice_count", "INTEGER NOT NULL DEFAULT 0");
@@ -309,6 +341,105 @@ export class SqliteOpsStore {
     return result.changes ?? 0;
   }
 
+  listClosedTradeFeatures(limit = 500): ClosedTradeFeatureRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT
+           trade_id, symbol, entry_side, exit_reason, status, closed_at, hold_sec,
+           entry_filled_qty, exit_filled_qty, entry_avg_price, exit_avg_price,
+           fee_usd, realized_pnl_usd, realized_pnl_bps, feature_schema_version,
+           policy_version, strategy_version, model_version, extracted_at
+         FROM closed_trade_features
+         ORDER BY closed_at DESC
+         LIMIT ?`
+      )
+      .all(limit) as Array<{
+      trade_id: string;
+      symbol: string;
+      entry_side: "buy" | "sell";
+      exit_reason: string;
+      status: "closed";
+      closed_at: string;
+      hold_sec: number;
+      entry_filled_qty: number;
+      exit_filled_qty: number;
+      entry_avg_price: number;
+      exit_avg_price: number;
+      fee_usd: number;
+      realized_pnl_usd: number;
+      realized_pnl_bps: number;
+      feature_schema_version: string;
+      policy_version: string;
+      strategy_version: string;
+      model_version: string;
+      extracted_at: string;
+    }>;
+    return rows.map((row) => ({
+      tradeId: row.trade_id,
+      symbol: row.symbol,
+      entrySide: row.entry_side,
+      exitReason: row.exit_reason,
+      status: row.status,
+      closedAt: row.closed_at,
+      holdSec: row.hold_sec,
+      entryFilledQty: row.entry_filled_qty,
+      exitFilledQty: row.exit_filled_qty,
+      entryAvgPrice: row.entry_avg_price,
+      exitAvgPrice: row.exit_avg_price,
+      feeUsd: row.fee_usd,
+      realizedPnlUsd: row.realized_pnl_usd,
+      realizedPnlBps: row.realized_pnl_bps,
+      featureSchemaVersion: row.feature_schema_version,
+      policyVersion: row.policy_version,
+      strategyVersion: row.strategy_version,
+      modelVersion: row.model_version,
+      extractedAt: row.extracted_at
+    }));
+  }
+
+  upsertClosedTradeFeature(item: ClosedTradeFeatureRecord): void {
+    this.db
+      .prepare(
+        `INSERT OR REPLACE INTO closed_trade_features (
+           trade_id, symbol, entry_side, exit_reason, status, closed_at, hold_sec,
+           entry_filled_qty, exit_filled_qty, entry_avg_price, exit_avg_price,
+           fee_usd, realized_pnl_usd, realized_pnl_bps, feature_schema_version,
+           policy_version, strategy_version, model_version, extracted_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        item.tradeId,
+        item.symbol,
+        item.entrySide,
+        item.exitReason,
+        item.status,
+        item.closedAt,
+        item.holdSec,
+        item.entryFilledQty,
+        item.exitFilledQty,
+        item.entryAvgPrice,
+        item.exitAvgPrice,
+        item.feeUsd,
+        item.realizedPnlUsd,
+        item.realizedPnlBps,
+        item.featureSchemaVersion,
+        item.policyVersion,
+        item.strategyVersion,
+        item.modelVersion,
+        item.extractedAt
+      );
+  }
+
+  deleteClosedTradeFeaturesOlderThan(cutoffIso: string): number {
+    const result = this.db
+      .prepare(
+        `DELETE FROM closed_trade_features
+         WHERE closed_at < ?`
+      )
+      .run(cutoffIso) as { changes?: number };
+    return result.changes ?? 0;
+  }
+
   listAudit(limit = 300): AuditItem[] {
     const rows = this.db
       .prepare(
@@ -370,6 +501,7 @@ export class SqliteOpsStore {
     const auditResult = this.db.prepare(`DELETE FROM audit_entries`).run() as { changes?: number };
     const incidentResult = this.db.prepare(`DELETE FROM incidents`).run() as { changes?: number };
     this.db.prepare(`DELETE FROM managed_trades`).run();
+    this.db.prepare(`DELETE FROM closed_trade_features`).run();
     return {
       auditDeleted: auditResult.changes ?? 0,
       incidentsDeleted: incidentResult.changes ?? 0

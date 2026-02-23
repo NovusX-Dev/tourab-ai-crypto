@@ -13,6 +13,7 @@ import type {
   ApiErrorPayload,
   BotEvent,
   BotMode,
+  ClosedTradeFeatureRecord,
   ControlAction,
   ControlActionResponse,
   DemoQueuedIntent,
@@ -22,6 +23,8 @@ import type {
   ExchangeStatus,
   EventQuery,
   IncidentItem,
+  LearningFeatureSnapshot,
+  LearningGovernanceState,
   OpenOrdersStatus,
   OpsMetrics,
   PortfolioStatus,
@@ -59,6 +62,7 @@ const REPLAY_DEFAULT = 200;
 const DEFAULT_DRIFT_CIRCUIT_ACTION = (process.env.TOURAB_DRIFT_CIRCUIT_ACTION ?? "pause") as "pause" | "stop";
 const DEFAULT_STREAM_RETENTION_MS = 15 * 60_000;
 const DEFAULT_STREAM_RETENTION_SWEEP_MS = 60_000;
+const DEFAULT_OPS_TRADE_RETENTION_MS = 90 * 24 * 60 * 60_000;
 const HEARTBEAT_CHECKPOINT_MESSAGE = "Heartbeat checkpoint";
 const WORKER_STALL_ALERT_CODE = "WORKER_STALLED_NO_PROPOSAL";
 const DEFAULT_AUTO_EXIT_MAX_HOLD_SEC = 30 * 60;
@@ -72,6 +76,16 @@ const DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION = "champion-v1";
 const DEFAULT_STRATEGY_MAX_DAILY_LOSS_USD = 5;
 const DEFAULT_STRATEGY_MAX_DRAWDOWN_PCT = -5;
 const DEFAULT_STRATEGY_MAX_CONSEC_LOSSES = 4;
+const DEFAULT_LEARNING_MODEL_VERSION = "m7-baseline-v1";
+const DEFAULT_LEARNING_FEATURE_SCHEMA_VERSION = "m7-closed-trade-v1";
+const DEFAULT_LEARNING_ALERT_LOOKBACK_DAYS = 30;
+const DEFAULT_LEARNING_ALERT_LIMIT = 2000;
+const DEFAULT_LEARNING_ALERT_MIN_TRADES = 15;
+const DEFAULT_LEARNING_ALERT_EXPECTANCY_MIN_USD = 0;
+const DEFAULT_LEARNING_ALERT_MAX_DRAWDOWN_PCT = 5;
+const DEFAULT_LEARNING_ALERT_MAX_SLIPPAGE_BPS = 15;
+const DEFAULT_LEARNING_ALERT_MAX_CONTROL_VIOLATION_RATE_PCT = 20;
+const DEFAULT_LEARNING_ALERT_CHECK_INTERVAL_MS = 60_000;
 const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
   "ProposalCreated",
   "GatekeeperDecision",
@@ -102,6 +116,14 @@ function parseBoundedInt(raw: string | undefined, fallback: number, min: number,
   }
   const rounded = Math.floor(value);
   return Math.max(min, Math.min(max, rounded));
+}
+
+function parseBoundedNumber(raw: string | undefined, fallback: number, min: number, max: number): number {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, value));
 }
 
 function toFiniteNumber(raw: string | number | undefined): number {
@@ -231,6 +253,55 @@ function toManagedTradeRecord(trade: ManagedTrade): ManagedTradeRecord {
     exitSubmittedAt: trade.exitSubmittedAt,
     exitRepriceCount: trade.exitRepriceCount,
     forcedFlattenEscalated: trade.forcedFlattenEscalated
+  };
+}
+
+function toClosedTradeFeatureRecord(
+  trade: ManagedTrade,
+  input: {
+    policyVersion: string;
+    strategyVersion: string;
+    modelVersion: string;
+    extractedAt: string;
+  }
+): ClosedTradeFeatureRecord | undefined {
+  if (
+    trade.status !== "closed" ||
+    !trade.closedAt ||
+    !trade.exitReason ||
+    trade.entryFilledQty <= 0 ||
+    !Number.isFinite(Date.parse(trade.closedAt))
+  ) {
+    return undefined;
+  }
+  const createdEpoch = Date.parse(trade.createdAt);
+  const closedEpoch = Date.parse(trade.closedAt);
+  const holdSec =
+    Number.isFinite(createdEpoch) && Number.isFinite(closedEpoch) && closedEpoch >= createdEpoch
+      ? Math.max(0, Math.round((closedEpoch - createdEpoch) / 1000))
+      : 0;
+  const entryNotional = Math.max(0, trade.entryFilledQty * trade.entryAvgPrice);
+  const realizedPnlBps = entryNotional > 0 ? round6((trade.realizedPnlUsd / entryNotional) * 10_000) : 0;
+  return {
+    tradeId: trade.tradeId,
+    symbol: trade.symbol,
+    entrySide: trade.entrySide,
+    exitReason: trade.exitReason,
+    status: "closed",
+    closedAt: trade.closedAt,
+    holdSec,
+    entryFilledQty: round6(Math.max(0, trade.entryFilledQty)),
+    exitFilledQty: round6(Math.max(0, trade.exitFilledQty)),
+    entryAvgPrice: round6(Math.max(0, trade.entryAvgPrice)),
+    exitAvgPrice: round6(Math.max(0, trade.exitAvgPrice)),
+    feeUsd: round6(Math.max(0, trade.feeUsd)),
+    realizedPnlUsd: round6(trade.realizedPnlUsd),
+    realizedPnlBps,
+    featureSchemaVersion: DEFAULT_LEARNING_FEATURE_SCHEMA_VERSION,
+    policyVersion: input.policyVersion,
+    strategyVersion: input.strategyVersion,
+    modelVersion: input.modelVersion,
+    extractedAt: input.extractedAt
   };
 }
 
@@ -616,6 +687,72 @@ interface Milestone5EvidenceSummary {
   days: Milestone5EvidenceDay[];
 }
 
+interface LearningEvaluationBucket {
+  version: string;
+  trades: number;
+  expectancyNetFeesUsd: number;
+  cumulativeNetPnlUsd: number;
+  maxDrawdownUsd: number;
+  maxDrawdownPct: number;
+  slippageProxyBps: number;
+  controlViolations: number;
+}
+
+interface LearningEvaluationSummary {
+  generatedAt: string;
+  lookbackDays: number;
+  closedTrades: number;
+  totals: {
+    expectancyNetFeesUsd: number;
+    cumulativeNetPnlUsd: number;
+    maxDrawdownUsd: number;
+    maxDrawdownPct: number;
+    slippageProxyBps: number;
+    controlViolations: number;
+  };
+  byModelVersion: LearningEvaluationBucket[];
+  byStrategyVersion: LearningEvaluationBucket[];
+}
+
+interface LearningAlertThresholds {
+  enabled: boolean;
+  lookbackDays: number;
+  limit: number;
+  minTrades: number;
+  expectancyMinUsd: number;
+  maxDrawdownPct: number;
+  maxSlippageBps: number;
+  maxControlViolationRatePct: number;
+}
+
+interface LearningEvaluationTrendPoint {
+  bucketStartAt: string;
+  bucketEndAt: string;
+  closedTrades: number;
+  expectancyNetFeesUsd: number;
+  cumulativeNetPnlUsd: number;
+  maxDrawdownPct: number;
+  slippageProxyBps: number;
+  controlViolations: number;
+  controlViolationRatePct: number;
+  modelVersions: Array<{ version: string; trades: number }>;
+  strategyVersions: Array<{ version: string; trades: number }>;
+  breaches: {
+    expectancy: boolean;
+    drawdown: boolean;
+    slippage: boolean;
+    controlViolationRate: boolean;
+  };
+}
+
+interface LearningEvaluationTrendSummary {
+  generatedAt: string;
+  lookbackDays: number;
+  bucketDays: number;
+  thresholds: LearningAlertThresholds;
+  points: LearningEvaluationTrendPoint[];
+}
+
 function controlActionFromPath(path: string): ControlAction | undefined {
   if (path === "/start") return "start";
   if (path === "/pause") return "pause";
@@ -727,6 +864,13 @@ function incidentTemplateFromAlert(alert: AlertItem): Pick<IncidentItem, "taxono
       runbookRef: "docs/runbooks/control-plane-incident.md"
     };
   }
+  if (alert.code.startsWith("LEARNING_")) {
+    return {
+      taxonomy: "ops_durability",
+      severity: alert.severity === "critical" ? "sev1" : "sev2",
+      runbookRef: "docs/runbooks/learning-evaluation-guard.md"
+    };
+  }
   return {
     taxonomy: "control_plane",
     severity: alert.severity === "critical" ? "sev1" : "sev3",
@@ -761,6 +905,12 @@ export async function startMissionControlServer(
     DEFAULT_STREAM_RETENTION_SWEEP_MS,
     5_000,
     10 * 60_000
+  );
+  const opsTradeRetentionMs = parseBoundedInt(
+    process.env.TOURAB_OPS_TRADE_RETENTION_MS,
+    DEFAULT_OPS_TRADE_RETENTION_MS,
+    60_000,
+    365 * 24 * 60 * 60_000
   );
   const driftMinConsecutive = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MIN_CONSECUTIVE, 2, 1, 20);
   const driftMaxGraceMs = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MAX_GRACE_MS, 90_000, 1_000, 86_400_000);
@@ -853,6 +1003,59 @@ export async function startMissionControlServer(
         50
       )
     };
+  const learningGovernanceState: LearningGovernanceState =
+    opsStore.loadRuntimeState<LearningGovernanceState>("learning_governance_state") ?? {
+      enabled: false,
+      mode: "research_only",
+      activeModelVersion: DEFAULT_LEARNING_MODEL_VERSION,
+      previousStableModelVersion: DEFAULT_LEARNING_MODEL_VERSION,
+      updatedAt: new Date().toISOString()
+    };
+  if (!learningGovernanceState.activeModelVersion) {
+    learningGovernanceState.activeModelVersion = DEFAULT_LEARNING_MODEL_VERSION;
+  }
+  if (!learningGovernanceState.previousStableModelVersion) {
+    learningGovernanceState.previousStableModelVersion = learningGovernanceState.activeModelVersion;
+  }
+  if (!learningGovernanceState.updatedAt) {
+    learningGovernanceState.updatedAt = new Date().toISOString();
+  }
+  let learningAlertThresholds: LearningAlertThresholds =
+    opsStore.loadRuntimeState<LearningAlertThresholds>("learning_alert_thresholds") ?? {
+      enabled: parseBooleanEnv(process.env.TOURAB_LEARNING_ALERTS_ENABLED, true),
+      lookbackDays: parseBoundedInt(
+        process.env.TOURAB_LEARNING_ALERT_LOOKBACK_DAYS,
+        DEFAULT_LEARNING_ALERT_LOOKBACK_DAYS,
+        1,
+        365
+      ),
+      limit: parseBoundedInt(process.env.TOURAB_LEARNING_ALERT_LIMIT, DEFAULT_LEARNING_ALERT_LIMIT, 1, 10_000),
+      minTrades: parseBoundedInt(process.env.TOURAB_LEARNING_ALERT_MIN_TRADES, DEFAULT_LEARNING_ALERT_MIN_TRADES, 1, 10_000),
+      expectancyMinUsd: parseBoundedNumber(
+        process.env.TOURAB_LEARNING_ALERT_EXPECTANCY_MIN_USD,
+        DEFAULT_LEARNING_ALERT_EXPECTANCY_MIN_USD,
+        -1_000,
+        1_000
+      ),
+      maxDrawdownPct: parseBoundedNumber(
+        process.env.TOURAB_LEARNING_ALERT_MAX_DRAWDOWN_PCT,
+        DEFAULT_LEARNING_ALERT_MAX_DRAWDOWN_PCT,
+        0,
+        100
+      ),
+      maxSlippageBps: parseBoundedNumber(
+        process.env.TOURAB_LEARNING_ALERT_MAX_SLIPPAGE_BPS,
+        DEFAULT_LEARNING_ALERT_MAX_SLIPPAGE_BPS,
+        0,
+        10_000
+      ),
+      maxControlViolationRatePct: parseBoundedNumber(
+        process.env.TOURAB_LEARNING_ALERT_MAX_CONTROL_VIOLATION_RATE_PCT,
+        DEFAULT_LEARNING_ALERT_MAX_CONTROL_VIOLATION_RATE_PCT,
+        0,
+        100
+      )
+    };
   const autoExitStaleTimeoutSec = parseBoundedInt(
     process.env.TOURAB_AUTO_EXIT_STALE_TIMEOUT_SEC,
     DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC,
@@ -904,6 +1107,7 @@ export async function startMissionControlServer(
   }
   entryAutonomyConfig.strategyVersion = strategyPromotionState.activeVersion;
   entryAutonomyStatus.approvalMode = entryAutonomyConfig.approvalMode;
+  persistLearningGovernanceState(new Date().toISOString());
   let exchangeStatus: ExchangeStatus = {
     connected: false,
     mode: exchangeMode,
@@ -1165,6 +1369,24 @@ export async function startMissionControlServer(
     opsStore.upsertManagedTrade(toManagedTradeRecord(trade));
   }
 
+  function persistLearningGovernanceState(nowIso: string): void {
+    learningGovernanceState.updatedAt = nowIso;
+    opsStore.saveRuntimeState("learning_governance_state", learningGovernanceState);
+  }
+
+  function persistClosedTradeFeature(trade: ManagedTrade, nowIso: string): void {
+    const feature = toClosedTradeFeatureRecord(trade, {
+      policyVersion: entryAutonomyConfig.policyVersion,
+      strategyVersion: entryAutonomyConfig.strategyVersion,
+      modelVersion: learningGovernanceState.activeModelVersion,
+      extractedAt: nowIso
+    });
+    if (!feature) {
+      return;
+    }
+    opsStore.upsertClosedTradeFeature(feature);
+  }
+
   function persistEntryAutonomyState(): void {
     opsStore.saveRuntimeState("entry_autonomy_config", entryAutonomyConfig);
     opsStore.saveRuntimeState("entry_autonomy_status", entryAutonomyStatus);
@@ -1178,6 +1400,17 @@ export async function startMissionControlServer(
 
   function persistStrategyDegradationConfig(): void {
     opsStore.saveRuntimeState("strategy_degradation_config", strategyDegradationConfig);
+  }
+
+  function persistLearningAlertThresholds(): void {
+    opsStore.saveRuntimeState("learning_alert_thresholds", learningAlertThresholds);
+  }
+
+  const startupIso = new Date().toISOString();
+  for (const trade of managedTrades.values()) {
+    if (trade.status === "closed") {
+      persistClosedTradeFeature(trade, startupIso);
+    }
   }
 
   function stageRank(stage: StrategyPromotionStage): number {
@@ -1732,6 +1965,9 @@ export async function startMissionControlServer(
     }
 
     for (const trade of managedTrades.values()) {
+      if (trade.status === "closed") {
+        continue;
+      }
       const entryStats = fillStatsForOrder(input.fills, trade.entryOrdId);
       if (entryStats.qty > 0) {
         trade.entryFilledQty = entryStats.qty;
@@ -1759,7 +1995,10 @@ export async function startMissionControlServer(
         if (trade.remainingQty <= 1e-9) {
           trade.status = "closed";
           trade.closedAt = input.nowIso;
+          trade.exitOrdId = undefined;
+          trade.exitClOrdId = undefined;
           trade.exitSubmittedAt = undefined;
+          persistClosedTradeFeature(trade, input.nowIso);
           await publish(
             createEvent(
               "OrderFilled",
@@ -1876,6 +2115,48 @@ export async function startMissionControlServer(
 
       const createdEpoch = Date.parse(trade.createdAt);
       const elapsedSec = Number.isFinite(createdEpoch) && Number.isFinite(nowEpoch) ? (nowEpoch - createdEpoch) / 1000 : 0;
+      const staleEscalatedClosureSec = trade.maxHoldSec + autoExitStaleTimeoutSec * Math.max(3, autoExitMaxReprices);
+      const staleEscalatedClosureEligible =
+        (trade.status === "exit_pending" || trade.status === "error") &&
+        trade.forcedFlattenEscalated &&
+        elapsedSec >= staleEscalatedClosureSec;
+      if (staleEscalatedClosureEligible) {
+        const staleQty = Math.max(0, round6(trade.remainingQty));
+        trade.remainingQty = 0;
+        trade.status = "closed";
+        trade.closedAt = input.nowIso;
+        trade.exitOrdId = undefined;
+        trade.exitClOrdId = undefined;
+        trade.exitSubmittedAt = undefined;
+        trade.exitReason = "flatten";
+        trade.updatedAt = input.nowIso;
+        upsertManagedTrade(trade);
+        persistClosedTradeFeature(trade, input.nowIso);
+        await upsertAlert({
+          code: "AUTO_EXIT_STALE_FORCED_CLOSED",
+          severity: "warn",
+          source: "system",
+          title: "Auto-exit stale trade forced closed",
+          detail: `tradeId=${trade.tradeId} qty=${staleQty} elapsedSec=${round6(elapsedSec)} thresholdSec=${staleEscalatedClosureSec} repriceCount=${trade.exitRepriceCount}`,
+          symbol: trade.symbol
+        });
+        await publish(
+          createEvent(
+            "OrderFilled",
+            trade.symbol,
+            `Managed trade stale forced-closed tradeId=${trade.tradeId} reason=flatten qty=${staleQty} elapsedSec=${round6(elapsedSec)}`,
+            "warn",
+            ["managed_trade", "auto_exit_stale_forced_closed"]
+          )
+        );
+        await appendAudit(
+          "Managed trade stale forced-closed",
+          `tradeId=${trade.tradeId} reason=flatten qty=${staleQty} elapsedSec=${round6(elapsedSec)} thresholdSec=${staleEscalatedClosureSec}`,
+          trade.symbol,
+          "OrderFilled"
+        );
+        continue;
+      }
       const flattenTriggered = trade.flattenAt ? input.nowIso >= trade.flattenAt : false;
       const timeTriggered = elapsedSec >= trade.maxHoldSec;
       const stopTriggered = trade.entrySide === "buy" ? mark <= trade.stopPrice : mark >= trade.stopPrice;
@@ -1995,11 +2276,53 @@ export async function startMissionControlServer(
         const sCode = extractOkxSCode(error);
         const lowerMessage = message.toLowerCase();
         const insufficientBalance = sCode === "51008" || lowerMessage.includes("insufficient");
+        const minimumOrderAmount = sCode === "51020" || lowerMessage.includes("minimum order amount");
+        if (minimumOrderAmount) {
+          const market = marketInputs ?? (await loadMarketInputs(trade.symbol));
+          const lotSz = market?.lotSz && Number.isFinite(market.lotSz) ? market.lotSz : 0.00000001;
+          const minSz = market?.minSz && Number.isFinite(market.minSz) ? market.minSz : lotSz;
+          const currentQty = Math.max(0, round6(trade.remainingQty));
+          trade.remainingQty = 0;
+          trade.status = "closed";
+          trade.closedAt = input.nowIso;
+          trade.exitOrdId = undefined;
+          trade.exitClOrdId = undefined;
+          trade.exitSubmittedAt = undefined;
+          trade.exitReason = "flatten";
+          trade.updatedAt = input.nowIso;
+          upsertManagedTrade(trade);
+          persistClosedTradeFeature(trade, input.nowIso);
+          await upsertAlert({
+            code: "AUTO_EXIT_MIN_SIZE_CLOSED",
+            severity: "warn",
+            source: "exchange",
+            title: "Auto-exit minimum-order remainder closed",
+            detail: `tradeId=${trade.tradeId} reason=${reason} qty=${currentQty} minSz=${minSz} lotSz=${lotSz} ${detail}`,
+            symbol: trade.symbol
+          });
+          await publish(
+            createEvent(
+              "OrderFilled",
+              trade.symbol,
+              `Managed trade min-size closed tradeId=${trade.tradeId} reason=flatten qty=${currentQty}`,
+              "warn",
+              ["managed_trade", "auto_exit_min_size_closed"]
+            )
+          );
+          await appendAudit(
+            "Managed trade min-size closed",
+            `tradeId=${trade.tradeId} reason=flatten qty=${currentQty} minSz=${minSz} lotSz=${lotSz}`,
+            trade.symbol,
+            "OrderFilled"
+          );
+          continue;
+        }
         if (insufficientBalance) {
           const market = marketInputs ?? (await loadMarketInputs(trade.symbol));
           const lotSz = market?.lotSz && Number.isFinite(market.lotSz) ? market.lotSz : 0.00000001;
           const minSz = market?.minSz && Number.isFinite(market.minSz) ? market.minSz : lotSz;
           const currentQty = Math.max(0, round6(trade.remainingQty));
+          trade.exitRepriceCount += 1;
           let recoveredQty = round6(currentQty - lotSz);
           if (recoveredQty < minSz && currentQty > minSz + 1e-9) {
             recoveredQty = round6(minSz);
@@ -2029,13 +2352,53 @@ export async function startMissionControlServer(
             );
             continue;
           }
+          if (trade.exitRepriceCount > autoExitMaxReprices) {
+            trade.remainingQty = 0;
+            trade.status = "closed";
+            trade.closedAt = input.nowIso;
+            trade.exitOrdId = undefined;
+            trade.exitClOrdId = undefined;
+            trade.exitSubmittedAt = undefined;
+            trade.exitReason = "flatten";
+            trade.updatedAt = input.nowIso;
+            upsertManagedTrade(trade);
+            persistClosedTradeFeature(trade, input.nowIso);
+            await upsertAlert({
+              code: "AUTO_EXIT_FORCED_CLOSED",
+              severity: "warn",
+              source: "exchange",
+              title: "Auto-exit forced closure after repeated insufficient balance",
+              detail: `tradeId=${trade.tradeId} reason=${reason} qty=${currentQty} repriceCount=${trade.exitRepriceCount} ${detail}`,
+              symbol: trade.symbol
+            });
+            await publish(
+              createEvent(
+                "OrderFilled",
+                trade.symbol,
+                `Managed trade forced-closed tradeId=${trade.tradeId} reason=flatten qty=${currentQty} repriceCount=${trade.exitRepriceCount}`,
+                "warn",
+                ["managed_trade", "auto_exit_forced_closed"]
+              )
+            );
+            await appendAudit(
+              "Managed trade forced-closed",
+              `tradeId=${trade.tradeId} reason=flatten qty=${currentQty} repriceCount=${trade.exitRepriceCount}`,
+              trade.symbol,
+              "OrderFilled"
+            );
+            continue;
+          }
           if (currentQty <= minSz + 1e-9) {
             trade.remainingQty = 0;
             trade.status = "closed";
             trade.closedAt = input.nowIso;
+            trade.exitOrdId = undefined;
+            trade.exitClOrdId = undefined;
+            trade.exitSubmittedAt = undefined;
             trade.exitReason = "flatten";
             trade.updatedAt = input.nowIso;
             upsertManagedTrade(trade);
+            persistClosedTradeFeature(trade, input.nowIso);
             await upsertAlert({
               code: "AUTO_EXIT_DUST_CLOSED",
               severity: "warn",
@@ -2450,8 +2813,16 @@ export async function startMissionControlServer(
       const eventsDeleted = eventStore.deleteOlderThan(cutoffIso);
       const auditDeleted = opsStore.deleteAuditOlderThan(cutoffIso);
       const incidentsDeleted = opsStore.deleteIncidentsOlderThan(cutoffIso);
-      const managedTradesDeleted = opsStore.deleteManagedTradesOlderThan(cutoffIso);
-      if (eventsDeleted === 0 && auditDeleted === 0 && incidentsDeleted === 0 && managedTradesDeleted === 0) {
+      const opsTradeCutoffIso = new Date(Date.now() - opsTradeRetentionMs).toISOString();
+      const managedTradesDeleted = opsStore.deleteManagedTradesOlderThan(opsTradeCutoffIso);
+      const closedTradeFeaturesDeleted = opsStore.deleteClosedTradeFeaturesOlderThan(opsTradeCutoffIso);
+      if (
+        eventsDeleted === 0 &&
+        auditDeleted === 0 &&
+        incidentsDeleted === 0 &&
+        managedTradesDeleted === 0 &&
+        closedTradeFeaturesDeleted === 0
+      ) {
         return;
       }
       inMemoryEvents = await eventStore.readAll();
@@ -2642,6 +3013,240 @@ export async function startMissionControlServer(
     };
   }
 
+  function bucketLearningEvaluation(
+    items: Array<{
+      version: string;
+      pnl: number;
+      slippageBps: number;
+      controlViolation: boolean;
+    }>
+  ): LearningEvaluationBucket[] {
+    const grouped = new Map<string, Array<{ pnl: number; slippageBps: number; controlViolation: boolean }>>();
+    for (const item of items) {
+      const key = item.version || "unknown";
+      const bucket = grouped.get(key) ?? [];
+      bucket.push({ pnl: item.pnl, slippageBps: item.slippageBps, controlViolation: item.controlViolation });
+      grouped.set(key, bucket);
+    }
+    const out: LearningEvaluationBucket[] = [];
+    for (const [version, bucket] of grouped.entries()) {
+      let cumulative = 0;
+      let peak = 0;
+      let maxDrawdownUsd = 0;
+      let slippageTotal = 0;
+      let controlViolations = 0;
+      for (const row of bucket) {
+        cumulative += row.pnl;
+        peak = Math.max(peak, cumulative);
+        maxDrawdownUsd = Math.max(maxDrawdownUsd, peak - cumulative);
+        slippageTotal += row.slippageBps;
+        if (row.controlViolation) {
+          controlViolations += 1;
+        }
+      }
+      const expectancy = bucket.length > 0 ? cumulative / bucket.length : 0;
+      const maxDrawdownPct = peak > 0 ? (maxDrawdownUsd / peak) * 100 : 0;
+      const slippageProxyBps = bucket.length > 0 ? slippageTotal / bucket.length : 0;
+      out.push({
+        version,
+        trades: bucket.length,
+        expectancyNetFeesUsd: round6(expectancy),
+        cumulativeNetPnlUsd: round6(cumulative),
+        maxDrawdownUsd: round6(maxDrawdownUsd),
+        maxDrawdownPct: round6(maxDrawdownPct),
+        slippageProxyBps: round6(slippageProxyBps),
+        controlViolations
+      });
+    }
+    return out.sort((a, b) => b.trades - a.trades || a.version.localeCompare(b.version));
+  }
+
+  function buildLearningEvaluationSummary(nowIso: string, lookbackDays: number, limit: number): LearningEvaluationSummary {
+    const nowEpoch = Date.parse(nowIso);
+    const minEpoch = nowEpoch - lookbackDays * 24 * 60 * 60 * 1000;
+    const controlViolationReasons = new Set<ExitReason>(["manual", "circuit_breaker"]);
+    const rows = opsStore
+      .listClosedTradeFeatures(Math.max(1, limit))
+      .filter((item) => {
+        const epoch = Date.parse(item.closedAt);
+        return Number.isFinite(epoch) && epoch >= minEpoch;
+      })
+      .sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+    let cumulative = 0;
+    let peak = 0;
+    let maxDrawdownUsd = 0;
+    let slippageTotal = 0;
+    let controlViolations = 0;
+    const materialized = rows.map((item) => {
+      const slippageProxyBps =
+        item.entryAvgPrice > 0 ? Math.abs(((item.exitAvgPrice - item.entryAvgPrice) / item.entryAvgPrice) * 10_000) : 0;
+      const controlViolation = controlViolationReasons.has(item.exitReason as ExitReason);
+      cumulative += item.realizedPnlUsd;
+      peak = Math.max(peak, cumulative);
+      maxDrawdownUsd = Math.max(maxDrawdownUsd, peak - cumulative);
+      slippageTotal += slippageProxyBps;
+      if (controlViolation) {
+        controlViolations += 1;
+      }
+      return {
+        modelVersion: item.modelVersion,
+        strategyVersion: item.strategyVersion,
+        pnl: item.realizedPnlUsd,
+        slippageBps: slippageProxyBps,
+        controlViolation
+      };
+    });
+    const expectancy = rows.length > 0 ? cumulative / rows.length : 0;
+    const slippageProxyBps = rows.length > 0 ? slippageTotal / rows.length : 0;
+    const maxDrawdownPct = peak > 0 ? (maxDrawdownUsd / peak) * 100 : 0;
+    return {
+      generatedAt: nowIso,
+      lookbackDays,
+      closedTrades: rows.length,
+      totals: {
+        expectancyNetFeesUsd: round6(expectancy),
+        cumulativeNetPnlUsd: round6(cumulative),
+        maxDrawdownUsd: round6(maxDrawdownUsd),
+        maxDrawdownPct: round6(maxDrawdownPct),
+        slippageProxyBps: round6(slippageProxyBps),
+        controlViolations
+      },
+      byModelVersion: bucketLearningEvaluation(
+        materialized.map((item) => ({
+          version: item.modelVersion,
+          pnl: item.pnl,
+          slippageBps: item.slippageBps,
+          controlViolation: item.controlViolation
+        }))
+      ),
+      byStrategyVersion: bucketLearningEvaluation(
+        materialized.map((item) => ({
+          version: item.strategyVersion,
+          pnl: item.pnl,
+          slippageBps: item.slippageBps,
+          controlViolation: item.controlViolation
+        }))
+      )
+    };
+  }
+
+  function learningBreachesFromSummary(
+    summary: LearningEvaluationSummary,
+    thresholds: LearningAlertThresholds
+  ): LearningEvaluationTrendPoint["breaches"] {
+    const controlViolationRatePct =
+      summary.closedTrades > 0 ? (summary.totals.controlViolations / summary.closedTrades) * 100 : 0;
+    return {
+      expectancy: summary.totals.expectancyNetFeesUsd < thresholds.expectancyMinUsd,
+      drawdown: summary.totals.maxDrawdownPct > thresholds.maxDrawdownPct,
+      slippage: summary.totals.slippageProxyBps > thresholds.maxSlippageBps,
+      controlViolationRate: controlViolationRatePct > thresholds.maxControlViolationRatePct
+    };
+  }
+
+  function buildLearningEvaluationTrendSummary(
+    nowIso: string,
+    lookbackDays: number,
+    bucketDays: number,
+    limit: number,
+    thresholds: LearningAlertThresholds
+  ): LearningEvaluationTrendSummary {
+    const nowEpoch = Date.parse(nowIso);
+    const minEpoch = nowEpoch - lookbackDays * 24 * 60 * 60 * 1000;
+    const bucketMs = Math.max(1, bucketDays) * 24 * 60 * 60 * 1000;
+    const rows = opsStore
+      .listClosedTradeFeatures(Math.max(1, limit))
+      .filter((item) => {
+        const epoch = Date.parse(item.closedAt);
+        return Number.isFinite(epoch) && epoch >= minEpoch;
+      })
+      .sort((a, b) => a.closedAt.localeCompare(b.closedAt));
+
+    const buckets = new Map<number, ClosedTradeFeatureRecord[]>();
+    for (const item of rows) {
+      const epoch = Date.parse(item.closedAt);
+      const index = Math.max(0, Math.floor((epoch - minEpoch) / bucketMs));
+      const bucket = buckets.get(index) ?? [];
+      bucket.push(item);
+      buckets.set(index, bucket);
+    }
+
+    const points: LearningEvaluationTrendPoint[] = [];
+    for (const [index, bucket] of [...buckets.entries()].sort((a, b) => a[0] - b[0])) {
+      const bucketStartEpoch = minEpoch + index * bucketMs;
+      const bucketEndEpoch = Math.min(nowEpoch, bucketStartEpoch + bucketMs);
+      let cumulative = 0;
+      let peak = 0;
+      let maxDrawdownUsd = 0;
+      let slippageTotal = 0;
+      let controlViolations = 0;
+      const modelCounts = new Map<string, number>();
+      const strategyCounts = new Map<string, number>();
+      for (const item of bucket) {
+        const slippageProxyBps =
+          item.entryAvgPrice > 0 ? Math.abs(((item.exitAvgPrice - item.entryAvgPrice) / item.entryAvgPrice) * 10_000) : 0;
+        const controlViolation = item.exitReason === "manual" || item.exitReason === "circuit_breaker";
+        cumulative += item.realizedPnlUsd;
+        peak = Math.max(peak, cumulative);
+        maxDrawdownUsd = Math.max(maxDrawdownUsd, peak - cumulative);
+        slippageTotal += slippageProxyBps;
+        if (controlViolation) {
+          controlViolations += 1;
+        }
+        const modelKey = item.modelVersion || "unknown";
+        modelCounts.set(modelKey, (modelCounts.get(modelKey) ?? 0) + 1);
+        const strategyKey = item.strategyVersion || "unknown";
+        strategyCounts.set(strategyKey, (strategyCounts.get(strategyKey) ?? 0) + 1);
+      }
+      const closedTrades = bucket.length;
+      const expectancyNetFeesUsd = closedTrades > 0 ? cumulative / closedTrades : 0;
+      const slippageProxyBps = closedTrades > 0 ? slippageTotal / closedTrades : 0;
+      const maxDrawdownPct = peak > 0 ? (maxDrawdownUsd / peak) * 100 : 0;
+      const controlViolationRatePct = closedTrades > 0 ? (controlViolations / closedTrades) * 100 : 0;
+      const syntheticSummary: LearningEvaluationSummary = {
+        generatedAt: nowIso,
+        lookbackDays: bucketDays,
+        closedTrades,
+        totals: {
+          expectancyNetFeesUsd: round6(expectancyNetFeesUsd),
+          cumulativeNetPnlUsd: round6(cumulative),
+          maxDrawdownUsd: round6(maxDrawdownUsd),
+          maxDrawdownPct: round6(maxDrawdownPct),
+          slippageProxyBps: round6(slippageProxyBps),
+          controlViolations
+        },
+        byModelVersion: [],
+        byStrategyVersion: []
+      };
+      points.push({
+        bucketStartAt: new Date(bucketStartEpoch).toISOString(),
+        bucketEndAt: new Date(bucketEndEpoch).toISOString(),
+        closedTrades,
+        expectancyNetFeesUsd: syntheticSummary.totals.expectancyNetFeesUsd,
+        cumulativeNetPnlUsd: syntheticSummary.totals.cumulativeNetPnlUsd,
+        maxDrawdownPct: syntheticSummary.totals.maxDrawdownPct,
+        slippageProxyBps: syntheticSummary.totals.slippageProxyBps,
+        controlViolations,
+        controlViolationRatePct: round6(controlViolationRatePct),
+        modelVersions: [...modelCounts.entries()]
+          .map(([version, trades]) => ({ version, trades }))
+          .sort((a, b) => b.trades - a.trades || a.version.localeCompare(b.version)),
+        strategyVersions: [...strategyCounts.entries()]
+          .map(([version, trades]) => ({ version, trades }))
+          .sort((a, b) => b.trades - a.trades || a.version.localeCompare(b.version)),
+        breaches: learningBreachesFromSummary(syntheticSummary, thresholds)
+      });
+    }
+
+    return {
+      generatedAt: nowIso,
+      lookbackDays,
+      bucketDays,
+      thresholds: { ...thresholds },
+      points
+    };
+  }
+
   async function sweepExpiredApprovals(): Promise<void> {
     const expired = approvals.expirePending();
     for (const item of expired) {
@@ -2733,7 +3338,12 @@ export async function startMissionControlServer(
     const saved = await alertStore.upsert(next);
     inMemoryAlerts = await alertStore.readAll();
     metrics.openAlerts = inMemoryAlerts.filter((item) => item.status === "open").length;
-    if (saved.severity === "critical" || saved.code.startsWith("APPROVAL_") || saved.code.startsWith("STALE_")) {
+    if (
+      saved.severity === "critical" ||
+      saved.code.startsWith("APPROVAL_") ||
+      saved.code.startsWith("STALE_") ||
+      saved.code.startsWith("LEARNING_")
+    ) {
       const existingIncident = opsStore.findOpenIncidentByAlert(saved.code, saved.symbol);
       if (!existingIncident) {
         const template = incidentTemplateFromAlert(saved);
@@ -2769,6 +3379,85 @@ export async function startMissionControlServer(
     return saved;
   }
 
+  async function resolveAlertIfOpen(code: string, symbol: string | undefined, actor = "system"): Promise<void> {
+    const open = await alertStore.findByFingerprint(code, symbol);
+    if (!open) {
+      return;
+    }
+    await alertStore.updateStatus(open.id, "resolved", actor);
+    inMemoryAlerts = await alertStore.readAll();
+    metrics.openAlerts = inMemoryAlerts.filter((item) => item.status === "open").length;
+  }
+
+  async function evaluateLearningAlertThresholds(nowIso: string): Promise<void> {
+    if (!learningAlertThresholds.enabled) {
+      return;
+    }
+    const summary = buildLearningEvaluationSummary(nowIso, learningAlertThresholds.lookbackDays, learningAlertThresholds.limit);
+    const symbol = undefined;
+    if (summary.closedTrades < learningAlertThresholds.minTrades) {
+      await resolveAlertIfOpen("LEARNING_EXPECTANCY_DEGRADATION", symbol);
+      await resolveAlertIfOpen("LEARNING_DRAWDOWN_ELEVATED", symbol);
+      await resolveAlertIfOpen("LEARNING_SLIPPAGE_ELEVATED", symbol);
+      await resolveAlertIfOpen("LEARNING_CONTROL_VIOLATION_RATE_ELEVATED", symbol);
+      return;
+    }
+
+    const controlViolationRatePct = summary.closedTrades > 0 ? (summary.totals.controlViolations / summary.closedTrades) * 100 : 0;
+
+    if (summary.totals.expectancyNetFeesUsd < learningAlertThresholds.expectancyMinUsd) {
+      await upsertAlert({
+        code: "LEARNING_EXPECTANCY_DEGRADATION",
+        severity: "error",
+        source: "system",
+        title: "Learning expectancy below threshold",
+        detail: `Expectancy ${summary.totals.expectancyNetFeesUsd} < ${learningAlertThresholds.expectancyMinUsd} over ${summary.closedTrades} closed trades (${summary.lookbackDays}d lookback).`,
+        symbol
+      });
+    } else {
+      await resolveAlertIfOpen("LEARNING_EXPECTANCY_DEGRADATION", symbol);
+    }
+
+    if (summary.totals.maxDrawdownPct > learningAlertThresholds.maxDrawdownPct) {
+      await upsertAlert({
+        code: "LEARNING_DRAWDOWN_ELEVATED",
+        severity: "error",
+        source: "system",
+        title: "Learning drawdown above threshold",
+        detail: `Drawdown ${summary.totals.maxDrawdownPct}% > ${learningAlertThresholds.maxDrawdownPct}% over ${summary.closedTrades} closed trades (${summary.lookbackDays}d lookback).`,
+        symbol
+      });
+    } else {
+      await resolveAlertIfOpen("LEARNING_DRAWDOWN_ELEVATED", symbol);
+    }
+
+    if (summary.totals.slippageProxyBps > learningAlertThresholds.maxSlippageBps) {
+      await upsertAlert({
+        code: "LEARNING_SLIPPAGE_ELEVATED",
+        severity: "warn",
+        source: "system",
+        title: "Learning slippage above threshold",
+        detail: `Slippage ${summary.totals.slippageProxyBps}bps > ${learningAlertThresholds.maxSlippageBps}bps over ${summary.closedTrades} closed trades (${summary.lookbackDays}d lookback).`,
+        symbol
+      });
+    } else {
+      await resolveAlertIfOpen("LEARNING_SLIPPAGE_ELEVATED", symbol);
+    }
+
+    if (controlViolationRatePct > learningAlertThresholds.maxControlViolationRatePct) {
+      await upsertAlert({
+        code: "LEARNING_CONTROL_VIOLATION_RATE_ELEVATED",
+        severity: "warn",
+        source: "system",
+        title: "Learning control-violation rate above threshold",
+        detail: `Control violations ${round6(controlViolationRatePct)}% > ${learningAlertThresholds.maxControlViolationRatePct}% over ${summary.closedTrades} closed trades (${summary.lookbackDays}d lookback).`,
+        symbol
+      });
+    } else {
+      await resolveAlertIfOpen("LEARNING_CONTROL_VIOLATION_RATE_ELEVATED", symbol);
+    }
+  }
+
   if (inMemoryEvents.length === 0) {
     await publish(createEvent("System", "BTC-USDT", "Mission control backend initialized", "info", ["bootstrap"]));
   }
@@ -2798,6 +3487,12 @@ export async function startMissionControlServer(
   const workerProposalGapMs = parseBoundedInt(process.env.TOURAB_WORKER_PROPOSAL_GAP_MS, 60_000, 1_000, 3_600_000);
   const workerStallCheckIntervalMs = parseBoundedInt(process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS, 5_000, 500, 60_000);
   const exchangeHealthIntervalMs = parseBoundedInt(process.env.TOURAB_EXCHANGE_HEALTH_INTERVAL_MS, 15_000, 5_000, 300_000);
+  const learningAlertCheckIntervalMs = parseBoundedInt(
+    process.env.TOURAB_LEARNING_ALERT_CHECK_INTERVAL_MS,
+    DEFAULT_LEARNING_ALERT_CHECK_INTERVAL_MS,
+    250,
+    3_600_000
+  );
   const reconcileTimer = setInterval(() => {
     const state = lifecycle.getSnapshotState();
     const nowIso = new Date().toISOString();
@@ -2873,6 +3568,10 @@ export async function startMissionControlServer(
   const retentionTimer = setInterval(() => {
     void pruneRetentionData();
   }, streamRetentionSweepMs);
+  await evaluateLearningAlertThresholds(new Date().toISOString());
+  const learningAlertTimer = setInterval(() => {
+    void evaluateLearningAlertThresholds(new Date().toISOString());
+  }, learningAlertCheckIntervalMs);
   await pruneRetentionData();
 
   app.use(express.json());
@@ -3386,6 +4085,160 @@ export async function startMissionControlServer(
     res.json({ items });
   });
 
+  app.get("/learning/features", (req, res) => {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(1000, Math.floor(rawLimit))) : 200;
+    const payload: LearningFeatureSnapshot = {
+      governance: learningGovernanceState,
+      items: opsStore.listClosedTradeFeatures(limit)
+    };
+    res.json(payload);
+  });
+
+  app.get("/learning/governance", (_req, res) => {
+    res.json({ governance: learningGovernanceState });
+  });
+
+  app.get("/learning/evaluation", (req, res) => {
+    const rawLookback = Number(req.query.lookbackDays);
+    const rawLimit = Number(req.query.limit);
+    const lookbackDays = Number.isFinite(rawLookback) ? Math.max(1, Math.min(365, Math.floor(rawLookback))) : 30;
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(10_000, Math.floor(rawLimit))) : 2_000;
+    const summary = buildLearningEvaluationSummary(new Date().toISOString(), lookbackDays, limit);
+    res.json(summary);
+  });
+
+  app.get("/learning/evaluation-trend", (req, res) => {
+    const rawLookback = Number(req.query.lookbackDays);
+    const rawBucketDays = Number(req.query.bucketDays);
+    const rawLimit = Number(req.query.limit);
+    const lookbackDays = Number.isFinite(rawLookback) ? Math.max(1, Math.min(365, Math.floor(rawLookback))) : 30;
+    const bucketDays = Number.isFinite(rawBucketDays) ? Math.max(1, Math.min(30, Math.floor(rawBucketDays))) : 1;
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(10_000, Math.floor(rawLimit))) : 2_000;
+    const summary = buildLearningEvaluationTrendSummary(
+      new Date().toISOString(),
+      lookbackDays,
+      bucketDays,
+      limit,
+      learningAlertThresholds
+    );
+    res.json(summary);
+  });
+
+  app.get("/learning/alert-config", (_req, res) => {
+    res.json({ config: learningAlertThresholds });
+  });
+
+  app.post("/learning/alert-config", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    learningAlertThresholds = {
+      enabled:
+        typeof req.body?.enabled === "boolean"
+          ? req.body.enabled
+          : learningAlertThresholds.enabled,
+      lookbackDays:
+        typeof req.body?.lookbackDays === "number" && Number.isFinite(req.body.lookbackDays)
+          ? Math.max(1, Math.min(365, Math.floor(req.body.lookbackDays)))
+          : learningAlertThresholds.lookbackDays,
+      limit:
+        typeof req.body?.limit === "number" && Number.isFinite(req.body.limit)
+          ? Math.max(1, Math.min(10_000, Math.floor(req.body.limit)))
+          : learningAlertThresholds.limit,
+      minTrades:
+        typeof req.body?.minTrades === "number" && Number.isFinite(req.body.minTrades)
+          ? Math.max(1, Math.min(10_000, Math.floor(req.body.minTrades)))
+          : learningAlertThresholds.minTrades,
+      expectancyMinUsd:
+        typeof req.body?.expectancyMinUsd === "number" && Number.isFinite(req.body.expectancyMinUsd)
+          ? Math.max(-1_000, Math.min(1_000, req.body.expectancyMinUsd))
+          : learningAlertThresholds.expectancyMinUsd,
+      maxDrawdownPct:
+        typeof req.body?.maxDrawdownPct === "number" && Number.isFinite(req.body.maxDrawdownPct)
+          ? Math.max(0, Math.min(100, req.body.maxDrawdownPct))
+          : learningAlertThresholds.maxDrawdownPct,
+      maxSlippageBps:
+        typeof req.body?.maxSlippageBps === "number" && Number.isFinite(req.body.maxSlippageBps)
+          ? Math.max(0, Math.min(10_000, req.body.maxSlippageBps))
+          : learningAlertThresholds.maxSlippageBps,
+      maxControlViolationRatePct:
+        typeof req.body?.maxControlViolationRatePct === "number" && Number.isFinite(req.body.maxControlViolationRatePct)
+          ? Math.max(0, Math.min(100, req.body.maxControlViolationRatePct))
+          : learningAlertThresholds.maxControlViolationRatePct
+    };
+    persistLearningAlertThresholds();
+    await appendAudit(
+      "Learning alert config updated",
+      `enabled=${learningAlertThresholds.enabled} lookbackDays=${learningAlertThresholds.lookbackDays} limit=${learningAlertThresholds.limit} minTrades=${learningAlertThresholds.minTrades} expectancyMinUsd=${learningAlertThresholds.expectancyMinUsd} maxDrawdownPct=${learningAlertThresholds.maxDrawdownPct} maxSlippageBps=${learningAlertThresholds.maxSlippageBps} maxControlViolationRatePct=${learningAlertThresholds.maxControlViolationRatePct}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    await evaluateLearningAlertThresholds(new Date().toISOString());
+    res.json({ config: learningAlertThresholds });
+  });
+
+  app.post("/learning/governance/rollback", async (req, res) => {
+    const typed = req as unknown as AuthenticatedRequest;
+    if (typed.role === "read_only") {
+      writeError(res, 403, {
+        ok: false,
+        code: "UNAUTHORIZED",
+        message: "Role is not allowed for this action",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    const reason =
+      typeof req.body?.reason === "string" && req.body.reason.trim().length > 0
+        ? req.body.reason.trim()
+        : "manual learning rollback";
+    const requestedVersion = typeof req.body?.targetVersion === "string" ? req.body.targetVersion.trim() : "";
+    const targetVersion = requestedVersion.length > 0 ? requestedVersion : learningGovernanceState.previousStableModelVersion;
+    if (!targetVersion) {
+      writeError(res, 409, {
+        ok: false,
+        code: "ROLLBACK_NOT_AVAILABLE",
+        message: "No previous stable model version available for rollback",
+        correlationId: typed.correlationId
+      });
+      return;
+    }
+    if (targetVersion === learningGovernanceState.activeModelVersion) {
+      res.json({ governance: learningGovernanceState, changed: false });
+      return;
+    }
+    const previousActive = learningGovernanceState.activeModelVersion;
+    learningGovernanceState.rollbackCandidateVersion = previousActive;
+    learningGovernanceState.activeModelVersion = targetVersion;
+    learningGovernanceState.lastRollbackAt = new Date().toISOString();
+    learningGovernanceState.lastRollbackReason = reason;
+    persistLearningGovernanceState(learningGovernanceState.lastRollbackAt);
+    await appendAudit(
+      "Learning model rollback",
+      `from=${previousActive} to=${targetVersion}; reason=${reason}; actor=${typed.userId}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Learning model rollback from ${previousActive} to ${targetVersion} by ${typed.userId}`,
+        "warn",
+        ["learning_governance", "rollback", "m7"]
+      )
+    );
+    res.json({ governance: learningGovernanceState, changed: true });
+  });
+
   app.get("/milestone5/evidence", async (_req, res) => {
     const summary = await buildMilestone5EvidenceSummary(new Date().toISOString());
     res.json(summary);
@@ -3636,6 +4489,67 @@ export async function startMissionControlServer(
       items
     };
     res.json(body);
+  });
+
+  app.get("/learning/incidents/export", (req, res) => {
+    const statusRaw = String(req.query.status ?? "");
+    const status =
+      statusRaw === "open" || statusRaw === "acknowledged" || statusRaw === "resolved"
+        ? statusRaw
+        : undefined;
+    const rawLookback = Number(req.query.lookbackDays);
+    const lookbackDays = Number.isFinite(rawLookback) ? Math.max(1, Math.min(365, Math.floor(rawLookback))) : 30;
+    const nowIso = new Date().toISOString();
+    const cutoffEpoch = Date.now() - lookbackDays * 24 * 60 * 60 * 1000;
+
+    const learningItems = opsStore
+      .listIncidents(status)
+      .filter(
+        (item) =>
+          item.sourceAlertCode?.startsWith("LEARNING_") &&
+          Number.isFinite(Date.parse(item.createdAt)) &&
+          Date.parse(item.createdAt) >= cutoffEpoch
+      );
+
+    const byCode = new Map<string, number>();
+    const bySeverity = new Map<string, number>();
+    const byStatus = new Map<string, number>();
+    for (const item of learningItems) {
+      const code = item.sourceAlertCode || "LEARNING_UNKNOWN";
+      byCode.set(code, (byCode.get(code) ?? 0) + 1);
+      bySeverity.set(item.severity, (bySeverity.get(item.severity) ?? 0) + 1);
+      byStatus.set(item.status, (byStatus.get(item.status) ?? 0) + 1);
+    }
+
+    const evaluation = buildLearningEvaluationSummary(
+      nowIso,
+      lookbackDays,
+      Math.max(1, Math.min(10_000, Math.floor(learningAlertThresholds.limit)))
+    );
+
+    res.json({
+      exportedAt: nowIso,
+      lookbackDays,
+      status: status ?? "all",
+      count: learningItems.length,
+      openCount: learningItems.filter((item) => item.status === "open").length,
+      acknowledgedCount: learningItems.filter((item) => item.status === "acknowledged").length,
+      resolvedCount: learningItems.filter((item) => item.status === "resolved").length,
+      totals: {
+        byCode: [...byCode.entries()]
+          .map(([code, count]) => ({ code, count }))
+          .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code)),
+        bySeverity: [...bySeverity.entries()]
+          .map(([severity, count]) => ({ severity, count }))
+          .sort((a, b) => b.count - a.count || a.severity.localeCompare(b.severity)),
+        byStatus: [...byStatus.entries()]
+          .map(([statusValue, count]) => ({ status: statusValue, count }))
+          .sort((a, b) => b.count - a.count || a.status.localeCompare(b.status))
+      },
+      alertConfig: learningAlertThresholds,
+      evaluation,
+      items: learningItems
+    });
   });
 
   app.get("/events", async (req, res) => {
@@ -4190,6 +5104,7 @@ export async function startMissionControlServer(
       clearInterval(workerStallTimer);
       clearInterval(exchangeHealthTimer);
       clearInterval(retentionTimer);
+      clearInterval(learningAlertTimer);
       wsServer.clients.forEach((client: WebSocket) => {
         client.close();
       });

@@ -34,7 +34,11 @@
     "okx:demo:auto-loop": "tsx apps/dashboard/src/okx-demo-auto-loop-cli.ts",
     "soak:m5": "tsx scripts/m5-soak.ts",
     "evidence:m5": "tsx scripts/m5-evidence-rollup.ts",
-    "acceptance:m6": "tsx scripts/m6-acceptance-walkthrough.ts"
+    "acceptance:m6": "tsx scripts/m6-acceptance-walkthrough.ts",
+    "snapshot:m7": "tsx scripts/m7-dataset-snapshot.ts",
+    "retrain:m7": "tsx scripts/m7-retrain-offline.ts",
+    "gate:m7": "tsx scripts/m7-gate-promotion.ts",
+    "rollback:m7": "tsx scripts/m7-rollback-drill.ts"
   },
   "dependencies": {
     "zod": "^4.1.5"

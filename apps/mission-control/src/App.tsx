@@ -27,6 +27,7 @@ const client = createDefaultBotApiClient();
 type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops" | "autonomy";
 type ToastTone = "success" | "error" | "warning";
 type OperatorScope = "primary" | "btc" | "eth";
+type LearningTrendFocus = "expectancy" | "drawdown" | "slippage" | "controlViolationRate";
 
 interface ToastItem {
   id: string;
@@ -42,6 +43,7 @@ export default function App() {
     return initial;
   });
   const [tab, setTab] = useState<RightTab>("risk");
+  const [learningTrendFocus, setLearningTrendFocus] = useState<LearningTrendFocus | undefined>(undefined);
   const [operatorScope, setOperatorScope] = useState<OperatorScope>("primary");
   const [autoScroll, setAutoScroll] = useState(true);
   const [selectedAuditId, setSelectedAuditId] = useState<string>("");
@@ -202,18 +204,6 @@ export default function App() {
   }, [scopedSymbol, setPinnedSymbol, setSymbolFilter]);
 
   const lastCircuitEventRef = useRef<string>("");
-  useEffect(() => {
-    const latest = dashboard.events[0];
-    if (!latest || latest.id === lastCircuitEventRef.current) {
-      return;
-    }
-    if (latest.tags?.includes("circuit_breaker")) {
-      lastCircuitEventRef.current = latest.id;
-      setTab("alerts");
-      pushToast("error", "CIRCUIT_BREAKER", latest.message);
-      void refreshAlerts();
-    }
-  }, [dashboard.events, pushToast, refreshAlerts]);
 
   useEffect(() => {
     const pending = pendingApprovals.filter((item) => item.status === "pending");
@@ -261,6 +251,19 @@ export default function App() {
     setAlerts(items);
   }, []);
 
+  useEffect(() => {
+    const latest = dashboard.events[0];
+    if (!latest || latest.id === lastCircuitEventRef.current) {
+      return;
+    }
+    if (latest.tags?.includes("circuit_breaker")) {
+      lastCircuitEventRef.current = latest.id;
+      setTab("alerts");
+      pushToast("error", "CIRCUIT_BREAKER", latest.message);
+      void refreshAlerts();
+    }
+  }, [dashboard.events, pushToast, refreshAlerts]);
+
   const refreshIncidents = useCallback(async () => {
     const items = await client.listIncidents();
     setIncidents(items);
@@ -272,10 +275,11 @@ export default function App() {
   }, [setManagedTrades]);
 
   const refreshM6AutonomyState = useCallback(async () => {
-    const [entryAutonomyRes, strategyPromotionRes, strategyDegradationRes] = await Promise.allSettled([
+    const [entryAutonomyRes, strategyPromotionRes, strategyDegradationRes, learningAlertConfigRes] = await Promise.allSettled([
       client.getEntryAutonomyConfig(),
       client.getStrategyPromotion(),
-      client.getStrategyDegradationConfig()
+      client.getStrategyDegradationConfig(),
+      client.getLearningAlertConfig()
     ]);
     if (entryAutonomyRes.status === "fulfilled") {
       setEntryAutonomy(entryAutonomyRes.value);
@@ -285,6 +289,9 @@ export default function App() {
     }
     if (strategyDegradationRes.status === "fulfilled") {
       setStrategyDegradation(strategyDegradationRes.value);
+    }
+    if (learningAlertConfigRes.status === "fulfilled") {
+      dashboard.setLearningAlertConfig(learningAlertConfigRes.value);
     }
   }, [setEntryAutonomy, setStrategyDegradation, setStrategyPromotion]);
 
@@ -348,6 +355,16 @@ export default function App() {
       pushToast("success", "DEGRADATION_UPDATED", "Strategy degradation thresholds updated.");
     } catch (_error: unknown) {
       pushToast("error", "DEGRADATION_UPDATE_FAILED", "Failed to update strategy degradation thresholds.");
+    }
+  }
+
+  async function saveLearningAlertConfig(next: Parameters<typeof client.updateLearningAlertConfig>[2]) {
+    try {
+      const updated = await client.updateLearningAlertConfig(dashboard.role, currentUserId, next);
+      dashboard.setLearningAlertConfig(updated);
+      pushToast("success", "LEARNING_ALERT_CONFIG_UPDATED", "Learning alert thresholds updated.");
+    } catch (_error: unknown) {
+      pushToast("error", "LEARNING_ALERT_CONFIG_UPDATE_FAILED", "Failed to update learning alert thresholds.");
     }
   }
 
@@ -452,6 +469,44 @@ export default function App() {
     const updated = await client.resolveIncident(id, dashboard.role, currentUserId);
     pushToast("success", "INCIDENT_RESOLVED", `${updated.id} resolved by ${currentUserId}`);
     await refreshIncidents();
+  }
+
+  async function exportLearningIncidentReport() {
+    try {
+      const report = await client.getLearningIncidentReport(30);
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `m7-learning-incidents-${stamp}.json`;
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = href;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(href);
+      pushToast("success", "M7_INCIDENTS_EXPORTED", `Exported ${report.count} learning incident(s).`);
+    } catch (_error: unknown) {
+      pushToast("error", "M7_INCIDENT_EXPORT_FAILED", "Failed to export learning incident report.");
+    }
+  }
+
+  function focusLearningTrendFromAlertCode(code?: string): void {
+    if (!code || !code.startsWith("LEARNING_")) {
+      return;
+    }
+    const focus: LearningTrendFocus | undefined =
+      code === "LEARNING_EXPECTANCY_DEGRADATION"
+        ? "expectancy"
+        : code === "LEARNING_DRAWDOWN_ELEVATED"
+          ? "drawdown"
+          : code === "LEARNING_SLIPPAGE_ELEVATED"
+            ? "slippage"
+            : code === "LEARNING_CONTROL_VIOLATION_RATE_ELEVATED"
+              ? "controlViolationRate"
+              : undefined;
+    setLearningTrendFocus(focus);
+    setTab("autonomy");
   }
 
   async function handleAction(action: ControlAction, approvalId?: string) {
@@ -566,6 +621,7 @@ export default function App() {
           onClearErrors={() => void clearErrorAlerts()}
           onAcknowledge={(id) => void acknowledgeAlert(id)}
           onResolve={(id) => void resolveAlert(id)}
+          onOpenLearningTrend={focusLearningTrendFromAlertCode}
         />
       );
     }
@@ -575,8 +631,10 @@ export default function App() {
           items={incidents}
           currentUserId={currentUserId}
           onRefresh={() => void refreshIncidents()}
+          onExportLearningReport={() => void exportLearningIncidentReport()}
           onAcknowledge={(id) => void acknowledgeIncident(id)}
           onResolve={(id) => void resolveIncident(id)}
+          onOpenLearningTrend={focusLearningTrendFromAlertCode}
         />
       );
     }
@@ -597,6 +655,10 @@ export default function App() {
           entryAutonomy={dashboard.entryAutonomy}
           strategyPromotion={dashboard.strategyPromotion}
           strategyDegradation={dashboard.strategyDegradation}
+          learningEvaluation={dashboard.learningEvaluation}
+          learningEvaluationTrend={dashboard.learningEvaluationTrend}
+          learningAlertConfig={dashboard.learningAlertConfig}
+          trendFocus={learningTrendFocus}
           canEdit={dashboard.role !== "read_only"}
           onSaveConfig={saveAutoExitConfig}
           onRefreshTrades={refreshManagedTrades}
@@ -605,6 +667,7 @@ export default function App() {
           onPromoteStrategy={promoteStrategyVersion}
           onRollbackStrategy={rollbackStrategy}
           onSaveDegradationConfig={saveStrategyDegradationConfig}
+          onSaveLearningAlertConfig={saveLearningAlertConfig}
         />
       );
     }

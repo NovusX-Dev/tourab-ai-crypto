@@ -13,6 +13,9 @@ import type {
   EntryAutonomyStatus,
   ExchangeStatus,
   IncidentItem,
+  LearningEvaluationSummary,
+  LearningEvaluationTrendSummary,
+  LearningAlertConfig,
   LogEntry,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
@@ -147,6 +150,47 @@ const EMPTY_MILESTONE5_EVIDENCE: Milestone5EvidenceSummary = {
   },
   days: []
 };
+const EMPTY_LEARNING_EVALUATION: LearningEvaluationSummary = {
+  generatedAt: new Date(0).toISOString(),
+  lookbackDays: 30,
+  closedTrades: 0,
+  totals: {
+    expectancyNetFeesUsd: 0,
+    cumulativeNetPnlUsd: 0,
+    maxDrawdownUsd: 0,
+    maxDrawdownPct: 0,
+    slippageProxyBps: 0,
+    controlViolations: 0
+  },
+  byModelVersion: [],
+  byStrategyVersion: []
+};
+const EMPTY_LEARNING_EVALUATION_TREND: LearningEvaluationTrendSummary = {
+  generatedAt: new Date(0).toISOString(),
+  lookbackDays: 30,
+  bucketDays: 1,
+  thresholds: {
+    enabled: true,
+    lookbackDays: 30,
+    limit: 2000,
+    minTrades: 15,
+    expectancyMinUsd: 0,
+    maxDrawdownPct: 5,
+    maxSlippageBps: 15,
+    maxControlViolationRatePct: 20
+  },
+  points: []
+};
+const EMPTY_LEARNING_ALERT_CONFIG: LearningAlertConfig = {
+  enabled: true,
+  lookbackDays: 30,
+  limit: 2000,
+  minTrades: 15,
+  expectancyMinUsd: 0,
+  maxDrawdownPct: 5,
+  maxSlippageBps: 15,
+  maxControlViolationRatePct: 20
+};
 
 export function useDashboardData(client: BotApiClient) {
   const [state, setState] = useState<BotStateSnapshot>(EMPTY_STATE);
@@ -170,6 +214,9 @@ export function useDashboardData(client: BotApiClient) {
   const [strategyDegradation, setStrategyDegradation] = useState<StrategyDegradationConfig>(EMPTY_STRATEGY_DEGRADATION);
   const [managedTrades, setManagedTrades] = useState<ManagedTradeItem[]>(EMPTY_MANAGED_TRADES);
   const [milestone5Evidence, setMilestone5Evidence] = useState<Milestone5EvidenceSummary>(EMPTY_MILESTONE5_EVIDENCE);
+  const [learningEvaluation, setLearningEvaluation] = useState<LearningEvaluationSummary>(EMPTY_LEARNING_EVALUATION);
+  const [learningEvaluationTrend, setLearningEvaluationTrend] = useState<LearningEvaluationTrendSummary>(EMPTY_LEARNING_EVALUATION_TREND);
+  const [learningAlertConfig, setLearningAlertConfig] = useState<LearningAlertConfig>(EMPTY_LEARNING_ALERT_CONFIG);
   const [metrics, setMetrics] = useState<OpsMetrics>(EMPTY_METRICS);
   const [role, setRole] = useState<UserRole>("operator");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
@@ -185,11 +232,24 @@ export function useDashboardData(client: BotApiClient) {
     let mounted = true;
     async function refreshSnapshot() {
       const snapshot = await client.getSnapshot();
-      const [autoExitRes, managedTradesRes, m5EvidenceRes, entryAutonomyRes, strategyPromotionRes, strategyDegradationRes] =
+      const [
+        autoExitRes,
+        managedTradesRes,
+        m5EvidenceRes,
+        learningEvaluationRes,
+        learningEvaluationTrendRes,
+        learningAlertConfigRes,
+        entryAutonomyRes,
+        strategyPromotionRes,
+        strategyDegradationRes
+      ] =
         await Promise.allSettled([
         client.getAutoExitConfig(),
         client.listManagedTrades(),
         client.getMilestone5Evidence(),
+        client.getLearningEvaluation(),
+        client.getLearningEvaluationTrend(),
+        client.getLearningAlertConfig(),
         client.getEntryAutonomyConfig(),
         client.getStrategyPromotion(),
         client.getStrategyDegradationConfig()
@@ -216,6 +276,15 @@ export function useDashboardData(client: BotApiClient) {
       }
       if (m5EvidenceRes.status === "fulfilled") {
         setMilestone5Evidence(m5EvidenceRes.value);
+      }
+      if (learningEvaluationRes.status === "fulfilled") {
+        setLearningEvaluation(learningEvaluationRes.value);
+      }
+      if (learningEvaluationTrendRes.status === "fulfilled") {
+        setLearningEvaluationTrend(learningEvaluationTrendRes.value);
+      }
+      if (learningAlertConfigRes.status === "fulfilled") {
+        setLearningAlertConfig(learningAlertConfigRes.value);
       }
       if (entryAutonomyRes.status === "fulfilled") {
         setEntryAutonomy(entryAutonomyRes.value);
@@ -343,6 +412,10 @@ export function useDashboardData(client: BotApiClient) {
     managedTrades,
     setManagedTrades,
     milestone5Evidence,
+    learningEvaluation,
+    learningEvaluationTrend,
+    learningAlertConfig,
+    setLearningAlertConfig,
     metrics,
     role,
     setRole,

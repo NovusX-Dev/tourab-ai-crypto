@@ -17,6 +17,10 @@ import type {
   AutoExitConfig,
   EntryAutonomyConfig,
   EntryAutonomyStatus,
+  LearningEvaluationSummary,
+  LearningAlertConfig,
+  LearningIncidentExportReport,
+  LearningEvaluationTrendSummary,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
   StrategyDegradationConfig,
@@ -581,6 +585,128 @@ export class LiveBotApiClient implements BotApiClient {
       }
       this.setDataSource("mock_fallback");
       return mockBotApiClient.getMilestone5Evidence();
+    }
+  }
+
+  async getLearningEvaluation(lookbackDays = 30, limit = 2000): Promise<LearningEvaluationSummary> {
+    try {
+      const query = `?lookbackDays=${Math.max(1, Math.floor(lookbackDays))}&limit=${Math.max(1, Math.floor(limit))}`;
+      const res = await fetch(`${this.baseHttpUrl}/learning/evaluation${query}`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Learning evaluation fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as LearningEvaluationSummary;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getLearningEvaluation(lookbackDays, limit);
+    }
+  }
+
+  async getLearningEvaluationTrend(lookbackDays = 30, bucketDays = 1, limit = 2000): Promise<LearningEvaluationTrendSummary> {
+    try {
+      const query = `?lookbackDays=${Math.max(1, Math.floor(lookbackDays))}&bucketDays=${Math.max(1, Math.floor(bucketDays))}&limit=${Math.max(1, Math.floor(limit))}`;
+      const res = await fetch(`${this.baseHttpUrl}/learning/evaluation-trend${query}`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Learning evaluation trend fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as LearningEvaluationTrendSummary;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getLearningEvaluationTrend(lookbackDays, bucketDays, limit);
+    }
+  }
+
+  async getLearningIncidentReport(
+    lookbackDays = 30,
+    status?: "open" | "acknowledged" | "resolved"
+  ): Promise<LearningIncidentExportReport> {
+    try {
+      const params = new URLSearchParams();
+      params.set("lookbackDays", String(Math.max(1, Math.floor(lookbackDays))));
+      if (status) {
+        params.set("status", status);
+      }
+      const query = `?${params.toString()}`;
+      const res = await fetch(`${this.baseHttpUrl}/learning/incidents/export${query}`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Learning incident report fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as LearningIncidentExportReport;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getLearningIncidentReport(lookbackDays, status);
+    }
+  }
+
+  async getLearningAlertConfig(): Promise<LearningAlertConfig> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/learning/alert-config`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Learning alert config fetch failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { config: LearningAlertConfig };
+      return payload.config;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getLearningAlertConfig();
+    }
+  }
+
+  async updateLearningAlertConfig(
+    role: UserRole,
+    userId: string,
+    input: Partial<LearningAlertConfig>
+  ): Promise<LearningAlertConfig> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/learning/alert-config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": role,
+          "x-user-id": userId,
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        throw new Error(`Learning alert config update failed: ${res.status}`);
+      }
+      const payload = (await res.json()) as { config: LearningAlertConfig };
+      return payload.config;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.updateLearningAlertConfig(role, userId, input);
     }
   }
 

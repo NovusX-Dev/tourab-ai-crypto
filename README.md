@@ -153,6 +153,19 @@ npm run evidence:m5 -- --base-url http://localhost:7071
 
 - The rollup reads accumulated soak artifacts and reports qualifying day count (`qualifiedDays/7`) and current streak.
 
+Milestone 7 offline research pipeline (governed skeleton):
+
+```powershell
+npm run snapshot:m7 -- --base-url http://localhost:7071 --lookback-days 90
+npm run retrain:m7 -- --dataset-dir logs/m7-dataset-<timestamp>
+npm run gate:m7 -- --retrain-dir logs/m7-retrain-<timestamp> --min-trades 30
+```
+
+- Snapshot output: `dataset-manifest.json`, `closed-trade-features.ndjson`
+- Retrain output: `training-run.json`, `metrics.json`, `model-card.md`, `promotion-packet.json`
+- Gate output: `gate-result.json`, `summary.md` (and template files if validation/approval records are missing)
+- Promotion remains blocked until independent validation + explicit approval are attached.
+
 Run one automated proposal cycle:
 
 ```powershell

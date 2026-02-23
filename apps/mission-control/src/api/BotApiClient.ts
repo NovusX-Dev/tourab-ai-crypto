@@ -7,6 +7,10 @@ import type {
   DemoQueuedIntent,
   IncidentItem,
   ManagedTradeItem,
+  LearningEvaluationSummary,
+  LearningAlertConfig,
+  LearningEvaluationTrendSummary,
+  LearningIncidentExportReport,
   Milestone5EvidenceSummary,
   StrategyDegradationConfig,
   StrategyPromotionStage,
@@ -71,6 +75,14 @@ export interface BotApiClient {
   ): Promise<AutoExitConfig>;
   listManagedTrades(): Promise<ManagedTradeItem[]>;
   getMilestone5Evidence(): Promise<Milestone5EvidenceSummary>;
+  getLearningEvaluation(lookbackDays?: number, limit?: number): Promise<LearningEvaluationSummary>;
+  getLearningEvaluationTrend(lookbackDays?: number, bucketDays?: number, limit?: number): Promise<LearningEvaluationTrendSummary>;
+  getLearningIncidentReport(
+    lookbackDays?: number,
+    status?: "open" | "acknowledged" | "resolved"
+  ): Promise<LearningIncidentExportReport>;
+  getLearningAlertConfig(): Promise<LearningAlertConfig>;
+  updateLearningAlertConfig(role: UserRole, userId: string, input: Partial<LearningAlertConfig>): Promise<LearningAlertConfig>;
   getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }>;
   updateEntryAutonomyConfig(
     role: UserRole,
@@ -127,4 +139,7 @@ export interface DashboardData {
   strategyDegradation: StrategyDegradationConfig;
   managedTrades: ManagedTradeItem[];
   milestone5Evidence?: Milestone5EvidenceSummary;
+  learningEvaluation: LearningEvaluationSummary;
+  learningEvaluationTrend: LearningEvaluationTrendSummary;
+  learningAlertConfig: LearningAlertConfig;
 }

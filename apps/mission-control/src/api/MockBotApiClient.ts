@@ -11,6 +11,10 @@ import type {
   EntryAutonomyConfig,
   EntryAutonomyStatus,
   IncidentItem,
+  LearningEvaluationSummary,
+  LearningAlertConfig,
+  LearningIncidentExportReport,
+  LearningEvaluationTrendSummary,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
   StrategyDegradationConfig,
@@ -106,6 +110,112 @@ export class MockBotApiClient implements BotApiClient {
     maxDailyLossUsd: 5,
     maxDrawdownPct: -5,
     maxConsecutiveLosingTrades: 4
+  };
+  private learningEvaluation: LearningEvaluationSummary = {
+    generatedAt: new Date().toISOString(),
+    lookbackDays: 30,
+    closedTrades: 24,
+    totals: {
+      expectancyNetFeesUsd: 0.12,
+      cumulativeNetPnlUsd: 2.87,
+      maxDrawdownUsd: 0.74,
+      maxDrawdownPct: 18.62,
+      slippageProxyBps: 6.3,
+      controlViolations: 1
+    },
+    byModelVersion: [
+      {
+        version: "m7-baseline-v1",
+        trades: 24,
+        expectancyNetFeesUsd: 0.12,
+        cumulativeNetPnlUsd: 2.87,
+        maxDrawdownUsd: 0.74,
+        maxDrawdownPct: 18.62,
+        slippageProxyBps: 6.3,
+        controlViolations: 1
+      }
+    ],
+    byStrategyVersion: [
+      {
+        version: "champion-v1",
+        trades: 24,
+        expectancyNetFeesUsd: 0.12,
+        cumulativeNetPnlUsd: 2.87,
+        maxDrawdownUsd: 0.74,
+        maxDrawdownPct: 18.62,
+        slippageProxyBps: 6.3,
+        controlViolations: 1
+      }
+    ]
+  };
+  private learningAlertConfig: LearningAlertConfig = {
+    enabled: true,
+    lookbackDays: 30,
+    limit: 2000,
+    minTrades: 15,
+    expectancyMinUsd: 0,
+    maxDrawdownPct: 5,
+    maxSlippageBps: 15,
+    maxControlViolationRatePct: 20
+  };
+  private learningEvaluationTrend: LearningEvaluationTrendSummary = {
+    generatedAt: new Date().toISOString(),
+    lookbackDays: 30,
+    bucketDays: 1,
+    thresholds: {
+      enabled: true,
+      lookbackDays: 30,
+      limit: 2000,
+      minTrades: 15,
+      expectancyMinUsd: 0,
+      maxDrawdownPct: 5,
+      maxSlippageBps: 15,
+      maxControlViolationRatePct: 20
+    },
+    points: [
+      {
+        bucketStartAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        bucketEndAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        closedTrades: 6,
+        expectancyNetFeesUsd: 0.05,
+        cumulativeNetPnlUsd: 0.3,
+        maxDrawdownPct: 3.2,
+        slippageProxyBps: 6.4,
+        controlViolations: 0,
+        controlViolationRatePct: 0,
+        modelVersions: [{ version: "m7-baseline-v1", trades: 6 }],
+        strategyVersions: [{ version: "champion-v1", trades: 6 }],
+        breaches: { expectancy: false, drawdown: false, slippage: false, controlViolationRate: false }
+      },
+      {
+        bucketStartAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        bucketEndAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        closedTrades: 7,
+        expectancyNetFeesUsd: -0.02,
+        cumulativeNetPnlUsd: -0.14,
+        maxDrawdownPct: 6.1,
+        slippageProxyBps: 12.8,
+        controlViolations: 1,
+        controlViolationRatePct: 14.285714,
+        modelVersions: [{ version: "m7-baseline-v1", trades: 7 }],
+        strategyVersions: [{ version: "champion-v1", trades: 7 }],
+        breaches: { expectancy: true, drawdown: true, slippage: false, controlViolationRate: false }
+      },
+      {
+        bucketStartAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        bucketEndAt: new Date().toISOString(),
+        closedTrades: 8,
+        expectancyNetFeesUsd: -0.01,
+        cumulativeNetPnlUsd: -0.08,
+        maxDrawdownPct: 5.4,
+        slippageProxyBps: 16.1,
+        controlViolations: 2,
+        controlViolationRatePct: 25,
+        modelVersions: [{ version: "m7-baseline-v1", trades: 8 }],
+        strategyVersions: [{ version: "champion-v1", trades: 8 }],
+        breaches: { expectancy: true, drawdown: true, slippage: true, controlViolationRate: true }
+      }
+    ]
   };
   private metrics = {
     controlRequestsTotal: 0,
@@ -607,6 +717,80 @@ export class MockBotApiClient implements BotApiClient {
       },
       days: []
     };
+  }
+
+  async getLearningEvaluation(lookbackDays = 30, _limit = 2000): Promise<LearningEvaluationSummary> {
+    return {
+      ...this.learningEvaluation,
+      lookbackDays,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  async getLearningEvaluationTrend(lookbackDays = 30, bucketDays = 1, _limit = 2000): Promise<LearningEvaluationTrendSummary> {
+    return {
+      ...this.learningEvaluationTrend,
+      lookbackDays,
+      bucketDays,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  async getLearningAlertConfig(): Promise<LearningAlertConfig> {
+    return { ...this.learningAlertConfig };
+  }
+
+  async getLearningIncidentReport(
+    lookbackDays = 30,
+    status?: "open" | "acknowledged" | "resolved"
+  ): Promise<LearningIncidentExportReport> {
+    const cutoffEpoch = Date.now() - Math.max(1, Math.floor(lookbackDays)) * 24 * 60 * 60 * 1000;
+    const items = this.incidents.filter((item) => {
+      if (!item.sourceAlertCode?.startsWith("LEARNING_")) {
+        return false;
+      }
+      if (status && item.status !== status) {
+        return false;
+      }
+      const created = Date.parse(item.createdAt);
+      return Number.isFinite(created) && created >= cutoffEpoch;
+    });
+
+    const byCode = new Map<string, number>();
+    const bySeverity = new Map<string, number>();
+    const byStatus = new Map<string, number>();
+    for (const item of items) {
+      byCode.set(item.sourceAlertCode ?? "LEARNING_UNKNOWN", (byCode.get(item.sourceAlertCode ?? "LEARNING_UNKNOWN") ?? 0) + 1);
+      bySeverity.set(item.severity, (bySeverity.get(item.severity) ?? 0) + 1);
+      byStatus.set(item.status, (byStatus.get(item.status) ?? 0) + 1);
+    }
+
+    return {
+      exportedAt: new Date().toISOString(),
+      lookbackDays: Math.max(1, Math.floor(lookbackDays)),
+      status: status ?? "all",
+      count: items.length,
+      openCount: items.filter((item) => item.status === "open").length,
+      acknowledgedCount: items.filter((item) => item.status === "acknowledged").length,
+      resolvedCount: items.filter((item) => item.status === "resolved").length,
+      totals: {
+        byCode: [...byCode.entries()].map(([code, count]) => ({ code, count })),
+        bySeverity: [...bySeverity.entries()].map(([severity, count]) => ({ severity, count })),
+        byStatus: [...byStatus.entries()].map(([statusValue, count]) => ({ status: statusValue, count }))
+      },
+      alertConfig: { ...this.learningAlertConfig },
+      evaluation: await this.getLearningEvaluation(lookbackDays),
+      items
+    };
+  }
+
+  async updateLearningAlertConfig(
+    _role: UserRole,
+    _userId: string,
+    input: Partial<LearningAlertConfig>
+  ): Promise<LearningAlertConfig> {
+    this.learningAlertConfig = { ...this.learningAlertConfig, ...input };
+    return { ...this.learningAlertConfig };
   }
 
   async getEntryAutonomyConfig(): Promise<{ config: EntryAutonomyConfig; status: EntryAutonomyStatus }> {

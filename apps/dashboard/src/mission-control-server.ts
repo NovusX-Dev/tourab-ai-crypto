@@ -99,6 +99,7 @@ const DEFAULT_WORKER_SOL_FAIL_CLOSED_ON_INSUFFICIENT_TRADES = true;
 const DEFAULT_WORKER_SOL_MAX_NOTIONAL_USD = 4;
 const DEFAULT_WORKER_SOL_ENTRY_OFFSET_BPS = 12;
 const DEFAULT_WORKER_SOL_STOP_DISTANCE_BPS = 90;
+const DEFAULT_WORKER_SOL_MIN_BAND_DISTANCE_BPS = 25;
 const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
   "ProposalCreated",
   "GatekeeperDecision",
@@ -183,6 +184,31 @@ function parseWorkerSymbolOverrides(raw: string | undefined): Record<string, Wor
         continue;
       }
       output[key] = value;
+    }
+    return output;
+  } catch {
+    return {};
+  }
+}
+
+function parseWorkerBlockedUtcHours(raw: string | undefined): Record<string, number[]> {
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const output: Record<string, number[]> = {};
+    for (const [symbol, value] of Object.entries(parsed ?? {})) {
+      const key = symbol.trim().toUpperCase();
+      if (key.length === 0 || !Array.isArray(value)) {
+        continue;
+      }
+      const hours = value
+        .map((item) => Number(item))
+        .filter((item) => Number.isFinite(item))
+        .map((item) => Math.floor(item))
+        .filter((item) => item >= 0 && item <= 23);
+      output[key] = [...new Set(hours)];
     }
     return output;
   } catch {
@@ -1449,6 +1475,7 @@ export async function startMissionControlServer(
   const workerSymbolOverrides: Record<string, WorkerSymbolOverride> = {
     "SOL-USDT": {
       enabled: parseBooleanEnv(process.env.TOURAB_WORKER_SOL_ENABLED, true),
+      side: (process.env.TOURAB_WORKER_SOL_SIDE as "buy" | "sell" | undefined) ?? "sell",
       maxNotionalUsd: Math.max(0.000001, Number(process.env.TOURAB_WORKER_SOL_MAX_NOTIONAL_USD ?? DEFAULT_WORKER_SOL_MAX_NOTIONAL_USD)),
       entryOffsetBps: Math.max(
         0.0001,
@@ -1457,9 +1484,21 @@ export async function startMissionControlServer(
       stopDistanceBps: Math.max(
         0.0001,
         Number(process.env.TOURAB_WORKER_SOL_STOP_DISTANCE_BPS ?? DEFAULT_WORKER_SOL_STOP_DISTANCE_BPS)
+      ),
+      minBandDistanceBps: Math.max(
+        0,
+        Number(process.env.TOURAB_WORKER_SOL_MIN_BAND_DISTANCE_BPS ?? DEFAULT_WORKER_SOL_MIN_BAND_DISTANCE_BPS)
       )
     },
     ...parseWorkerSymbolOverrides(process.env.TOURAB_WORKER_SYMBOL_OVERRIDES_JSON)
+  };
+  const blockedUtcHoursBySymbol: Record<string, number[]> = {
+    "SOL-USDT": parseCsvEnv(process.env.TOURAB_WORKER_SOL_BLOCKED_UTC_HOURS, ["08", "12"])
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item))
+      .map((item) => Math.floor(item))
+      .filter((item) => item >= 0 && item <= 23),
+    ...parseWorkerBlockedUtcHours(process.env.TOURAB_WORKER_BLOCKED_UTC_HOURS_JSON)
   };
   const worker = new RuntimeWorkerManager(
     {
@@ -1599,7 +1638,8 @@ export async function startMissionControlServer(
       retryBudgetPerHour: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_BUDGET_PER_HOUR, 30, 1, 1000),
       executionMode: workerExecutionMode,
       defaultSide: (process.env.TOURAB_WORKER_DEFAULT_SIDE as "buy" | "sell" | undefined) ?? "buy",
-      symbolOverrides: workerSymbolOverrides
+      symbolOverrides: workerSymbolOverrides,
+      blockedUtcHoursBySymbol
     }
   );
 

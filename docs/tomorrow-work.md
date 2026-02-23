@@ -38,4 +38,8 @@ When you say we are done for today, I will append the next day plan here.
     - curated dataset (`BTC-USDT,ETH-USDT`): `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00`
     - walk-forward: `logs/m7-walk-forward-curated-validation-2026-02-23T08-10-32-002-03-00/walk-forward-report.json` (`passRatePct=100`, `pass=true`)
     - gate: `logs/m7-gate-curated-validation-2026-02-23T08-10-32-002-03-00/gate-result.json` (`walkForwardStabilityPass=true`, `pass=true`)
+  - latest SOL ongoing-monitoring cycle (`2026-02-23`) on fresh snapshot:
+    - dataset: `logs/m7-dataset-2026-02-23T12-33-53-030Z`
+    - staged re-entry summary: `logs/m7-sol-reentry-2026-02-23T12-34-09-492Z/summary.md`
+    - `--require-stage moderate`: `requiredStagePass=false` (moderate still fails; `reintroduce` passes)
 - leave this file as next-day execution only (no historical backlog).

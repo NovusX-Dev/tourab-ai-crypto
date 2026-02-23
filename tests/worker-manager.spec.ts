@@ -112,4 +112,74 @@ describe("runtime worker manager", () => {
     const fetchMock = proposalHelper.fetchSpotMarketInputs as unknown as ReturnType<typeof vi.fn>;
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("blocks symbol when UTC hour is guarded", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-23T08:05:00.000Z"));
+    const events: BotEvent[] = [];
+    const queueDemoExecutionApproval = vi.fn(async (_input: unknown) => ({ queued: true, approvalId: "a-3" }));
+    const manager = new RuntimeWorkerManager(
+      {
+        onEvent: async (event) => {
+          events.push(event);
+        },
+        onStateUpdate: () => {},
+        getState: () => runningState(),
+        evaluateSymbolEligibility: async () => ({ eligible: true }),
+        queueDemoExecutionApproval
+      },
+      {
+        ...basePolicy(),
+        blockedUtcHoursBySymbol: {
+          "SOL-USDT": [8, 12]
+        }
+      }
+    );
+
+    await (manager as any).runCycle();
+
+    expect(queueDemoExecutionApproval).not.toHaveBeenCalled();
+    expect(events.some((event) => event.message.includes("time-window guard"))).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it("blocks symbol when entry band-distance filter is breached", async () => {
+    const fetchMock = proposalHelper.fetchSpotMarketInputs as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValueOnce({
+      symbol: "SOL-USDT",
+      last: 10,
+      tickSz: 0.01,
+      lotSz: 0.01,
+      minSz: 0.01,
+      buyLmt: 10.01,
+      sellLmt: 9.99
+    });
+    const events: BotEvent[] = [];
+    const queueDemoExecutionApproval = vi.fn(async (_input: unknown) => ({ queued: true, approvalId: "a-4" }));
+    const manager = new RuntimeWorkerManager(
+      {
+        onEvent: async (event) => {
+          events.push(event);
+        },
+        onStateUpdate: () => {},
+        getState: () => runningState(),
+        evaluateSymbolEligibility: async () => ({ eligible: true }),
+        queueDemoExecutionApproval
+      },
+      {
+        ...basePolicy(),
+        symbolOverrides: {
+          "SOL-USDT": {
+            side: "sell",
+            minBandDistanceBps: 20
+          }
+        }
+      }
+    );
+
+    await (manager as any).runCycle();
+
+    expect(queueDemoExecutionApproval).not.toHaveBeenCalled();
+    expect(events.some((event) => event.message.includes("entry band-distance filter"))).toBe(true);
+  });
 });

@@ -25,6 +25,7 @@ export interface WorkerSymbolOverride {
   maxNotionalUsd?: number;
   entryOffsetBps?: number;
   stopDistanceBps?: number;
+  minBandDistanceBps?: number;
 }
 
 export interface WorkerPolicy {
@@ -40,6 +41,7 @@ export interface WorkerPolicy {
   executionMode: "proposal_only" | "demo_execution_enabled";
   defaultSide?: "buy" | "sell";
   symbolOverrides?: Record<string, WorkerSymbolOverride>;
+  blockedUtcHoursBySymbol?: Record<string, number[]>;
 }
 
 function nextSymbol(universe: string[], cycle: number): string {
@@ -103,6 +105,42 @@ function choosePositiveNumber(candidate: number | undefined, fallback: number): 
   return candidate;
 }
 
+function normalizeHour(value: number): number | undefined {
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+  const hour = Math.floor(value);
+  if (hour < 0 || hour > 23) {
+    return undefined;
+  }
+  return hour;
+}
+
+function isBlockedUtcHour(policy: WorkerPolicy, symbol: string, now: Date): boolean {
+  const rawHours = policy.blockedUtcHoursBySymbol?.[symbol];
+  if (!rawHours || rawHours.length === 0) {
+    return false;
+  }
+  const hour = now.getUTCHours();
+  return rawHours.some((item) => normalizeHour(item) === hour);
+}
+
+function distanceToBandBps(market: SpotMarketInputs, side: "buy" | "sell"): number | undefined {
+  if (!Number.isFinite(market.last) || market.last <= 0) {
+    return undefined;
+  }
+  if (side === "buy") {
+    if (!Number.isFinite(market.buyLmt) || (market.buyLmt ?? 0) <= 0) {
+      return undefined;
+    }
+    return ((market.buyLmt! - market.last) / market.last) * 10_000;
+  }
+  if (!Number.isFinite(market.sellLmt) || (market.sellLmt ?? 0) <= 0) {
+    return undefined;
+  }
+  return ((market.last - market.sellLmt!) / market.last) * 10_000;
+}
+
 export class RuntimeWorkerManager {
   private intervalRef: ReturnType<typeof setInterval> | undefined;
   private cycle = 0;
@@ -141,8 +179,26 @@ export class RuntimeWorkerManager {
 
     try {
       const symbol = nextSymbol(this.policy.symbolUniverse, this.cycle);
-      const nowIso = new Date().toISOString();
+      const now = new Date();
+      const nowIso = now.toISOString();
       this.callbacks.onStateUpdate({ cycleProgress: 10, activeSymbol: symbol, lastHeartbeatAt: nowIso });
+
+      if (isBlockedUtcHour(this.policy, symbol, now)) {
+        await this.callbacks.onEvent(
+          createEvent("RiskLimitHit", symbol, `Worker blocked by UTC time-window guard for ${symbol}`, "warn", [
+            "worker_cycle",
+            "time_window_guard"
+          ])
+        );
+        this.cycle += 1;
+        this.callbacks.onStateUpdate({
+          cycleProgress: 0,
+          cycleCount: this.cycle,
+          activeSymbol: symbol,
+          lastHeartbeatAt: new Date().toISOString()
+        });
+        return;
+      }
 
       if (this.callbacks.evaluateSymbolEligibility) {
         const eligibility = await this.callbacks.evaluateSymbolEligibility(symbol, nowIso);
@@ -189,8 +245,31 @@ export class RuntimeWorkerManager {
       const maxNotionalUsd = choosePositiveNumber(symbolOverride?.maxNotionalUsd, this.policy.maxNotionalUsd);
       const entryOffsetBps = choosePositiveNumber(symbolOverride?.entryOffsetBps, this.policy.entryOffsetBps);
       const stopDistanceBps = choosePositiveNumber(symbolOverride?.stopDistanceBps, this.policy.stopDistanceBps);
+      const minBandDistanceBps = choosePositiveNumber(symbolOverride?.minBandDistanceBps, 0);
 
       const market = await this.fetchWithRetryBudget(symbol);
+      if (minBandDistanceBps > 0) {
+        const bps = distanceToBandBps(market, side);
+        if (typeof bps === "number" && bps < minBandDistanceBps) {
+          await this.callbacks.onEvent(
+            createEvent(
+              "RiskLimitHit",
+              symbol,
+              `Worker blocked by entry band-distance filter (${bps.toFixed(2)}bps < ${minBandDistanceBps.toFixed(2)}bps)`,
+              "warn",
+              ["worker_cycle", "entry_band_filter"]
+            )
+          );
+          this.cycle += 1;
+          this.callbacks.onStateUpdate({
+            cycleProgress: 0,
+            cycleCount: this.cycle,
+            activeSymbol: symbol,
+            lastHeartbeatAt: new Date().toISOString()
+          });
+          return;
+        }
+      }
       const built = buildValidSpotProposal(market, {
         symbol,
         side,

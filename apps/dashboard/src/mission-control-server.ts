@@ -46,7 +46,7 @@ import { controlRateLimiter } from "./mission-control/rate-limit.js";
 import { RuntimeLifecycleManager } from "./mission-control/runtime-lifecycle-manager.js";
 import { SqliteEventStore } from "./mission-control/sqlite-event-store.js";
 import { SqliteOpsStore, type ManagedTradeRecord } from "./mission-control/sqlite-ops-store.js";
-import { RuntimeWorkerManager, type WorkerSymbolOverride } from "./mission-control/worker-manager.js";
+import { RuntimeWorkerManager, type WorkerSidePreference, type WorkerSymbolOverride } from "./mission-control/worker-manager.js";
 import { createSignedAccessToken, verifySignedAccessToken } from "./mission-control/auth.js";
 import { loadEnvFromProjectRoot } from "./env-loader.js";
 import { fetchSpotMarketInputs } from "./proposal-helper.js";
@@ -100,6 +100,10 @@ const DEFAULT_WORKER_SOL_MAX_NOTIONAL_USD = 4;
 const DEFAULT_WORKER_SOL_ENTRY_OFFSET_BPS = 12;
 const DEFAULT_WORKER_SOL_STOP_DISTANCE_BPS = 90;
 const DEFAULT_WORKER_SOL_MIN_BAND_DISTANCE_BPS = 25;
+const DEFAULT_SOL_AUTO_EXIT_MAX_HOLD_SEC = 8 * 60;
+const DEFAULT_SOL_AUTO_EXIT_TP_R_MULTIPLE = 1.1;
+const DEFAULT_SOL_AUTO_EXIT_OFFSET_BPS = 1;
+const DEFAULT_SOL_AUTO_EXIT_FORCE_FLATTEN_BPS = 12;
 const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
   "ProposalCreated",
   "GatekeeperDecision",
@@ -214,6 +218,14 @@ function parseWorkerBlockedUtcHours(raw: string | undefined): Record<string, num
   } catch {
     return {};
   }
+}
+
+function parseWorkerSidePreference(raw: string | undefined, fallback: WorkerSidePreference): WorkerSidePreference {
+  const normalized = raw?.trim().toLowerCase();
+  if (normalized === "buy" || normalized === "sell" || normalized === "auto") {
+    return normalized;
+  }
+  return fallback;
 }
 
 export function evaluateWorkerSymbolQualityGate(input: {
@@ -1306,6 +1318,24 @@ export async function startMissionControlServer(
     1,
     Number(process.env.TOURAB_AUTO_EXIT_FORCE_FLATTEN_BPS ?? DEFAULT_AUTO_EXIT_FORCE_FLATTEN_BPS)
   );
+  const solAutoExitMaxHoldSec = parseBoundedInt(
+    process.env.TOURAB_AUTO_EXIT_SOL_MAX_HOLD_SEC,
+    DEFAULT_SOL_AUTO_EXIT_MAX_HOLD_SEC,
+    30,
+    7 * 24 * 60 * 60
+  );
+  const solAutoExitTpRMultiple = Math.max(
+    0.25,
+    Number(process.env.TOURAB_AUTO_EXIT_SOL_TP_R_MULTIPLE ?? DEFAULT_SOL_AUTO_EXIT_TP_R_MULTIPLE)
+  );
+  const solAutoExitOffsetBps = Math.max(
+    0,
+    Number(process.env.TOURAB_AUTO_EXIT_SOL_OFFSET_BPS ?? DEFAULT_SOL_AUTO_EXIT_OFFSET_BPS)
+  );
+  const solAutoExitForceFlattenBps = Math.max(
+    1,
+    Number(process.env.TOURAB_AUTO_EXIT_SOL_FORCE_FLATTEN_BPS ?? DEFAULT_SOL_AUTO_EXIT_FORCE_FLATTEN_BPS)
+  );
   const autoExitMaxOffsetBps = parseBoundedInt(process.env.TOURAB_AUTO_EXIT_MAX_OFFSET_BPS, 100, 1, 5_000);
   const managedTrades = new Map<string, ManagedTrade>(
     opsStore
@@ -1475,7 +1505,7 @@ export async function startMissionControlServer(
   const workerSymbolOverrides: Record<string, WorkerSymbolOverride> = {
     "SOL-USDT": {
       enabled: parseBooleanEnv(process.env.TOURAB_WORKER_SOL_ENABLED, true),
-      side: (process.env.TOURAB_WORKER_SOL_SIDE as "buy" | "sell" | undefined) ?? "sell",
+      side: parseWorkerSidePreference(process.env.TOURAB_WORKER_SOL_SIDE, "sell"),
       maxNotionalUsd: Math.max(0.000001, Number(process.env.TOURAB_WORKER_SOL_MAX_NOTIONAL_USD ?? DEFAULT_WORKER_SOL_MAX_NOTIONAL_USD)),
       entryOffsetBps: Math.max(
         0.0001,
@@ -1560,10 +1590,12 @@ export async function startMissionControlServer(
         const entryPrice = Math.max(0.00000001, intent.limitPrice);
         const stopPrice = Math.max(0.00000001, proposal.stopPrice);
         const riskDistance = Math.max(Math.abs(entryPrice - stopPrice), entryPrice * 0.001);
+        const effectiveTpRMultiple = symbol === "SOL-USDT" ? solAutoExitTpRMultiple : autoExitConfig.takeProfitRMultiple;
+        const effectiveMaxHoldSec = symbol === "SOL-USDT" ? solAutoExitMaxHoldSec : autoExitConfig.maxHoldSec;
         const takeProfitPrice =
           intent.side === "buy"
-            ? round6(entryPrice + riskDistance * autoExitConfig.takeProfitRMultiple)
-            : round6(entryPrice - riskDistance * autoExitConfig.takeProfitRMultiple);
+            ? round6(entryPrice + riskDistance * effectiveTpRMultiple)
+            : round6(entryPrice - riskDistance * effectiveTpRMultiple);
         const flattenAt = nextFlattenAtIso(autoExitConfig.flattenTimeUtc);
         const effectiveStrategyVersion = strategyPromotionState.activeVersion || entryAutonomyConfig.strategyVersion;
         pendingDemoOrders.set(request.id, {
@@ -1572,7 +1604,7 @@ export async function startMissionControlServer(
           symbol,
           stopPrice,
           takeProfitPrice,
-          maxHoldSec: autoExitConfig.maxHoldSec,
+          maxHoldSec: effectiveMaxHoldSec,
           flattenAt,
           approvalModeAtDecision,
           strategyVersion: effectiveStrategyVersion,
@@ -1581,7 +1613,7 @@ export async function startMissionControlServer(
         });
         await appendAudit(
           "Demo execution approval queued",
-          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol} stop=${stopPrice} tp=${takeProfitPrice} approvalMode=${approvalModeAtDecision} strategy=${effectiveStrategyVersion} policy=${entryAutonomyConfig.policyVersion}`,
+          `Approval ${request.id} queued for demo order submit proposal=${proposal.proposalId} symbol=${intent.symbol} stop=${stopPrice} tp=${takeProfitPrice} maxHoldSec=${effectiveMaxHoldSec} tpR=${effectiveTpRMultiple} approvalMode=${approvalModeAtDecision} strategy=${effectiveStrategyVersion} policy=${entryAutonomyConfig.policyVersion}`,
           symbol,
           "ProposalApproved"
         );
@@ -2175,13 +2207,16 @@ export async function startMissionControlServer(
     }
 
     function resolveExitOffsetBps(trade: ManagedTrade, reason: ExitReason): number {
+      const baseOffsetBps = trade.symbol === "SOL-USDT" ? Math.min(autoExitConfig.exitOffsetBps, solAutoExitOffsetBps) : autoExitConfig.exitOffsetBps;
+      const forceFlattenFloorBps =
+        trade.symbol === "SOL-USDT" ? Math.min(autoExitForceFlattenBps, solAutoExitForceFlattenBps) : autoExitForceFlattenBps;
       if (reason === "flatten" || reason === "time_stop") {
-        return Math.min(autoExitMaxOffsetBps, Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10));
+        return Math.min(autoExitMaxOffsetBps, Math.max(forceFlattenFloorBps, baseOffsetBps + trade.exitRepriceCount * 10));
       }
       if (trade.forcedFlattenEscalated) {
-        return Math.min(autoExitMaxOffsetBps, Math.max(autoExitForceFlattenBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 10));
+        return Math.min(autoExitMaxOffsetBps, Math.max(forceFlattenFloorBps, baseOffsetBps + trade.exitRepriceCount * 10));
       }
-      return Math.min(autoExitMaxOffsetBps, autoExitConfig.exitOffsetBps + trade.exitRepriceCount * 5);
+      return Math.min(autoExitMaxOffsetBps, baseOffsetBps + trade.exitRepriceCount * 5);
     }
 
     function classifyTransientExitSubmitFailure(error: unknown): { transient: boolean; message: string } {

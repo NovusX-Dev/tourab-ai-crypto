@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-23 12:45:04 UTC
+Generated: 2026-02-23 19:43:41 UTC
 
 ## Summary
 - Root: `.`
-- Directories indexed: 239
-- Files indexed: 679
+- Directories indexed: 311
+- Files indexed: 875
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -414,6 +414,30 @@ Generated: 2026-02-23 12:45:04 UTC
     - m5-soak-2026-02-23T08-10-20-412Z/
       - report.json
       - summary.md
+    - m5-soak-2026-02-23T13-46-51-187Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T14-05-49-046Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T14-26-15-674Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T18-33-04-197Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T18-41-04-547Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T19-11-23-642Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T19-23-17-706Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-23T19-33-00-762Z/
+      - report.json
+      - summary.md
     - m6-acceptance-2026-02-19T08-04-49-497Z/
       - report.json
       - summary.md
@@ -454,6 +478,42 @@ Generated: 2026-02-23 12:45:04 UTC
       - dataset-manifest.json
       - summary.md
     - m7-dataset-2026-02-23T12-43-58-658Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T13-27-11-159Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T13-55-55-057Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T14-12-52-192Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T14-35-03-417Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T18-40-06-741Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T18-45-38-835Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T19-18-26-728Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T19-32-20-897Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-23T19-43-04-692Z/
       - closed-trade-features.ndjson
       - dataset-manifest.json
       - summary.md
@@ -640,6 +700,22 @@ Generated: 2026-02-23 12:45:04 UTC
     - m7-rollback-drill-2026-02-21T20-04-56-516Z/
       - report.json
       - summary.md
+    - m7-sol-calibration-2026-02-23T18-32-39-037Z/
+    - m7-sol-calibration-2026-02-23T18-33-00-949Z/
+      - report.json
+      - summary.md
+    - m7-sol-calibration-2026-02-23T18-41-03-758Z/
+      - report.json
+      - summary.md
+    - m7-sol-calibration-2026-02-23T19-11-21-074Z/
+      - report.json
+      - summary.md
+    - m7-sol-calibration-2026-02-23T19-23-15-136Z/
+      - report.json
+      - summary.md
+    - m7-sol-calibration-2026-02-23T19-32-58-696Z/
+      - report.json
+      - summary.md
     - m7-sol-reentry-2026-02-23T12-00-03-515Z/
       - dataset-curated/
         - closed-trade-features.ndjson
@@ -778,6 +854,191 @@ Generated: 2026-02-23 12:45:04 UTC
         - summary.md
         - walk-forward-report.json
       - summary.md
+    - m7-sol-reentry-2026-02-23T13-27-27-293Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T13-56-08-314Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T14-35-04-252Z/
+    - m7-sol-reentry-2026-02-23T14-35-11-370Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T18-40-08-894Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T18-45-39-667Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T19-18-27-545Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T19-32-21-677Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
+    - m7-sol-reentry-2026-02-23T19-43-05-435Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
     - m7-walk-forward-2026-02-23T09-55-24-508Z/
       - summary.md
       - walk-forward-report.json
@@ -816,7 +1077,13 @@ Generated: 2026-02-23 12:45:04 UTC
     - m5-soak-server.pid
     - m7-monitor-server.err.log
     - m7-monitor-server.out.log
+    - m7-sol-calib-server.err.log
+    - m7-sol-calib-server.out.log
+    - m7-sol-calib-server2.err.log
+    - m7-sol-calib-server2.out.log
     - m7-sol-reentry-summary-2026-02-23T11-54-23-106Z.md
+    - m7-sol-soak-server.err.log
+    - m7-sol-soak-server.out.log
     - mc-server.err.log
     - mc-server.out.log
     - mission-alerts.jsonl
@@ -861,6 +1128,7 @@ Generated: 2026-02-23 12:45:04 UTC
     - m7-gate-promotion.ts
     - m7-retrain-offline.ts
     - m7-rollback-drill.ts
+    - m7-sol-moderate-calibration.ts
     - m7-sol-reentry-stages.ts
     - m7-walk-forward.ts
     - update-project-index.ps1
@@ -964,8 +1232,8 @@ Generated: 2026-02-23 12:45:04 UTC
 | `apps/dashboard/src/mission-control/runtime-lifecycle-manager.ts` | 5209 | 2026-02-17 14:26:35 | `e8b4b0336af1856789874dce668ef4abae4bc79127c703500915efb11e1be9ba` |
 | `apps/dashboard/src/mission-control/sqlite-event-store.ts` | 4967 | 2026-02-18 16:51:12 | `639918252486f4000bd224c1567bbb2a5e2962d61371baa597d7a416cf896e6c` |
 | `apps/dashboard/src/mission-control/sqlite-ops-store.ts` | 24341 | 2026-02-23 10:53:46 | `d6310f60f36af9ad76a921d8f4e5967ac84fde434280bbce6f7672b5b422090c` |
-| `apps/dashboard/src/mission-control/worker-manager.ts` | 12116 | 2026-02-23 12:40:22 | `bb01c14b6e6dcb64661155f438d196fa93406ef4f960e62b84319fa94c82e1ec` |
-| `apps/dashboard/src/mission-control-server.ts` | 209180 | 2026-02-23 12:43:15 | `a1684c35095f88fbf055b1e4a7f1d3faa5ec1f3b4fe1793fe49d1f3f9d70ab3a` |
+| `apps/dashboard/src/mission-control/worker-manager.ts` | 12877 | 2026-02-23 19:22:42 | `112485af8ed4ede1dad8d3f3abf12f4147347178324c41f41134ebca6d19386e` |
+| `apps/dashboard/src/mission-control-server.ts` | 210852 | 2026-02-23 19:22:55 | `a358c38f1eb29334874cf663de47b86d460f4d2238d193f2eb9b14854387aca6` |
 | `apps/dashboard/src/okx-demo-auto-loop-cli.ts` | 10196 | 2026-02-17 14:03:52 | `1a99e46e1bfceb646ce6a5c56bbe5ecde6bf9e8ee6a1c55f1a9c610b0d683c01` |
 | `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4304 | 2026-02-17 14:03:47 | `abf004a0c761c5feec4c7916124fb349256ff5a616acbc0dd708653107d72edf` |
 | `apps/dashboard/src/okx-demo-diagnostic-cli.ts` | 6491 | 2026-02-18 13:10:48 | `d3ed9b32a93474eef8fac634fa6c0a4bf2ed275a45fc333b0a3a46702afdd225` |
@@ -1222,6 +1490,22 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/m5-soak-2026-02-22T09-32-49-351Z/summary.md` | 784 | 2026-02-22 09:50:49 | `9671b8072e03ba2707800c16559671aa03819d68cb146692773f7855d05183da` |
 | `logs/m5-soak-2026-02-23T08-10-20-412Z/report.json` | 1130 | 2026-02-23 08:28:22 | `752c7e6b0cb81ddb7b3a0e213747c531703f672505bfe64dcbd736c77300852b` |
 | `logs/m5-soak-2026-02-23T08-10-20-412Z/summary.md` | 784 | 2026-02-23 08:28:22 | `e5723de5ac6e48acca89caf09fcfb54c964257d00a7ed6d15fc26d72fd864dbc` |
+| `logs/m5-soak-2026-02-23T13-46-51-187Z/report.json` | 1127 | 2026-02-23 13:55:54 | `d53327469090b2efb24ab525e1dbb749b8057df99f53da78327357427a1deb41` |
+| `logs/m5-soak-2026-02-23T13-46-51-187Z/summary.md` | 783 | 2026-02-23 13:55:54 | `87dfc99ecca919264da1e8fb41ed1a9e565267a86e804b75e4152ce3bae55a2a` |
+| `logs/m5-soak-2026-02-23T14-05-49-046Z/report.json` | 1127 | 2026-02-23 14:12:51 | `ac37a4384d615a5fd67eebc6c35eb8d71e53b7e1e363d59e138693776dafae86` |
+| `logs/m5-soak-2026-02-23T14-05-49-046Z/summary.md` | 783 | 2026-02-23 14:12:51 | `4b1422bf629be8e7914c8fbe4e2e75d1e4f9e79e7120a40cea6880070b5c82ae` |
+| `logs/m5-soak-2026-02-23T14-26-15-674Z/report.json` | 1129 | 2026-02-23 14:35:02 | `e962dabe96ae08c203e462879a9e5dded0482d3bf4315abe1cde7eadf6185849` |
+| `logs/m5-soak-2026-02-23T14-26-15-674Z/summary.md` | 785 | 2026-02-23 14:35:02 | `21d9f362f4db0cf4be943c3bef604034ca413fdba19e733ab64ac5b7ea7a2bd8` |
+| `logs/m5-soak-2026-02-23T18-33-04-197Z/report.json` | 1127 | 2026-02-23 18:40:06 | `9500c1741eb0333d7321d98249a5959dd723492f1dfb67f0db67e8bd5083dc99` |
+| `logs/m5-soak-2026-02-23T18-33-04-197Z/summary.md` | 783 | 2026-02-23 18:40:06 | `858a45744da3a82cc6262d93e659786afe2f979710f76a01b03ff7f5a75be06d` |
+| `logs/m5-soak-2026-02-23T18-41-04-547Z/report.json` | 1121 | 2026-02-23 18:45:38 | `99c6c1f932c120976864995ed7b13c7d4eff9109a78b88d2ac725bc192d8a67c` |
+| `logs/m5-soak-2026-02-23T18-41-04-547Z/summary.md` | 779 | 2026-02-23 18:45:38 | `70202d8b0df05f9f98748950885fba7731dacedaa16214e0dccf663e391a8597` |
+| `logs/m5-soak-2026-02-23T19-11-23-642Z/report.json` | 1121 | 2026-02-23 19:18:26 | `98cee2f486746a2337d55f3b4e632a0bd159295b4d8e1b6f6ff51a7c95b1519d` |
+| `logs/m5-soak-2026-02-23T19-11-23-642Z/summary.md` | 780 | 2026-02-23 19:18:26 | `8885f8ac6cb47f9ed584a04aadd33b05fbdc83573841c0dd4fca44a49aed2685` |
+| `logs/m5-soak-2026-02-23T19-23-17-706Z/report.json` | 1129 | 2026-02-23 19:32:20 | `7733c3c70f1bbfb7ed77bd978e51085bb37069d338ebe47e68334244d7e6fd08` |
+| `logs/m5-soak-2026-02-23T19-23-17-706Z/summary.md` | 785 | 2026-02-23 19:32:20 | `1a039e6dfd41ecb675a800ba00e1f989e1b0040f5ccd41b4c32415f88fe3b3e1` |
+| `logs/m5-soak-2026-02-23T19-33-00-762Z/report.json` | 1130 | 2026-02-23 19:43:04 | `125172d90cbd3733beeaac00a9ddad22502df6829c2ee303bc0d9219ed109c12` |
+| `logs/m5-soak-2026-02-23T19-33-00-762Z/summary.md` | 786 | 2026-02-23 19:43:04 | `3d711f7f08d00a225531afeb56ac34d5e1058c984991b823914ae7ccbae0818c` |
 | `logs/m5-soak-run.err.log` | 375 | 2026-02-19 06:53:40 | `0c12ad4352b5f4110bf7ee1302283b76662f15eff4629b197a10de2b01ebeb6f` |
 | `logs/m5-soak-run.out.log` | 823 | 2026-02-19 08:18:27 | `4acc3d9aef736926027fb38a4653d1ec0071da0e9c8bcb5c4d5ba86070de2352` |
 | `logs/m5-soak-server.err.log` | 169 | 2026-02-19 06:53:56 | `6d6432eae09ebe038866b6ffd2cb85d11f85d43761728834388996d6693e0b33` |
@@ -1258,6 +1542,33 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/m7-dataset-2026-02-23T12-43-58-658Z/closed-trade-features.ndjson` | 151889 | 2026-02-23 12:43:58 | `e55536e9ce8258c3797e7e3580ef0f83b2422199c75c0d7ee51673d58105c414` |
 | `logs/m7-dataset-2026-02-23T12-43-58-658Z/dataset-manifest.json` | 1038 | 2026-02-23 12:43:58 | `168e18eac7256396fabe3dc51da45cded746833d65aa7f68b91d2ad2b4737fbd` |
 | `logs/m7-dataset-2026-02-23T12-43-58-658Z/summary.md` | 492 | 2026-02-23 12:43:58 | `d1e452b4b1edffecf0bc14c0b0d08f53226ea9fd8aaddd5665f8770b102a2ff1` |
+| `logs/m7-dataset-2026-02-23T13-27-11-159Z/closed-trade-features.ndjson` | 151889 | 2026-02-23 13:27:11 | `1a409deffa43e319c0ba63fb2acc8737accd57909aca4d0eb8d7ea27bb3690d0` |
+| `logs/m7-dataset-2026-02-23T13-27-11-159Z/dataset-manifest.json` | 1038 | 2026-02-23 13:27:11 | `1864c4b0efd240822d7e2a23cb3244b78a5c06a6fc29d3eecf17952dca1a853c` |
+| `logs/m7-dataset-2026-02-23T13-27-11-159Z/summary.md` | 492 | 2026-02-23 13:27:11 | `4abb6457dd9a63577a29b2c4c5681693fb633ee12825889dacb7019bfa9066f2` |
+| `logs/m7-dataset-2026-02-23T13-55-55-057Z/closed-trade-features.ndjson` | 169055 | 2026-02-23 13:55:55 | `5ac991dc640b6396fc82c35dfb8a56fec85a75c41a9a410014f2ecaa9e43a4a8` |
+| `logs/m7-dataset-2026-02-23T13-55-55-057Z/dataset-manifest.json` | 1057 | 2026-02-23 13:55:55 | `7f672077d3dc7b321a3b74fda1bedc7a60b0168afe6b7bbd2d221b33b4642062` |
+| `logs/m7-dataset-2026-02-23T13-55-55-057Z/summary.md` | 492 | 2026-02-23 13:55:55 | `f832dc6fa63998f991c53c35296bf222caf42d290669e8dfd17833483d853d3e` |
+| `logs/m7-dataset-2026-02-23T14-12-52-192Z/closed-trade-features.ndjson` | 176058 | 2026-02-23 14:12:52 | `697594516ee958e61dac9978d83b08c04c8fd1461c39518faaa989e91136f8c6` |
+| `logs/m7-dataset-2026-02-23T14-12-52-192Z/dataset-manifest.json` | 1057 | 2026-02-23 14:12:52 | `6fde15a4c69465b26046f2e20804789d1e27f694a6afd0dcccef663179af4784` |
+| `logs/m7-dataset-2026-02-23T14-12-52-192Z/summary.md` | 492 | 2026-02-23 14:12:52 | `a68ff3e52f3574096ce204a2c173b88edd38c4ea6dfd6ee35fae52c7595fc521` |
+| `logs/m7-dataset-2026-02-23T14-35-03-417Z/closed-trade-features.ndjson` | 188967 | 2026-02-23 14:35:03 | `ad783ccd0586d4ee1a3ad03cf7769f5a03ec23b67455126cbfc7ed2cce1d435d` |
+| `logs/m7-dataset-2026-02-23T14-35-03-417Z/dataset-manifest.json` | 1057 | 2026-02-23 14:35:03 | `9dd47a5055f34d6d6b380d209c1c81ed5a5b428769c53082fc74f6c9a97adec7` |
+| `logs/m7-dataset-2026-02-23T14-35-03-417Z/summary.md` | 492 | 2026-02-23 14:35:03 | `9aa7806f9abec256cc6825a74abfd7d1a4bd6649e29a74feeb66d3262ae4c376` |
+| `logs/m7-dataset-2026-02-23T18-40-06-741Z/closed-trade-features.ndjson` | 201302 | 2026-02-23 18:40:06 | `90e431ffd6fe6976168c214165c6d11e721b2fd8b4a42c5822e876197efbbe86` |
+| `logs/m7-dataset-2026-02-23T18-40-06-741Z/dataset-manifest.json` | 1057 | 2026-02-23 18:40:06 | `4bb6e80c0576230be01bdc4e8859c4f5e31ada88acd50f9a2a72453e4f80236f` |
+| `logs/m7-dataset-2026-02-23T18-40-06-741Z/summary.md` | 492 | 2026-02-23 18:40:06 | `df4cdd023b30d04f97fb1adad272208d70352223ac30f9fbc3bcd179df8030d3` |
+| `logs/m7-dataset-2026-02-23T18-45-38-835Z/closed-trade-features.ndjson` | 201302 | 2026-02-23 18:45:38 | `1d7345d2da1b7210601385eb14ed238a005455cd9192295b1895e8b4019cbb4a` |
+| `logs/m7-dataset-2026-02-23T18-45-38-835Z/dataset-manifest.json` | 1057 | 2026-02-23 18:45:38 | `610ea709155d70cc2be56d5521a6b2966bfeca850f23e98775928a94c6c4b5a1` |
+| `logs/m7-dataset-2026-02-23T18-45-38-835Z/summary.md` | 492 | 2026-02-23 18:45:38 | `f1e4f1a191949fcb8370a0f0e56bd67a197238c4013a5ddfb44e3c4b884a0bf9` |
+| `logs/m7-dataset-2026-02-23T19-18-26-728Z/closed-trade-features.ndjson` | 201302 | 2026-02-23 19:18:26 | `8e12ac6722f7510b44f2cc4e7092e499e7e1da84f227f3139594f5799e3088d9` |
+| `logs/m7-dataset-2026-02-23T19-18-26-728Z/dataset-manifest.json` | 1057 | 2026-02-23 19:18:26 | `318a9360a9e824920d9d55561edcb12dcc0c2585c65548c341d7fab4d5ba42eb` |
+| `logs/m7-dataset-2026-02-23T19-18-26-728Z/summary.md` | 492 | 2026-02-23 19:18:26 | `d2e3c2c7a43adfa244726d298b0415563a35265441be6f32127e866488fb2410` |
+| `logs/m7-dataset-2026-02-23T19-32-20-897Z/closed-trade-features.ndjson` | 208041 | 2026-02-23 19:32:20 | `4ccd8306e1dd312b23cef8f3eac565a38bcda69c5cd712e3e2cdf1787e933958` |
+| `logs/m7-dataset-2026-02-23T19-32-20-897Z/dataset-manifest.json` | 1057 | 2026-02-23 19:32:20 | `aa25f4e6d1a61fac91a4e61a4a1abeda56d2e43d80173b183640283a4d0adacb` |
+| `logs/m7-dataset-2026-02-23T19-32-20-897Z/summary.md` | 492 | 2026-02-23 19:32:20 | `7c6322526f389585e059c7e7155373ea4ed295136ae93fc9efc5a2ebead14f21` |
+| `logs/m7-dataset-2026-02-23T19-43-04-692Z/closed-trade-features.ndjson` | 221311 | 2026-02-23 19:43:04 | `bc0998fc2f2a10e50eab1f41b89162fd1845b5d781f10a4e99c1e6cccb2e4d93` |
+| `logs/m7-dataset-2026-02-23T19-43-04-692Z/dataset-manifest.json` | 1057 | 2026-02-23 19:43:04 | `640c513e1bfe1548856471f21afcbc1582d8aa33565d9074d69cbb37be9901ea` |
+| `logs/m7-dataset-2026-02-23T19-43-04-692Z/summary.md` | 492 | 2026-02-23 19:43:04 | `65b4c224616abd44c620f7751edcb97eabf7cbc5d4d51230ad2989be89ecea0b` |
 | `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00/closed-trade-features.ndjson` | 98294 | 2026-02-23 11:10:32 | `de704690f3632186beaa148a066d8e98820e2815c8a70279f177e13b4072423d` |
 | `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00/dataset-manifest.json` | 1118 | 2026-02-23 11:10:32 | `35f7063edda65b7fdd6518bca3d333ccebd9a16b3c6d9c1b9743ae8b597a19f2` |
 | `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00/summary.md` | 293 | 2026-02-23 11:10:32 | `d187e67edd4a07d798b0f84af6edec229debc2e08110a68616b42a5374fb1f81` |
@@ -1312,8 +1623,8 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/m7-incidents-export-validation-2026-02-23T05-52-05-317-03-00/incidents-export.json` | 1305 | 2026-02-23 08:52:05 | `68eb90454ca7a905dff2a44c13397b964012d3cc429fbf7068807b3b528ccc4c` |
 | `logs/m7-incidents-export-validation-2026-02-23T05-52-05-317-03-00/learning-incidents-export-30d.json` | 2554 | 2026-02-23 08:52:05 | `d453d50a064f3a49a74cbd8dd6db446824b069409ef67ab5d9bfc2588bcea407` |
 | `logs/m7-incidents-export-validation-2026-02-23T05-52-05-317-03-00/summary.json` | 1676 | 2026-02-23 08:52:05 | `789f08dbe8232c938c951265a81ddcbff1ed6f5f65876a567f1e70821009dfbc` |
-| `logs/m7-monitor-server.err.log` | 1065 | 2026-02-23 12:44:00 | `07c5b05e821ef2890ed5b42aae1b97e649b03d75e7542db08e59613e75f0fa03` |
-| `logs/m7-monitor-server.out.log` | 601 | 2026-02-23 12:43:58 | `e030b65f27386c954176005bbb211c1ad88233aae5ddb9646dd73b3d09a73761` |
+| `logs/m7-monitor-server.err.log` | 169 | 2026-02-23 13:27:07 | `4f12db500d4975a179200f11c0eba51fb3d505704dc0369094da7ecb56c4c2fc` |
+| `logs/m7-monitor-server.out.log` | 100298 | 2026-02-23 14:12:52 | `33ecb6b751d7bd3192185fefdaab56360e7150ee095f7a514c477846ea6bb85b` |
 | `logs/m7-retrain-2026-02-20T09-53-35-031Z/approval-record.json` | 281 | 2026-02-20 09:56:15 | `31a42ba2e72057eb6bb17003b0b76d62c062f07ced0a53d7fbda525228d3f9af` |
 | `logs/m7-retrain-2026-02-20T09-53-35-031Z/approval-record.json.template.json` | 327 | 2026-02-20 09:55:35 | `cf2cd087bdc152490cf9305b73522337be008e9dc511f670422a4ac70bedf457` |
 | `logs/m7-retrain-2026-02-20T09-53-35-031Z/metrics.json` | 155 | 2026-02-20 09:53:35 | `c32de41ad5f3a66cf4d71c7ea1a698ae1f5c2913a1a9e92935f3384a47eed434` |
@@ -1402,6 +1713,20 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/m7-retrain-validation-2026-02-23T08-07-31-532-03-00/validation-report.json` | 976 | 2026-02-23 11:08:02 | `b3d2af8a344b49539038f8c2a9102ba865c40ab01ede85f06d3768d1d930498d` |
 | `logs/m7-rollback-drill-2026-02-21T20-04-56-516Z/report.json` | 27835 | 2026-02-21 20:04:57 | `8573f1e97ae07eec27ec425f00830bd568254c2701e209f5d76882375a2067db` |
 | `logs/m7-rollback-drill-2026-02-21T20-04-56-516Z/summary.md` | 745 | 2026-02-21 20:04:57 | `dea9458f7ca8c88ffa5b8442702008dc905ee453c7d837d4dbad7db018b13f17` |
+| `logs/m7-sol-calibration-2026-02-23T18-33-00-949Z/report.json` | 577 | 2026-02-23 18:40:08 | `4aa2705950b8048c5fd7d11d6fa097320e2f9a748853678992c5bc2b041c7540` |
+| `logs/m7-sol-calibration-2026-02-23T18-33-00-949Z/summary.md` | 425 | 2026-02-23 18:40:08 | `947ae535acd91e688d18a1477c2384ff218add964a1bf6cc0b45f5ca40917c70` |
+| `logs/m7-sol-calibration-2026-02-23T18-41-03-758Z/report.json` | 561 | 2026-02-23 18:45:39 | `38463de5a5ea8b41d35b968820c085e99dfb6c2dbd1f9ae78071484c4bd346a4` |
+| `logs/m7-sol-calibration-2026-02-23T18-41-03-758Z/summary.md` | 409 | 2026-02-23 18:45:39 | `b04cc24f3f118b406d18bcff30bae5b5bb55e8cd365127cc5bc0e9fe160dbab1` |
+| `logs/m7-sol-calibration-2026-02-23T19-11-21-074Z/report.json` | 561 | 2026-02-23 19:18:27 | `68cb7824132d7b1b26d32b3d385882eb9f84e89b6d18264ed4e88edf3c99851e` |
+| `logs/m7-sol-calibration-2026-02-23T19-11-21-074Z/summary.md` | 409 | 2026-02-23 19:18:27 | `c1ed19753177cd032fca1849f67cb583fca9f0db65bc64fe0c010bf6e2e09a16` |
+| `logs/m7-sol-calibration-2026-02-23T19-23-15-136Z/report.json` | 561 | 2026-02-23 19:32:21 | `34788aab64a8df76fc3e0b3e9957a2500f2fe767391db3e7f572f9cbaec2d4db` |
+| `logs/m7-sol-calibration-2026-02-23T19-23-15-136Z/summary.md` | 409 | 2026-02-23 19:32:21 | `c6cacf39acffbad83e776f30cc98e5f5cfd2c46e065dcb38be242f3de69222f6` |
+| `logs/m7-sol-calibration-2026-02-23T19-32-58-696Z/report.json` | 561 | 2026-02-23 19:43:05 | `ae2210774b67c0c39c5ed412a47462fdabceedb92a0efa11a2b42f17ec6724af` |
+| `logs/m7-sol-calibration-2026-02-23T19-32-58-696Z/summary.md` | 409 | 2026-02-23 19:43:05 | `ffa7f953042c4a57fb60876055e871261c778873eb6db27cc74a223ee11c0cdd` |
+| `logs/m7-sol-calib-server.err.log` | 6468 | 2026-02-23 14:05:50 | `6f5c1f9108d6e3761cc50354e1d14a48de1e8bee17257afa19919ebf819242d2` |
+| `logs/m7-sol-calib-server.out.log` | 78 | 2026-02-23 14:05:48 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
+| `logs/m7-sol-calib-server2.err.log` | 169 | 2026-02-23 14:26:06 | `62a460786402080c3024c6742bb16345ef52578196882069bca11465c8946d8b` |
+| `logs/m7-sol-calib-server2.out.log` | 62698 | 2026-02-23 14:35:03 | `bd82af70382d913134f8815f50b43becf93334f640c0a43e8877ffb06554b0cd` |
 | `logs/m7-sol-reentry-2026-02-23T12-00-03-515Z/dataset-curated/closed-trade-features.ndjson` | 53594 | 2026-02-23 12:00:03 | `b1035b5b8cc7e7009533b31d333f97339a0eb330d9fd8d36051d965d04862ec2` |
 | `logs/m7-sol-reentry-2026-02-23T12-00-03-515Z/dataset-curated/dataset-manifest.json` | 1066 | 2026-02-23 12:00:03 | `f37f94d200549233f305ecb04dc96ba2d79b781e5321316ecef592433852570f` |
 | `logs/m7-sol-reentry-2026-02-23T12-00-03-515Z/moderate/gate-result.json` | 560 | 2026-02-23 12:00:03 | `5f3e6747c9eb8b8ef4761339e41b3593d0efb404c3a603da2e5085f3abad9f6c` |
@@ -1504,7 +1829,145 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/m7-sol-reentry-2026-02-23T12-44-04-512Z/strict/summary.md` | 176 | 2026-02-23 12:44:04 | `c8dbb31cc8aff82dae4dbe48b19d593ecf5e4b239ddd89659a0e1bb0830cd0fb` |
 | `logs/m7-sol-reentry-2026-02-23T12-44-04-512Z/strict/walk-forward-report.json` | 1509 | 2026-02-23 12:44:04 | `cf9192f6719154f904a372b491ddb05ca19065e214c9244ee1977a21ac53e4ba` |
 | `logs/m7-sol-reentry-2026-02-23T12-44-04-512Z/summary.md` | 935 | 2026-02-23 12:44:04 | `26765ec7569147456d0e180def1ff0cecbbe0c5edb99974ab25def6fe81613fd` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/dataset-curated/closed-trade-features.ndjson` | 53594 | 2026-02-23 13:27:27 | `fbf0bac465dc75593d633d71a5ed5b187b05365f542d6e21a43474c9b2324cc5` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/dataset-curated/dataset-manifest.json` | 1066 | 2026-02-23 13:27:27 | `19c45fb7d02e784f6f5e714f961783bdfa7cfd9977e9b933d53111bdfa095ea7` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/moderate/gate-result.json` | 560 | 2026-02-23 13:27:27 | `4920c1c7a9459a680134b4305b5da62b59ed1964403f96c240d9e3b9a8f5ea63` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/moderate/summary.md` | 183 | 2026-02-23 13:27:27 | `565e2f2aa608ef1934cdeada6e35d035f945ab47c6b33e578047b88864bfb993` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/moderate/walk-forward-report.json` | 1514 | 2026-02-23 13:27:27 | `84f628b709e38cf4b5b429961ed58d13ac511eb0c69f4a493515ccedb2039dcf` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/reintroduce/gate-result.json` | 524 | 2026-02-23 13:27:27 | `474df8ae6bbbd8b5e631b28e02fc769afddea6f54345482596e53b4cc6a2e652` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/reintroduce/summary.md` | 165 | 2026-02-23 13:27:27 | `7592f208b54dce5f4c193b0f331dd0dd6d4ffb222ca48b9294a0a308c2eb6cad` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/reintroduce/walk-forward-report.json` | 1511 | 2026-02-23 13:27:27 | `433c355713c5a151840e12ab02ba66d883f2484c5c1253ac1c0f555421788aa6` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/retrain/approval-record.json` | 314 | 2026-02-23 13:27:27 | `4f0bade0ff8ec0b146aad44a21729728ada9fe3d511d9cb7854e05abfc49933b` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/retrain/metrics.json` | 305 | 2026-02-23 13:27:27 | `3a4ff099fe703dc9f521ff107c29a62ebf3c6d0d5381ea82c9a3caff242ce137` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/retrain/promotion-packet.json` | 698 | 2026-02-23 13:27:27 | `6bb15a75041a717c1c72c673c708d9515b1013374cee9d392409ecfac6f49465` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/retrain/training-run.json` | 1193 | 2026-02-23 13:27:27 | `264e35e0b833015f85e9bc44eb7a3b571081e7aba7e525c686d684d8d540420e` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/retrain/validation-report.json` | 780 | 2026-02-23 13:27:27 | `c4b948d3a5302c5e6ed725a272cd218383abb0406aca88c1bff784f5d990265f` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/strict/gate-result.json` | 560 | 2026-02-23 13:27:27 | `66bf80705c07f4ecb84efddbbebb2c05049d84f8e55045e82a63ced95985c608` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/strict/summary.md` | 176 | 2026-02-23 13:27:27 | `c8dbb31cc8aff82dae4dbe48b19d593ecf5e4b239ddd89659a0e1bb0830cd0fb` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/strict/walk-forward-report.json` | 1509 | 2026-02-23 13:27:27 | `7ba0e6a50d95866e4435094426a288ca2314d6e2a9341d63c6b8045702733d25` |
+| `logs/m7-sol-reentry-2026-02-23T13-27-27-293Z/summary.md` | 935 | 2026-02-23 13:27:27 | `28bb486c5ced47b9d270ae354645d52de3a697ffee7d6c6f58f4f133f4948ecb` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/dataset-curated/closed-trade-features.ndjson` | 53594 | 2026-02-23 13:56:08 | `84a84291997128445c2e150754dd5fd162bd4a667d5533e79e579f2f871c02a0` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/dataset-curated/dataset-manifest.json` | 1066 | 2026-02-23 13:56:08 | `5b69c8a3c12b7ae93ac7b3a946b7db8d0a1548966f08f7835af5c0844efe4f41` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/moderate/gate-result.json` | 560 | 2026-02-23 13:56:08 | `0cba1b48a29d035ba4974abff4b0dc78a8baf3a03b1bc036befc0a8248c8d0fb` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/moderate/summary.md` | 183 | 2026-02-23 13:56:08 | `565e2f2aa608ef1934cdeada6e35d035f945ab47c6b33e578047b88864bfb993` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/moderate/walk-forward-report.json` | 1514 | 2026-02-23 13:56:08 | `bc7d196c31b1c2cc42bd9b7a68f207c2f6b3cc05582f130895c535b3afcff53c` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/reintroduce/gate-result.json` | 524 | 2026-02-23 13:56:08 | `47588d5225f3f4fde10e0ab3430e3b03a84bc0edbd687a31b438ebd5e7e145dc` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/reintroduce/summary.md` | 165 | 2026-02-23 13:56:08 | `7592f208b54dce5f4c193b0f331dd0dd6d4ffb222ca48b9294a0a308c2eb6cad` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/reintroduce/walk-forward-report.json` | 1511 | 2026-02-23 13:56:08 | `dbff0ea8f08ab22706af7a69a3f8927e28ce13ba6e44e85ea5fc8d734b712eef` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/retrain/approval-record.json` | 314 | 2026-02-23 13:56:08 | `e6ccddd4df7ea10bc3bec896f4144b94e2071b1c1fad59ef4c8903d3a1823677` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/retrain/metrics.json` | 305 | 2026-02-23 13:56:08 | `3a4ff099fe703dc9f521ff107c29a62ebf3c6d0d5381ea82c9a3caff242ce137` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/retrain/promotion-packet.json` | 698 | 2026-02-23 13:56:08 | `c0d2d13d8516dd2af1810ee969a2f63b41c6e215258b9727155e546763b0ec95` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/retrain/training-run.json` | 1193 | 2026-02-23 13:56:08 | `7fe1b639a289345cf356e8f00143b2f083578642f0b4acd3d74d5c60d8a42b81` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/retrain/validation-report.json` | 780 | 2026-02-23 13:56:08 | `00b1baa6134a713c7f57e13258fa6ad93edfa7bfcd4f72ce936429d357ca1c68` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/strict/gate-result.json` | 560 | 2026-02-23 13:56:08 | `5312f2a91fd06839ac7afe3ca8e8189412a4ea549733a60452f1950077dcb5e1` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/strict/summary.md` | 176 | 2026-02-23 13:56:08 | `c8dbb31cc8aff82dae4dbe48b19d593ecf5e4b239ddd89659a0e1bb0830cd0fb` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/strict/walk-forward-report.json` | 1509 | 2026-02-23 13:56:08 | `adf6582f8c35ee1664074dd5079266283d04c4bd89cb3fc2b70defdeda56c4f6` |
+| `logs/m7-sol-reentry-2026-02-23T13-56-08-314Z/summary.md` | 935 | 2026-02-23 13:56:08 | `414648a682018a87609470d155fdde7b6d5b54d334c120bfaef27ff73e71f6c0` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/dataset-curated/closed-trade-features.ndjson` | 59490 | 2026-02-23 14:35:11 | `dc5eb9648a0b5f8b8316166e18fdec9b4107756799d99429c13b57ded02d0a83` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/dataset-curated/dataset-manifest.json` | 1066 | 2026-02-23 14:35:11 | `2fc4a33fdd3e14e1a4e74e55f3272242ca008c37860e92ee29e573c6410cd375` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/moderate/gate-result.json` | 560 | 2026-02-23 14:35:11 | `a0f9a0f92802de7b0abfeaa2d0ee40d69227273893c30f05d240bbfca56a928c` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/moderate/summary.md` | 183 | 2026-02-23 14:35:11 | `e6e6d043c8ed8d373b7cd6d260b628f67af43dae32156bd6223615d789394491` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/moderate/walk-forward-report.json` | 1769 | 2026-02-23 14:35:11 | `e526508e7ae5f1ff3fa8b38a1871c6de4ce759b5f50b0e20646cf187807300fd` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/reintroduce/gate-result.json` | 560 | 2026-02-23 14:35:11 | `27ba5f9e932bbb15dafd345dd86e7aebefd336dcc1d49a9af37db5b6201f6d0b` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/reintroduce/summary.md` | 187 | 2026-02-23 14:35:11 | `77472431b76d4f70d6a940d5e133fff6a9a5f62bf54b499acde3ab06ebb2030d` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/reintroduce/walk-forward-report.json` | 1767 | 2026-02-23 14:35:11 | `0b278d5c9e01d4b1910aa0497ec8a7d67a229cb911660b15edf05a957b8cf03a` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/retrain/approval-record.json` | 314 | 2026-02-23 14:35:11 | `3ca379fcff7dc75887516fb550f5a206c4acfde3bc3efb24fae77158b7863325` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/retrain/metrics.json` | 309 | 2026-02-23 14:35:11 | `a9c337abf47b2388fc729cb8d88d9b6e11cb33defaf7c2915deeb855ed642e91` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/retrain/promotion-packet.json` | 698 | 2026-02-23 14:35:11 | `c73c4830b6cc0bd84619ee5351eba2c1dd454f8c4cc9273e9489d433a281d7d0` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/retrain/training-run.json` | 1197 | 2026-02-23 14:35:11 | `1c09ba7800070ea6e59a5c01b19d3887cf820c0e3953e8946f2cde73ce3e6565` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/retrain/validation-report.json` | 780 | 2026-02-23 14:35:11 | `1ea62efd52720ce480890c9c6384ce0837affdbf68a228e421c45873bf957a92` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/strict/gate-result.json` | 560 | 2026-02-23 14:35:11 | `66bae83a8f3045b72b82cfb330c29e1edf8b9566cd9e1790fce7cd4798b92a50` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/strict/summary.md` | 176 | 2026-02-23 14:35:11 | `34d5454329d2a27dbf65466feb96e87af1f26b284e7387c2e3f96c20b3b6d068` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/strict/walk-forward-report.json` | 1764 | 2026-02-23 14:35:11 | `b634f0ad7b3b09a9f31004703096401f4710765c71385e3e4dedbedd3b311c8b` |
+| `logs/m7-sol-reentry-2026-02-23T14-35-11-370Z/summary.md` | 931 | 2026-02-23 14:35:11 | `0ecaf0ec9168ac651fb17bc032f7ccb174ae3eefd6b2cd24b45394b74c96dabd` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/dataset-curated/closed-trade-features.ndjson` | 53594 | 2026-02-23 18:40:08 | `b1035b5b8cc7e7009533b31d333f97339a0eb330d9fd8d36051d965d04862ec2` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/dataset-curated/dataset-manifest.json` | 1066 | 2026-02-23 18:40:08 | `5aa29629d389f5bb9794816715b91b5fd4a0aa2efa18f69db412931854c3bb5a` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/moderate/gate-result.json` | 560 | 2026-02-23 18:40:08 | `10ce38d75f41e348c974b7523695430c3f875ba19eb9322faccfbf6397a5f8ce` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/moderate/summary.md` | 183 | 2026-02-23 18:40:08 | `565e2f2aa608ef1934cdeada6e35d035f945ab47c6b33e578047b88864bfb993` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/moderate/walk-forward-report.json` | 1514 | 2026-02-23 18:40:08 | `8a11e26fc8e725ce52e61253e975c5207690e81779f7ea2c7e48c42e2bf138e5` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/reintroduce/gate-result.json` | 524 | 2026-02-23 18:40:08 | `7c035893b0598a1d6341066d92306c5214d51d5259aa00633939ddf02682d0b2` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/reintroduce/summary.md` | 165 | 2026-02-23 18:40:08 | `7592f208b54dce5f4c193b0f331dd0dd6d4ffb222ca48b9294a0a308c2eb6cad` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/reintroduce/walk-forward-report.json` | 1511 | 2026-02-23 18:40:08 | `32ff32204b6c24d08859fd6954f46125a19973459d6c0341942a594a849acc29` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/retrain/approval-record.json` | 314 | 2026-02-23 18:40:08 | `2fae5bd02ca7c6916b999cdd33b41ca5faa134a932c94e1f89eec5a4bcf52078` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/retrain/metrics.json` | 305 | 2026-02-23 18:40:08 | `3a4ff099fe703dc9f521ff107c29a62ebf3c6d0d5381ea82c9a3caff242ce137` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/retrain/promotion-packet.json` | 698 | 2026-02-23 18:40:08 | `19a2f31f58069a93691af82195a284ff66c389c6b9549eef6cf225af710b9489` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/retrain/training-run.json` | 1193 | 2026-02-23 18:40:08 | `97070cb8a129d94ceb7ddc9c2834e8a9633d956d92949815071474982415cc8b` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/retrain/validation-report.json` | 780 | 2026-02-23 18:40:08 | `dc80a3c918e38ad169cb669c7df31138af3005651971d02dc199fb1a81169145` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/strict/gate-result.json` | 560 | 2026-02-23 18:40:08 | `71bcc0a2b3611866755c9038ff6cd863927a9f92dc3e221fbde8b5609e5df711` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/strict/summary.md` | 176 | 2026-02-23 18:40:08 | `c8dbb31cc8aff82dae4dbe48b19d593ecf5e4b239ddd89659a0e1bb0830cd0fb` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/strict/walk-forward-report.json` | 1509 | 2026-02-23 18:40:08 | `a34e44db6ae33262dc0d7ea0732ff16248d61b504498a39b9df9890832b32955` |
+| `logs/m7-sol-reentry-2026-02-23T18-40-08-894Z/summary.md` | 951 | 2026-02-23 18:40:08 | `c2e28b49c75ef742ccf3ad6a10a0e56a6d8ed4a10cb66db368c024e7ba2fcb9c` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/dataset-curated/closed-trade-features.ndjson` | 71825 | 2026-02-23 18:45:39 | `04ffe89a581f1a4562bba090945ee56fe839e8cc37a3c94bee2baa77dd3e51a8` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/dataset-curated/dataset-manifest.json` | 1085 | 2026-02-23 18:45:39 | `4fa7948d0934b510716e58e85d2aa923dadbc5d6249af1c4f9e8913c70f8c3bf` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/moderate/gate-result.json` | 560 | 2026-02-23 18:45:39 | `a18dc7c046910c15ab47c12c7c0d26d86c6f5a36f9be02cb4c194ba05b71a917` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/moderate/summary.md` | 184 | 2026-02-23 18:45:39 | `74fcfc7c90c4b4e47e8d70d9a0b120167c248b072dfcd66a7a9207b9963a85ca` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/moderate/walk-forward-report.json` | 1768 | 2026-02-23 18:45:39 | `b750c3c34d300f9e20e4373c16cb622a21c6da4320084833363c2a3f2ef88c82` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/reintroduce/gate-result.json` | 560 | 2026-02-23 18:45:39 | `3f8da4ecdddd77e46db16f0456fa56e60238bee1dc800510e005701711d15500` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/reintroduce/summary.md` | 187 | 2026-02-23 18:45:39 | `77472431b76d4f70d6a940d5e133fff6a9a5f62bf54b499acde3ab06ebb2030d` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/reintroduce/walk-forward-report.json` | 1766 | 2026-02-23 18:45:39 | `5a44b4ade0190fce0b8c65d7e69b86377d4a5112e120a2034fe8978eaca63662` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/retrain/approval-record.json` | 314 | 2026-02-23 18:45:39 | `7d1d8c2062fdc2f0c4292f22af40800c96e12b5710db18cd4af167c20b15d370` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/retrain/metrics.json` | 309 | 2026-02-23 18:45:39 | `084d5ee4593dd2f1c9afe939461444672ecf6a4c4b17a5ec54ad73c872c614ee` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/retrain/promotion-packet.json` | 698 | 2026-02-23 18:45:39 | `4666975b0ed8519452aa2e07a3c5d02278830278c5b6ee6856076b44bed6206a` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/retrain/training-run.json` | 1197 | 2026-02-23 18:45:39 | `5403713088d5b11207500fa6a494e5711002522e4f16736484c03ce1cd18d270` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/retrain/validation-report.json` | 780 | 2026-02-23 18:45:39 | `87c9276b1aed67d3ca3c9113ece5648929fef7de4fc460e5847a4e337b18f4de` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/strict/gate-result.json` | 560 | 2026-02-23 18:45:39 | `37cf4c61b87d0b314cc96d6603686f06037816a167be99aa0705ee76ee0e55c0` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/strict/summary.md` | 176 | 2026-02-23 18:45:39 | `34d5454329d2a27dbf65466feb96e87af1f26b284e7387c2e3f96c20b3b6d068` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/strict/walk-forward-report.json` | 1763 | 2026-02-23 18:45:39 | `13fa853b916c6076ccb324b35a59fa1e6668f0a16e4a843dfca645b553eaf397` |
+| `logs/m7-sol-reentry-2026-02-23T18-45-39-667Z/summary.md` | 932 | 2026-02-23 18:45:39 | `fcfcbc10e40e3f7bc903523c81d3e165567218d65206ff95632560cc5d65f383` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/dataset-curated/closed-trade-features.ndjson` | 71825 | 2026-02-23 19:18:27 | `330286cbe86ea2ec6dedcf1775f88f8b4242ec6910e4781b92941e35dabc850b` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/dataset-curated/dataset-manifest.json` | 1085 | 2026-02-23 19:18:27 | `a9c03ef05babaa8d9fcdad04a2cc0ded6af7a01446d97c20329555b02ebcc32c` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/moderate/gate-result.json` | 560 | 2026-02-23 19:18:27 | `88c718356271acba8f94870c783da26d43048de382edcc78aa82f52c020205a3` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/moderate/summary.md` | 184 | 2026-02-23 19:18:27 | `74fcfc7c90c4b4e47e8d70d9a0b120167c248b072dfcd66a7a9207b9963a85ca` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/moderate/walk-forward-report.json` | 1768 | 2026-02-23 19:18:27 | `510784406811938a7c5d509ce08a8b932575fbcae3a7f9e314fe0757e1d37c6a` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/reintroduce/gate-result.json` | 560 | 2026-02-23 19:18:27 | `b26ffe2a07009ef2af8edf21d1dbc5b63aa9ea8611d9905c4ea5022be18630ab` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/reintroduce/summary.md` | 187 | 2026-02-23 19:18:27 | `77472431b76d4f70d6a940d5e133fff6a9a5f62bf54b499acde3ab06ebb2030d` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/reintroduce/walk-forward-report.json` | 1766 | 2026-02-23 19:18:27 | `a3bcae511db2eeef845f672a6bda7750414ae11a7bc206c02508b9dcc9aabe73` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/retrain/approval-record.json` | 314 | 2026-02-23 19:18:27 | `7f345c9d6f57e048b79af42d211e52fd811cd0c6e33f02aa9fbb2880b12b5758` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/retrain/metrics.json` | 309 | 2026-02-23 19:18:27 | `084d5ee4593dd2f1c9afe939461444672ecf6a4c4b17a5ec54ad73c872c614ee` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/retrain/promotion-packet.json` | 698 | 2026-02-23 19:18:27 | `9482378897f9fe91087fb5db491b78df77037075cf3ff0d5358da4788e2f7fb2` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/retrain/training-run.json` | 1197 | 2026-02-23 19:18:27 | `89d08d5150c288680b83dbe9155edb101e8f001c4317ea253e7a00edbacce14d` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/retrain/validation-report.json` | 780 | 2026-02-23 19:18:27 | `d794e9136b1e0c15a5f679e7bf0452189738fb671026630b2e231d13ce496721` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/strict/gate-result.json` | 560 | 2026-02-23 19:18:27 | `04beafe59a9845bba9ffde6e12313a577873c3a89fe4a2f3ff7efb1079da86be` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/strict/summary.md` | 176 | 2026-02-23 19:18:27 | `34d5454329d2a27dbf65466feb96e87af1f26b284e7387c2e3f96c20b3b6d068` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/strict/walk-forward-report.json` | 1763 | 2026-02-23 19:18:27 | `aec0b46de6032385652a433477731dced262aec0c450d138331082a614eec3bc` |
+| `logs/m7-sol-reentry-2026-02-23T19-18-27-545Z/summary.md` | 932 | 2026-02-23 19:18:27 | `c82a0c19e50ba5ebabc79d1ca78f25e522ddcc74f1e81f9ee7ddfdcf928470c0` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/dataset-curated/closed-trade-features.ndjson` | 78564 | 2026-02-23 19:32:21 | `abc4b2cd187a4a2a8fbb539cec7e3e5f53c4b9f7212457e6b873cade4a46336f` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/dataset-curated/dataset-manifest.json` | 1085 | 2026-02-23 19:32:21 | `a697e0a881eefcb20810c1742f1471a7d78faa754dfa507eb2586b04cf1576eb` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/moderate/gate-result.json` | 560 | 2026-02-23 19:32:21 | `2233f98ab0026ebf681ea9b13f8e8c56573735fca633e069ccc60811d1669e87` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/moderate/summary.md` | 184 | 2026-02-23 19:32:21 | `74fcfc7c90c4b4e47e8d70d9a0b120167c248b072dfcd66a7a9207b9963a85ca` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/moderate/walk-forward-report.json` | 1767 | 2026-02-23 19:32:21 | `05c07ca60a20dfeed3f7d591d07af786194f16a6da88492069702381a970b751` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/reintroduce/gate-result.json` | 524 | 2026-02-23 19:32:21 | `77ccebdd58e4cb56ec52c1016c1b4d49753a08821166b33f74bbc3c71db54f33` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/reintroduce/summary.md` | 165 | 2026-02-23 19:32:21 | `2da4b7c20113fadfdfaf5479ed964dc0c85c6d17e68d9c0f48a967989530911e` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/reintroduce/walk-forward-report.json` | 1763 | 2026-02-23 19:32:21 | `4774e462704e76d282cfb4ff68c087d10d4b1c0c45361d724614cd225318bfbd` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/retrain/approval-record.json` | 314 | 2026-02-23 19:32:21 | `e75ffe04918e6622e3653c47d2d82519cb5efb547a50419593cedacc7444be6a` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/retrain/metrics.json` | 309 | 2026-02-23 19:32:21 | `0473772bb14eaf3514f64893f50d24f8f0efaed8ec8c25982c4c92c019835f8f` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/retrain/promotion-packet.json` | 698 | 2026-02-23 19:32:21 | `9129e415e42835a47639c8787e0f75f9a4e4f77bdb246e40a69047eda4c5698c` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/retrain/training-run.json` | 1197 | 2026-02-23 19:32:21 | `37ff28608493f8d73230154f1560b1da6abbe970ed6ce57bd1f49ba8b8911117` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/retrain/validation-report.json` | 780 | 2026-02-23 19:32:21 | `9229a9ee761bafb8ca97fdbf972d603067e78b6553a7078e35240b93723fb96c` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/strict/gate-result.json` | 560 | 2026-02-23 19:32:21 | `b0a8e782d10c5b512ad466ec0563dce04f81610ca373b071545b37f7ee9d5af0` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/strict/summary.md` | 176 | 2026-02-23 19:32:21 | `34d5454329d2a27dbf65466feb96e87af1f26b284e7387c2e3f96c20b3b6d068` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/strict/walk-forward-report.json` | 1762 | 2026-02-23 19:32:21 | `30f0e95e6c1104003b47e218ca77bf34cc9ac2064d96c88111dfca0424be604b` |
+| `logs/m7-sol-reentry-2026-02-23T19-32-21-677Z/summary.md` | 936 | 2026-02-23 19:32:21 | `c4f418832878bb6017a1adda8cbbe0c6e3b6d5c9874432b48d276d227cd9a5b5` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/dataset-curated/closed-trade-features.ndjson` | 91834 | 2026-02-23 19:43:05 | `972e14c57538cb88274224bc3793b7ef1bf291e64cee8647c914c47b945e0fe9` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/dataset-curated/dataset-manifest.json` | 1085 | 2026-02-23 19:43:05 | `0cf94b48f79a4a42c1df67a9d0f5f1ba41a8e1db13ddc03d6f1127053ca5e86f` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/moderate/gate-result.json` | 560 | 2026-02-23 19:43:05 | `bfb491dcad5638d7e735a76a43e8da6f7e8220a9c953dc8473d072e8b4cde052` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/moderate/summary.md` | 184 | 2026-02-23 19:43:05 | `fc08210e5ca4dafa5beb425c2ecc691c629238564a9af0d08e940736845e1584` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/moderate/walk-forward-report.json` | 1513 | 2026-02-23 19:43:05 | `666a5a3689536eef1e0a21eb07b5dec3705de60a423d96c66b9f8a8b9d9bbc3b` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/reintroduce/gate-result.json` | 524 | 2026-02-23 19:43:05 | `4312430009b5eb4a52bc46f8012032fd89a1096517e42bcfd16db69be74e0ea4` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/reintroduce/summary.md` | 166 | 2026-02-23 19:43:05 | `ecf3d89f67f70d121f28588bb27e215d6332d12e48421f43dd0a584bdfeac52f` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/reintroduce/walk-forward-report.json` | 1511 | 2026-02-23 19:43:05 | `fd68c90c0d12614e422ee086fc1342680cd8c31734d0e62eceafa03bf6d7db71` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/retrain/approval-record.json` | 314 | 2026-02-23 19:43:05 | `bc51c3f68b8b09628133e55535df25562abd01dc88e5310e8bc3cefed1f99071` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/retrain/metrics.json` | 309 | 2026-02-23 19:43:05 | `ecb7859e859ca5b98b2e33b26c3a15bc70d4fa9c234cb8aaedadeca8587524e7` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/retrain/promotion-packet.json` | 698 | 2026-02-23 19:43:05 | `f4f856e7b8410da4c67353dcf5248a99bb73b63cfabb12f8275797fee7c50ab3` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/retrain/training-run.json` | 1197 | 2026-02-23 19:43:05 | `d639bd9d4fd4a2fc0743d3f1682b56dd6c869cd33db0680fb386dad9e8034680` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/retrain/validation-report.json` | 780 | 2026-02-23 19:43:05 | `6d8b25c1c28037f21f1dbdac15a241580f5f0fe26f8dbf220bf94095e479aebf` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/strict/gate-result.json` | 560 | 2026-02-23 19:43:05 | `69d9a13215461215df7ba124ca1d6240f6496783acf310164b77f729868793be` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/strict/summary.md` | 176 | 2026-02-23 19:43:05 | `c8dbb31cc8aff82dae4dbe48b19d593ecf5e4b239ddd89659a0e1bb0830cd0fb` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/strict/walk-forward-report.json` | 1509 | 2026-02-23 19:43:05 | `1efa45e3e6f9b2b42b718bfdeaefad684e8f6b252c60ffa2fccecc858d5b95db` |
+| `logs/m7-sol-reentry-2026-02-23T19-43-05-435Z/summary.md` | 937 | 2026-02-23 19:43:05 | `779c195c5d11afa13008c880f75aabc2967a80fce85aca7597696bf5896d61f4` |
 | `logs/m7-sol-reentry-summary-2026-02-23T11-54-23-106Z.md` | 564 | 2026-02-23 11:54:28 | `4ffe3acde6002b610e5498ff8ce7547805f5760ca632a609f5f7fb830ebdc220` |
+| `logs/m7-sol-soak-server.err.log` | 2642 | 2026-02-23 13:46:52 | `1537411193c5fa11eb3c315f337a310547a1568b07297338ff6aabcf79f807ab` |
+| `logs/m7-sol-soak-server.out.log` | 78 | 2026-02-23 13:46:50 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
 | `logs/m7-walk-forward-2026-02-23T09-55-24-508Z/summary.md` | 452 | 2026-02-23 09:55:24 | `f620dfe451220b0db86764e35c4e842de3a1985d0724d0458dc53eeb6f33348e` |
 | `logs/m7-walk-forward-2026-02-23T09-55-24-508Z/walk-forward-report.json` | 1762 | 2026-02-23 09:55:24 | `603bd40818257b3e78c47ed52b8ecf143cdf908ed90a6cbf6ff052123e16d6db` |
 | `logs/m7-walk-forward-curated-validation-2026-02-23T08-10-32-002-03-00/summary.md` | 477 | 2026-02-23 11:10:33 | `284468c903b766710b6ff650c72deb5bacab4553e568b36d35826d93bdf4d157` |
@@ -1521,16 +1984,16 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json` | 1537 | 2026-02-23 11:07:36 | `c2424b81fc51660e4b8c5427ed6f422db4235bf7893712823a959d5f37ae8494` |
 | `logs/mc-server.err.log` | 40 | 2026-02-20 12:10:45 | `21454502b8590e3481d031ac1176aa84bd425c84897855c33042a8c5d234b827` |
 | `logs/mc-server.out.log` | 0 | 2026-02-20 12:10:37 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
-| `logs/mission-alerts.jsonl` | 33472 | 2026-02-23 12:44:52 | `7ac338cd18cc9f554cada2a37f7a33a99d0ebe081b248f8de47d44bd0057141c` |
+| `logs/mission-alerts.jsonl` | 37503 | 2026-02-23 19:43:00 | `0efbf2718c084fec884b41eed46df7f5a4dfa48ed5c2aad9b36a2b6ee643d942` |
 | `logs/mission-control-server.err.log` | 1018 | 2026-02-18 16:48:58 | `d8612be586905cbd5e63c8d3fb277b383bb1d95ded1ab09b1d0bc81d1d41426f` |
 | `logs/mission-control-server.out.log` | 0 | 2026-02-18 16:48:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
 | `logs/mission-events.jsonl` | 208 | 2026-02-16 17:35:42 | `53aca00c56fcb146948c23e537e0c20c4c98ed17c5c575bdf37ce8ff226f081d` |
-| `logs/mission-events.sqlite` | 6004736 | 2026-02-23 11:38:33 | `495f5de2b173552bb0e6e2d14d68a222fd58a467d79ece828feb59f50c25ac94` |
-| `logs/mission-events.sqlite-shm` | 32768 | 2026-02-23 12:33:51 | `b0422d0dd58f84f04161292fb03e70c8e191110beb7af5fdd327278321395e17` |
-| `logs/mission-events.sqlite-wal` | 5619712 | 2026-02-23 12:44:52 | `ad27a3d8b14e506858797fc7396cb87ec2e9237472a05ad58f71982323fc6aa0` |
-| `logs/mission-ops.sqlite` | 495616 | 2026-02-23 12:44:37 | `4accd0d59b1628c41cebfdc5dd685a932eeebd2f0f23a1345591fd086cf3d0dd` |
-| `logs/mission-ops.sqlite-shm` | 32768 | 2026-02-23 12:33:51 | `d0803bba8d73949bcb7e76aeaadbd9510bd906ae962275fb5cf4d562d57d5769` |
-| `logs/mission-ops.sqlite-wal` | 4190072 | 2026-02-23 12:44:53 | `1d6ad43c60db811afa08bd28b87e9000cf7ee254a650eb71808fa9a0235b3050` |
+| `logs/mission-events.sqlite` | 6004736 | 2026-02-23 19:39:54 | `d52a42e463de4c8d4511dadbb44336bf6fb0ce4588f4db75203b95d4b68b2679` |
+| `logs/mission-events.sqlite-shm` | 32768 | 2026-02-23 19:32:59 | `ce53a15851d883cb32ba5034c2cdf41a33197d377540b01b84ed3e686bc65406` |
+| `logs/mission-events.sqlite-wal` | 5619712 | 2026-02-23 19:43:04 | `8194e7041df49d202914064f2189c57f64ca9c9641bafc80afb57861959a2cbf` |
+| `logs/mission-ops.sqlite` | 651264 | 2026-02-23 19:43:01 | `78645dcafe4568e2a5c760bb35cfb04cf908b1230312515fd075d16b8ab6199c` |
+| `logs/mission-ops.sqlite-shm` | 32768 | 2026-02-23 19:32:59 | `dc113ec27f5ccab71b994593035bd5271cbe498fbec8f3fb10880824de70bfe7` |
+| `logs/mission-ops.sqlite-wal` | 4190072 | 2026-02-23 19:43:04 | `c38abb54389ef2c837fb27c43c2d6c2036988f8d01840dbc604ce31ae8ac7f83` |
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 1054 | 2026-02-17 14:06:49 | `5affbbeccef6f6dbf1a30e205218d368085c5ec6a63f0d2874c7807add0f45ad` |
 | `logs/proposal.e2e.json` | 223 | 2026-02-17 13:49:59 | `0ac6472f8abac22d422519d12c7d2bc01d0929317571d5b99e02d7ec3f058241` |
@@ -1539,7 +2002,7 @@ Generated: 2026-02-23 12:45:04 UTC
 | `logs/session/mission-control-server.err.log` | 173 | 2026-02-22 12:50:05 | `a5139eb019dbef21adde1e569aa3c919bb1c0d5000af155b64295421c0338c2c` |
 | `logs/session/mission-control-server.out.log` | 131788 | 2026-02-22 09:51:00 | `fcbff757182fc9190fbf8edd10f27ec189b9995b2b58b237e9998d2dce611df0` |
 | `logs/tmp-test.js` | 22 | 2026-02-21 20:04:15 | `3e1c0b5275702e456d8206c48f042935af0962e9812061d756fb92ff9a35d1d7` |
-| `package.json` | 3178 | 2026-02-23 11:59:46 | `4ebc9b4d5d416c788b2cdb7a5e6d8c49aff6decfcf9a2acfde94c8302a476e1e` |
+| `package.json` | 3248 | 2026-02-23 18:32:32 | `1826a324e8c5ca9d29979acceff82758e9455c7c48bbb6b3e3019d08feb4cfa2` |
 | `package-lock.json` | 277570 | 2026-02-20 08:09:15 | `7db3b60a5eac8e05c32923b7661aee1644e77b7a40d94210599cf56c02215bd4` |
 | `packages/okx-demo-adapter/package.json` | 183 | 2026-02-16 08:25:46 | `e52f527393c9a8a8bfda9431c02394f745fc500f298979ee4b7e00f5564fd2df` |
 | `packages/okx-demo-adapter/src/index.ts` | 12346 | 2026-02-19 14:09:10 | `5a929ea129261fc85bf61d0351149712fe34d13130f7122060213cc0f679fc35` |
@@ -1560,6 +2023,7 @@ Generated: 2026-02-23 12:45:04 UTC
 | `scripts/m7-gate-promotion.ts` | 6594 | 2026-02-23 09:53:27 | `7d4eb7036551628438cbf6fde9ac6d230a72d52ced44deb94a29cfb2812cb4fd` |
 | `scripts/m7-retrain-offline.ts` | 4152 | 2026-02-20 09:21:19 | `77dc9d481b5a102d52f63dc95aaea8d9b5f5743e457b30badf3f5a0e7924a4e4` |
 | `scripts/m7-rollback-drill.ts` | 7991 | 2026-02-21 20:04:51 | `c59f0cce63d6cfc42963a3b7aa0a695387cd17d756d1ac488190fc95bea6e52d` |
+| `scripts/m7-sol-moderate-calibration.ts` | 10972 | 2026-02-23 19:32:49 | `eabf53e5e25cffcb1fd9faa8bcac3b5df7df0d78db526163d3369f637e332ed0` |
 | `scripts/m7-sol-reentry-stages.ts` | 11777 | 2026-02-23 12:02:08 | `5a32c728aa65a88683cfff2e082f3750d7510dba9239541955133e026a2636db` |
 | `scripts/m7-walk-forward.ts` | 4888 | 2026-02-23 09:53:12 | `a482b241afb7ec6e764776adf1fe83406ec70a8226323695516830408feec962` |
 | `scripts/update-project-index.ps1` | 4280 | 2026-02-16 07:43:03 | `cfad26a7179677daccc8e102a741b3baa933bc3031ff7b523d4598079552e7f7` |

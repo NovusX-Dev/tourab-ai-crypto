@@ -21,12 +21,14 @@ interface WorkerCallbacks {
 
 export interface WorkerSymbolOverride {
   enabled?: boolean;
-  side?: "buy" | "sell";
+  side?: WorkerSidePreference;
   maxNotionalUsd?: number;
   entryOffsetBps?: number;
   stopDistanceBps?: number;
   minBandDistanceBps?: number;
 }
+
+export type WorkerSidePreference = "buy" | "sell" | "auto";
 
 export interface WorkerPolicy {
   symbolUniverse: string[];
@@ -39,7 +41,7 @@ export interface WorkerPolicy {
   retryMaxAttempts: number;
   retryBudgetPerHour: number;
   executionMode: "proposal_only" | "demo_execution_enabled";
-  defaultSide?: "buy" | "sell";
+  defaultSide?: WorkerSidePreference;
   symbolOverrides?: Record<string, WorkerSymbolOverride>;
   blockedUtcHoursBySymbol?: Record<string, number[]>;
 }
@@ -139,6 +141,24 @@ function distanceToBandBps(market: SpotMarketInputs, side: "buy" | "sell"): numb
     return undefined;
   }
   return ((market.last - market.sellLmt!) / market.last) * 10_000;
+}
+
+function resolveEntrySide(market: SpotMarketInputs, preferred: WorkerSidePreference, fallback: "buy" | "sell"): "buy" | "sell" {
+  if (preferred === "buy" || preferred === "sell") {
+    return preferred;
+  }
+  const buyDistance = distanceToBandBps(market, "buy");
+  const sellDistance = distanceToBandBps(market, "sell");
+  if (typeof buyDistance === "number" && typeof sellDistance === "number") {
+    return buyDistance >= sellDistance ? "buy" : "sell";
+  }
+  if (typeof buyDistance === "number") {
+    return "buy";
+  }
+  if (typeof sellDistance === "number") {
+    return "sell";
+  }
+  return fallback;
 }
 
 export class RuntimeWorkerManager {
@@ -241,13 +261,14 @@ export class RuntimeWorkerManager {
         return;
       }
 
-      const side = symbolOverride?.side ?? this.policy.defaultSide ?? "buy";
+      const sidePreference = symbolOverride?.side ?? this.policy.defaultSide ?? "buy";
       const maxNotionalUsd = choosePositiveNumber(symbolOverride?.maxNotionalUsd, this.policy.maxNotionalUsd);
       const entryOffsetBps = choosePositiveNumber(symbolOverride?.entryOffsetBps, this.policy.entryOffsetBps);
       const stopDistanceBps = choosePositiveNumber(symbolOverride?.stopDistanceBps, this.policy.stopDistanceBps);
       const minBandDistanceBps = choosePositiveNumber(symbolOverride?.minBandDistanceBps, 0);
 
       const market = await this.fetchWithRetryBudget(symbol);
+      const side = resolveEntrySide(market, sidePreference, "buy");
       if (minBandDistanceBps > 0) {
         const bps = distanceToBandBps(market, side);
         if (typeof bps === "number" && bps < minBandDistanceBps) {

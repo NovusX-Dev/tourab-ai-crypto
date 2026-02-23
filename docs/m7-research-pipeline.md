@@ -10,6 +10,7 @@ Provide reproducible offline artifacts for governed learning without enabling di
 npm run snapshot:m7 -- --base-url http://localhost:7071 --lookback-days 90
 npm run retrain:m7 -- --dataset-dir logs/m7-dataset-<timestamp>
 npm run gate:m7 -- --retrain-dir logs/m7-retrain-<timestamp> --min-trades 30
+npm run sol-reentry:m7 -- --dataset-dir logs/m7-dataset-validation-<timestamp>
 ```
 
 ## Dataset Manifest Schema
@@ -65,3 +66,34 @@ npm run gate:m7 -- --retrain-dir logs/m7-retrain-<timestamp> --min-trades 30
     - `logs/m7-gate-<timestamp>/summary.md`
 
 Gate pass is required before any future model promotion flow is considered.
+
+## SOL Re-entry Stages (Codified)
+
+- Script: `scripts/m7-sol-reentry-stages.ts`
+- Command:
+
+```powershell
+npm run sol-reentry:m7 -- --dataset-dir logs/m7-dataset-validation-<timestamp>
+```
+
+- Default stage ladder:
+  - `strict:0`
+  - `moderate:-0.015`
+  - `reintroduce:-0.025`
+- Override stage ladder if needed:
+
+```powershell
+npm run sol-reentry:m7 -- --dataset-dir logs/m7-dataset-validation-<timestamp> --stages strict:0,moderate:-0.01,reintroduce:-0.02
+```
+
+- Enforce a required passing stage (non-zero exit if not passed):
+
+```powershell
+npm run sol-reentry:m7 -- --dataset-dir logs/m7-dataset-validation-<timestamp> --require-stage reintroduce
+```
+
+- Outputs (single directory):
+  - curated dataset artifacts
+  - retrain artifacts + generated validation/approval records
+  - per-stage walk-forward + gate outputs
+  - top-level `summary.md` with `recommendedStage`

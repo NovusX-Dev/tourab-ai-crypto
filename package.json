@@ -36,10 +36,12 @@
     "evidence:m5": "tsx scripts/m5-evidence-rollup.ts",
     "acceptance:m6": "tsx scripts/m6-acceptance-walkthrough.ts",
     "snapshot:m7": "tsx scripts/m7-dataset-snapshot.ts",
+    "curate:m7": "tsx scripts/m7-dataset-curate.ts",
     "retrain:m7": "tsx scripts/m7-retrain-offline.ts",
     "walkforward:m7": "tsx scripts/m7-walk-forward.ts",
     "gate:m7": "tsx scripts/m7-gate-promotion.ts",
-    "rollback:m7": "tsx scripts/m7-rollback-drill.ts"
+    "rollback:m7": "tsx scripts/m7-rollback-drill.ts",
+    "sol-reentry:m7": "tsx scripts/m7-sol-reentry-stages.ts"
   },
   "dependencies": {
     "zod": "^4.1.5"

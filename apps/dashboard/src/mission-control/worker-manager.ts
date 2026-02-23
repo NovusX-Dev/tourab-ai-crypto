@@ -7,12 +7,24 @@ interface WorkerCallbacks {
   onEvent: (event: BotEvent) => Promise<void>;
   onStateUpdate: (next: Partial<BotStateSnapshot>) => void;
   getState: () => BotStateSnapshot;
+  evaluateSymbolEligibility?: (
+    symbol: string,
+    nowIso: string
+  ) => Promise<{ eligible: boolean; reason?: string }>;
   queueDemoExecutionApproval: (input: {
     symbol: string;
     proposal: TradeProposal;
     context: RiskContext;
     intent: ExecutionIntent;
   }) => Promise<{ queued: boolean; approvalId?: string; reason?: string }>;
+}
+
+export interface WorkerSymbolOverride {
+  enabled?: boolean;
+  side?: "buy" | "sell";
+  maxNotionalUsd?: number;
+  entryOffsetBps?: number;
+  stopDistanceBps?: number;
 }
 
 export interface WorkerPolicy {
@@ -26,6 +38,8 @@ export interface WorkerPolicy {
   retryMaxAttempts: number;
   retryBudgetPerHour: number;
   executionMode: "proposal_only" | "demo_execution_enabled";
+  defaultSide?: "buy" | "sell";
+  symbolOverrides?: Record<string, WorkerSymbolOverride>;
 }
 
 function nextSymbol(universe: string[], cycle: number): string {
@@ -82,6 +96,13 @@ function gatekeeperReason(decision: ReturnType<typeof evaluateTradeProposal>): s
   return `Gatekeeper rejected worker proposal: ${violations.join(" | ")}`;
 }
 
+function choosePositiveNumber(candidate: number | undefined, fallback: number): number {
+  if (typeof candidate !== "number" || !Number.isFinite(candidate) || candidate <= 0) {
+    return fallback;
+  }
+  return candidate;
+}
+
 export class RuntimeWorkerManager {
   private intervalRef: ReturnType<typeof setInterval> | undefined;
   private cycle = 0;
@@ -120,23 +141,70 @@ export class RuntimeWorkerManager {
 
     try {
       const symbol = nextSymbol(this.policy.symbolUniverse, this.cycle);
-      this.callbacks.onStateUpdate({ cycleProgress: 10, activeSymbol: symbol, lastHeartbeatAt: new Date().toISOString() });
+      const nowIso = new Date().toISOString();
+      this.callbacks.onStateUpdate({ cycleProgress: 10, activeSymbol: symbol, lastHeartbeatAt: nowIso });
+
+      if (this.callbacks.evaluateSymbolEligibility) {
+        const eligibility = await this.callbacks.evaluateSymbolEligibility(symbol, nowIso);
+        if (!eligibility.eligible) {
+          await this.callbacks.onEvent(
+            createEvent(
+              "RiskLimitHit",
+              symbol,
+              `Worker symbol quality gate blocked ${symbol}: ${eligibility.reason ?? "blocked by policy"}`,
+              "warn",
+              ["worker_cycle", "symbol_quality_gate"]
+            )
+          );
+          this.cycle += 1;
+          this.callbacks.onStateUpdate({
+            cycleProgress: 0,
+            cycleCount: this.cycle,
+            activeSymbol: symbol,
+            lastHeartbeatAt: new Date().toISOString()
+          });
+          return;
+        }
+      }
+
+      const symbolOverride = this.policy.symbolOverrides?.[symbol];
+      if (symbolOverride?.enabled === false) {
+        await this.callbacks.onEvent(
+          createEvent("RiskLimitHit", symbol, `Worker symbol disabled by override policy: ${symbol}`, "warn", [
+            "worker_cycle",
+            "symbol_override"
+          ])
+        );
+        this.cycle += 1;
+        this.callbacks.onStateUpdate({
+          cycleProgress: 0,
+          cycleCount: this.cycle,
+          activeSymbol: symbol,
+          lastHeartbeatAt: new Date().toISOString()
+        });
+        return;
+      }
+
+      const side = symbolOverride?.side ?? this.policy.defaultSide ?? "buy";
+      const maxNotionalUsd = choosePositiveNumber(symbolOverride?.maxNotionalUsd, this.policy.maxNotionalUsd);
+      const entryOffsetBps = choosePositiveNumber(symbolOverride?.entryOffsetBps, this.policy.entryOffsetBps);
+      const stopDistanceBps = choosePositiveNumber(symbolOverride?.stopDistanceBps, this.policy.stopDistanceBps);
 
       const market = await this.fetchWithRetryBudget(symbol);
       const built = buildValidSpotProposal(market, {
         symbol,
-        side: "buy",
+        side,
         maxRiskUsd: this.policy.maxRiskUsd,
-        maxNotionalUsd: this.policy.maxNotionalUsd,
-        entryOffsetBps: this.policy.entryOffsetBps,
-        stopDistanceBps: this.policy.stopDistanceBps
+        maxNotionalUsd,
+        entryOffsetBps,
+        stopDistanceBps
       });
 
       await this.callbacks.onEvent(
         createEvent("ProposalCreated", symbol, `Worker proposal created ${built.proposal.proposalId}`, "info", ["worker_cycle"])
       );
 
-      const context = baseRiskContext(market, this.policy.maxNotionalUsd, this.policy.executionMode);
+      const context = baseRiskContext(market, maxNotionalUsd, this.policy.executionMode);
       const decision = evaluateTradeProposal(built.proposal as TradeProposal, context);
       await this.callbacks.onEvent(
         createEvent(

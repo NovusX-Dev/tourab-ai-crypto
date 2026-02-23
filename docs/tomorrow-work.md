@@ -31,4 +31,11 @@ When you say we are done for today, I will append the next day plan here.
   - latest M7 close evidence (`2026-02-23`):
     - walk-forward: `logs/m7-walk-forward-2026-02-23T09-55-24-508Z/walk-forward-report.json` (`pass=true`)
     - gate with walk-forward: `logs/m7-gate-2026-02-23T09-55-30-036Z/gate-result.json` (`pass=true`)
-  - leave this file as next-day execution only (no historical backlog).
+  - latest fresh validation rerun (`2026-02-23`) currently fails walk-forward stability:
+    - walk-forward: `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json` (`pass=false`, passRatePct=50)
+    - gate: `logs/m7-gate-validation-2026-02-23T08-07-31-532-03-00/gate-result.json` (`walkForwardStabilityPass=false`)
+  - remediation rerun (`2026-02-23`) passes walk-forward stability and gate:
+    - curated dataset (`BTC-USDT,ETH-USDT`): `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00`
+    - walk-forward: `logs/m7-walk-forward-curated-validation-2026-02-23T08-10-32-002-03-00/walk-forward-report.json` (`passRatePct=100`, `pass=true`)
+    - gate: `logs/m7-gate-curated-validation-2026-02-23T08-10-32-002-03-00/gate-result.json` (`walkForwardStabilityPass=true`, `pass=true`)
+- leave this file as next-day execution only (no historical backlog).

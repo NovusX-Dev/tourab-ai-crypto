@@ -46,7 +46,7 @@ import { controlRateLimiter } from "./mission-control/rate-limit.js";
 import { RuntimeLifecycleManager } from "./mission-control/runtime-lifecycle-manager.js";
 import { SqliteEventStore } from "./mission-control/sqlite-event-store.js";
 import { SqliteOpsStore, type ManagedTradeRecord } from "./mission-control/sqlite-ops-store.js";
-import { RuntimeWorkerManager } from "./mission-control/worker-manager.js";
+import { RuntimeWorkerManager, type WorkerSymbolOverride } from "./mission-control/worker-manager.js";
 import { createSignedAccessToken, verifySignedAccessToken } from "./mission-control/auth.js";
 import { loadEnvFromProjectRoot } from "./env-loader.js";
 import { fetchSpotMarketInputs } from "./proposal-helper.js";
@@ -86,6 +86,19 @@ const DEFAULT_LEARNING_ALERT_MAX_DRAWDOWN_PCT = 5;
 const DEFAULT_LEARNING_ALERT_MAX_SLIPPAGE_BPS = 15;
 const DEFAULT_LEARNING_ALERT_MAX_CONTROL_VIOLATION_RATE_PCT = 20;
 const DEFAULT_LEARNING_ALERT_CHECK_INTERVAL_MS = 60_000;
+const DEFAULT_WORKER_SYMBOL_QUALITY_LOOKBACK_TRADES = 120;
+const DEFAULT_WORKER_SYMBOL_QUALITY_MIN_TRADES = 20;
+const DEFAULT_WORKER_SYMBOL_MIN_EXPECTANCY_USD = -0.01;
+const DEFAULT_WORKER_SYMBOL_MAX_CONSECUTIVE_LOSSES = 12;
+const DEFAULT_WORKER_SYMBOL_COOLDOWN_MINUTES = 120;
+const DEFAULT_WORKER_SOL_MIN_EXPECTANCY_USD = -0.015;
+const DEFAULT_WORKER_SOL_MAX_CONSECUTIVE_LOSSES = 5;
+const DEFAULT_WORKER_SOL_COOLDOWN_MINUTES = 360;
+const DEFAULT_WORKER_SOL_MIN_TRADES = 20;
+const DEFAULT_WORKER_SOL_FAIL_CLOSED_ON_INSUFFICIENT_TRADES = true;
+const DEFAULT_WORKER_SOL_MAX_NOTIONAL_USD = 4;
+const DEFAULT_WORKER_SOL_ENTRY_OFFSET_BPS = 12;
+const DEFAULT_WORKER_SOL_STOP_DISTANCE_BPS = 90;
 const EXECUTION_EVENT_TYPES = new Set<BotEvent["type"]>([
   "ProposalCreated",
   "GatekeeperDecision",
@@ -155,6 +168,90 @@ function parseCsvEnv(raw: string | undefined, fallback: string[]): string[] {
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
   return items.length > 0 ? items : fallback;
+}
+
+function parseWorkerSymbolOverrides(raw: string | undefined): Record<string, WorkerSymbolOverride> {
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, WorkerSymbolOverride>;
+    const output: Record<string, WorkerSymbolOverride> = {};
+    for (const [symbol, value] of Object.entries(parsed ?? {})) {
+      const key = symbol.trim().toUpperCase();
+      if (key.length === 0 || typeof value !== "object" || !value) {
+        continue;
+      }
+      output[key] = value;
+    }
+    return output;
+  } catch {
+    return {};
+  }
+}
+
+export function evaluateWorkerSymbolQualityGate(input: {
+  symbol: string;
+  nowIso: string;
+  features: ClosedTradeFeatureRecord[];
+  config: WorkerSymbolQualityGateConfig;
+}): WorkerSymbolGateDecision {
+  if (!input.config.enabled) {
+    return { eligible: true };
+  }
+  const symbol = input.symbol.trim().toUpperCase();
+  const isSol = symbol === "SOL-USDT";
+  const rule = isSol ? input.config.solRule : input.config.defaultRule;
+  const requiredMinTrades =
+    typeof rule.minTrades === "number" && Number.isFinite(rule.minTrades) && rule.minTrades > 0
+      ? Math.floor(rule.minTrades)
+      : input.config.minTrades;
+  const scoped = input.features.filter((item) => item.symbol.toUpperCase() === symbol);
+  if (scoped.length < requiredMinTrades) {
+    if (isSol && rule.failClosedOnInsufficientTrades) {
+      return {
+        eligible: false,
+        reason: `insufficient SOL evidence ${scoped.length}/${requiredMinTrades} (fail-closed)`
+      };
+    }
+    return { eligible: true };
+  }
+  const expectancy = scoped.reduce((acc, item) => acc + item.realizedPnlUsd, 0) / scoped.length;
+  if (expectancy < rule.minExpectancyUsd) {
+    return {
+      eligible: false,
+      reason: `expectancy ${round6(expectancy)} < ${round6(rule.minExpectancyUsd)} (${scoped.length} trades)`
+    };
+  }
+  let consecutiveLosses = 0;
+  for (const row of scoped) {
+    if (row.realizedPnlUsd < 0) {
+      consecutiveLosses += 1;
+      continue;
+    }
+    break;
+  }
+  if (consecutiveLosses >= rule.maxConsecutiveLosses) {
+    const latestClosedEpoch = Date.parse(scoped[0]?.closedAt ?? "");
+    const nowEpoch = Date.parse(input.nowIso);
+    const cooldownMs = Math.max(0, rule.cooldownMinutes) * 60_000;
+    const cooldownActive =
+      Number.isFinite(latestClosedEpoch) &&
+      Number.isFinite(nowEpoch) &&
+      cooldownMs > 0 &&
+      nowEpoch - latestClosedEpoch < cooldownMs;
+    if (cooldownActive) {
+      return {
+        eligible: false,
+        reason: `cooldown active after ${consecutiveLosses} consecutive losses (threshold=${rule.maxConsecutiveLosses})`
+      };
+    }
+    return {
+      eligible: false,
+      reason: `consecutive losses ${consecutiveLosses} >= ${rule.maxConsecutiveLosses}`
+    };
+  }
+  return { eligible: true };
 }
 
 function parseFlattenTimeUtc(raw: string | undefined): string | undefined {
@@ -772,6 +869,27 @@ interface LearningRetentionStatus {
   lastPruneResult?: LearningRetentionPruneResult;
 }
 
+interface WorkerSymbolGateRule {
+  minExpectancyUsd: number;
+  maxConsecutiveLosses: number;
+  cooldownMinutes: number;
+  minTrades?: number;
+  failClosedOnInsufficientTrades?: boolean;
+}
+
+interface WorkerSymbolQualityGateConfig {
+  enabled: boolean;
+  lookbackTrades: number;
+  minTrades: number;
+  defaultRule: WorkerSymbolGateRule;
+  solRule: WorkerSymbolGateRule;
+}
+
+interface WorkerSymbolGateDecision {
+  eligible: boolean;
+  reason?: string;
+}
+
 function controlActionFromPath(path: string): ControlAction | undefined {
   if (path === "/start") return "start";
   if (path === "/pause") return "pause";
@@ -938,6 +1056,71 @@ export async function startMissionControlServer(
     (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ??
     (exchangeMode === "demo" ? "demo_execution_enabled" : "proposal_only");
   const pendingDemoApprovalLimit = parseBoundedInt(process.env.TOURAB_DEMO_PENDING_APPROVAL_LIMIT, 1, 1, 50);
+  const workerSymbolQualityGate: WorkerSymbolQualityGateConfig = {
+    enabled: parseBooleanEnv(process.env.TOURAB_WORKER_SYMBOL_QUALITY_GATE_ENABLED, true),
+    lookbackTrades: parseBoundedInt(
+      process.env.TOURAB_WORKER_SYMBOL_QUALITY_LOOKBACK_TRADES,
+      DEFAULT_WORKER_SYMBOL_QUALITY_LOOKBACK_TRADES,
+      10,
+      10_000
+    ),
+    minTrades: parseBoundedInt(
+      process.env.TOURAB_WORKER_SYMBOL_QUALITY_MIN_TRADES,
+      DEFAULT_WORKER_SYMBOL_QUALITY_MIN_TRADES,
+      1,
+      10_000
+    ),
+    defaultRule: {
+      minExpectancyUsd: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SYMBOL_MIN_EXPECTANCY_USD,
+        DEFAULT_WORKER_SYMBOL_MIN_EXPECTANCY_USD,
+        -1_000,
+        1_000
+      ),
+      maxConsecutiveLosses: parseBoundedInt(
+        process.env.TOURAB_WORKER_SYMBOL_MAX_CONSECUTIVE_LOSSES,
+        DEFAULT_WORKER_SYMBOL_MAX_CONSECUTIVE_LOSSES,
+        1,
+        100
+      ),
+      cooldownMinutes: parseBoundedInt(
+        process.env.TOURAB_WORKER_SYMBOL_COOLDOWN_MINUTES,
+        DEFAULT_WORKER_SYMBOL_COOLDOWN_MINUTES,
+        0,
+        14 * 24 * 60
+      )
+    },
+    solRule: {
+      minExpectancyUsd: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SOL_MIN_EXPECTANCY_USD,
+        DEFAULT_WORKER_SOL_MIN_EXPECTANCY_USD,
+        -1_000,
+        1_000
+      ),
+      maxConsecutiveLosses: parseBoundedInt(
+        process.env.TOURAB_WORKER_SOL_MAX_CONSECUTIVE_LOSSES,
+        DEFAULT_WORKER_SOL_MAX_CONSECUTIVE_LOSSES,
+        1,
+        100
+      ),
+      cooldownMinutes: parseBoundedInt(
+        process.env.TOURAB_WORKER_SOL_COOLDOWN_MINUTES,
+        DEFAULT_WORKER_SOL_COOLDOWN_MINUTES,
+        0,
+        14 * 24 * 60
+      ),
+      minTrades: parseBoundedInt(
+        process.env.TOURAB_WORKER_SOL_MIN_TRADES,
+        DEFAULT_WORKER_SOL_MIN_TRADES,
+        1,
+        10_000
+      ),
+      failClosedOnInsufficientTrades: parseBooleanEnv(
+        process.env.TOURAB_WORKER_SOL_FAIL_CLOSED_ON_INSUFFICIENT_TRADES,
+        DEFAULT_WORKER_SOL_FAIL_CLOSED_ON_INSUFFICIENT_TRADES
+      )
+    }
+  };
 
   const eventStore = await SqliteEventStore.open(eventStorePath);
   const alertStore = new JsonlAlertStore(alertStorePath);
@@ -1263,6 +1446,21 @@ export async function startMissionControlServer(
   };
   let driftConsecutive = 0;
   let driftFirstSeenAtEpoch: number | undefined;
+  const workerSymbolOverrides: Record<string, WorkerSymbolOverride> = {
+    "SOL-USDT": {
+      enabled: parseBooleanEnv(process.env.TOURAB_WORKER_SOL_ENABLED, true),
+      maxNotionalUsd: Math.max(0.000001, Number(process.env.TOURAB_WORKER_SOL_MAX_NOTIONAL_USD ?? DEFAULT_WORKER_SOL_MAX_NOTIONAL_USD)),
+      entryOffsetBps: Math.max(
+        0.0001,
+        Number(process.env.TOURAB_WORKER_SOL_ENTRY_OFFSET_BPS ?? DEFAULT_WORKER_SOL_ENTRY_OFFSET_BPS)
+      ),
+      stopDistanceBps: Math.max(
+        0.0001,
+        Number(process.env.TOURAB_WORKER_SOL_STOP_DISTANCE_BPS ?? DEFAULT_WORKER_SOL_STOP_DISTANCE_BPS)
+      )
+    },
+    ...parseWorkerSymbolOverrides(process.env.TOURAB_WORKER_SYMBOL_OVERRIDES_JSON)
+  };
   const worker = new RuntimeWorkerManager(
     {
       onEvent: async (event) => {
@@ -1273,6 +1471,15 @@ export async function startMissionControlServer(
         opsStore.saveBotState(updated);
       },
       getState: () => lifecycle.getSnapshotState(),
+      evaluateSymbolEligibility: async (symbol, nowIso) => {
+        const features = opsStore.listClosedTradeFeatures(workerSymbolQualityGate.lookbackTrades);
+        return evaluateWorkerSymbolQualityGate({
+          symbol,
+          nowIso,
+          features,
+          config: workerSymbolQualityGate
+        });
+      },
       queueDemoExecutionApproval: async ({ symbol, proposal, intent }) => {
         if (workerExecutionMode !== "demo_execution_enabled") {
           return { queued: false, reason: "Execution mode is proposal_only." };
@@ -1390,7 +1597,9 @@ export async function startMissionControlServer(
       stopDistanceBps: Number(process.env.TOURAB_WORKER_STOP_DISTANCE_BPS ?? "150"),
       retryMaxAttempts: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_MAX_ATTEMPTS, 3, 1, 10),
       retryBudgetPerHour: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_BUDGET_PER_HOUR, 30, 1, 1000),
-      executionMode: workerExecutionMode
+      executionMode: workerExecutionMode,
+      defaultSide: (process.env.TOURAB_WORKER_DEFAULT_SIDE as "buy" | "sell" | undefined) ?? "buy",
+      symbolOverrides: workerSymbolOverrides
     }
   );
 

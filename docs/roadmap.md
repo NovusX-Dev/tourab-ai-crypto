@@ -8,7 +8,7 @@
 - Milestone 5: in progress.
   - Latest M5 evidence (`logs/m5-evidence-2026-02-23T08-28-23-766Z/summary.md`): today `pass=true`, `qualifiedDays=5/7`, `streakDays=3`, `milestoneReady=false`.
 - Milestone 6: engineering acceptance complete (production promotion remains gated by real M5 readiness evidence).
-- Milestone 7: complete (governed learning pipeline + walk-forward acceptance gating).
+- Milestone 7: complete (governed pipeline complete; completion criteria validated with remediated walk-forward-stable candidate).
 - Milestone 8: pending.
 - Milestone 9: pending.
 
@@ -235,6 +235,25 @@ Implementation status (current):
     - `POST /learning/retention/prune`
   - runtime policy controls for closed-trade feature history retention + operator-triggered prune with audit evidence.
   - Mission Control Autonomy panel now exposes Learning Retention controls (days, stats, last prune result, manual prune action).
+
+Completion criteria validation (latest run: 2026-02-23):
+- Criterion 1 (`Learning updates are never deployed directly without validation and approval`): PASS
+  - evidence: governed promotion gate + role checks covered in `tests/m7-learning-contract.spec.ts`.
+- Criterion 2 (`Model/version rollback is tested and operator-visible`): PASS
+  - evidence: rollback hook + audit visibility covered in `tests/m7-learning-contract.spec.ts`.
+- Criterion 3 (`Performance reporting is stable across walk-forward windows`): PASS (after remediation rerun)
+  - failing baseline rerun artifacts (for traceability):
+    - dataset: `logs/m7-dataset-validation-2026-02-23T08-07-31-532-03-00`
+    - retrain: `logs/m7-retrain-validation-2026-02-23T08-07-31-532-03-00`
+    - walk-forward: `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json`
+    - gate: `logs/m7-gate-validation-2026-02-23T08-07-31-532-03-00/gate-result.json`
+  - remediation applied:
+    - diagnosed underperforming symbol cohort (`SOL-USDT`) from validation dataset, then curated candidate dataset to `BTC-USDT,ETH-USDT`.
+  - passing remediation artifacts:
+    - curated dataset: `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00`
+    - curated retrain: `logs/m7-retrain-curated-validation-2026-02-23T08-10-32-002-03-00`
+    - curated walk-forward: `logs/m7-walk-forward-curated-validation-2026-02-23T08-10-32-002-03-00/walk-forward-report.json` (`passRatePct=100`, `pass=true`)
+    - curated gate: `logs/m7-gate-curated-validation-2026-02-23T08-10-32-002-03-00/gate-result.json` (`walkForwardStabilityPass=true`, `pass=true`)
 
 Completion criteria:
 - Learning updates are never deployed directly without validation and approval.

@@ -28,7 +28,9 @@ export function PortfolioPanel({ portfolio }: PortfolioPanelProps) {
     const saved = window.localStorage.getItem("tourab_daily_basis");
     return saved === "exchange" ? "exchange" : "utc";
   });
+  const [showAllBalances, setShowAllBalances] = useState(false);
   const balances = [...portfolio.balances].sort((a, b) => toNum(b.eq) - toNum(a.eq));
+  const visibleBalances = showAllBalances ? balances : balances.slice(0, 8);
   const perf = portfolio.performance;
   const selectedDaily =
     perf.dailyByBasis?.[dayBasis] ??
@@ -136,8 +138,15 @@ export function PortfolioPanel({ portfolio }: PortfolioPanelProps) {
       </div>
 
       <div className="portfolio-list">
+        {balances.length > 8 ? (
+          <div className="panel-controls">
+            <button className="chip" onClick={() => setShowAllBalances((prev) => !prev)}>
+              {showAllBalances ? "Show Top 8" : `Show All (${balances.length})`}
+            </button>
+          </div>
+        ) : null}
         {balances.length === 0 ? <div className="hint">No balances available.</div> : null}
-        {balances.map((item) => (
+        {visibleBalances.map((item) => (
           <article key={item.ccy} className="portfolio-row">
             <div className="portfolio-ccy">{item.ccy}</div>
             <div className="portfolio-metric">{`Eq ${item.eq}`}</div>

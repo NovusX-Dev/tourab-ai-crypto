@@ -57,7 +57,8 @@ select {
   min-height: 100vh;
   height: 100vh;
   display: grid;
-  grid-template-columns: minmax(220px, 240px) minmax(0, 1fr) minmax(320px, 360px);
+  grid-template-columns: minmax(220px, 240px) minmax(0, 1fr) 10px minmax(320px, var(--right-panel-width, 480px));
+  grid-template-areas: "sidebar main splitter right";
   gap: 12px;
   padding: 12px;
   overflow: auto;
@@ -71,6 +72,7 @@ select {
 }
 
 .sidebar {
+  grid-area: sidebar;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -124,11 +126,52 @@ select optgroup {
 }
 
 .main-grid {
+  grid-area: main;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
   min-height: 0;
+}
+
+.right-panel-splitter {
+  grid-area: splitter;
+  width: 10px;
+  align-self: stretch;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent), transparent 82%),
+    rgba(255, 255, 255, 0.02)
+  );
+  cursor: col-resize;
+  outline: none;
+  position: relative;
+}
+
+.right-panel-splitter::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent);
+  opacity: 0.45;
+}
+
+.right-panel-splitter:hover,
+.right-panel-splitter:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent), transparent 65%);
+}
+
+.right-panel-splitter.disabled {
+  display: none;
+}
+
+body.resizing-right-panel {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .topbar {
@@ -513,12 +556,45 @@ select optgroup {
 }
 
 .right-panel {
+  grid-area: right;
   min-width: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   min-height: 0;
   max-width: 100%;
+}
+
+.right-panel-focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(4, 8, 14, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.right-panel-focus-card {
+  width: min(1100px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.right-panel-focus-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.right-panel-focus-content {
+  min-height: 0;
+  display: grid;
 }
 
 .toast-stack {
@@ -658,23 +734,66 @@ select optgroup {
   color: var(--success);
 }
 
-.tab-row {
+.right-panel-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   padding: 10px;
   border-bottom: 1px solid var(--border);
   min-width: 0;
 }
 
+.tab-strip {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--accent), black 50%) transparent;
+}
+
+.tab-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tab-strip::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--accent), black 50%);
+  border-radius: 999px;
+}
+
+.right-panel-actions {
+  display: inline-flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--border);
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.03);
   border-radius: 10px;
   padding: 7px 10px;
   cursor: pointer;
+}
+
+.tab-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
 }
 
 .tab-active {
@@ -688,8 +807,19 @@ select optgroup {
   color: var(--warning);
 }
 
-.sound-toggle {
-  margin-left: auto;
+.header-icon-btn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  padding: 7px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .panel-content {
@@ -870,6 +1000,29 @@ select optgroup {
   margin-top: 10px;
   display: grid;
   gap: 8px;
+}
+
+.risk-section {
+  margin-top: 10px;
+}
+
+.risk-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.risk-summary::-webkit-details-marker {
+  display: none;
+}
+
+.risk-summary::before {
+  content: "▾";
+  margin-right: 6px;
+  color: var(--text-secondary);
+}
+
+.risk-section:not([open]) .risk-summary::before {
+  content: "▸";
 }
 
 .risk-card,
@@ -1083,28 +1236,23 @@ select optgroup {
 
 @media (max-width: 1540px) {
   .app-shell {
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 220px 1fr 10px minmax(320px, min(46vw, var(--right-panel-width, 480px)));
     grid-template-areas:
-      "sidebar main"
-      "right main";
-  }
-
-  .sidebar {
-    grid-area: sidebar;
-  }
-
-  .main-grid {
-    grid-area: main;
-  }
-
-  .right-panel {
-    grid-area: right;
+      "sidebar main splitter right";
   }
 }
 
 @media (max-width: 1080px) {
   .app-shell {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "sidebar"
+      "main"
+      "right";
+  }
+
+  .right-panel-splitter {
+    display: none;
   }
 
   .status-row {
@@ -1134,6 +1282,15 @@ select optgroup {
 
   .ops-grid {
     grid-template-columns: 1fr;
+  }
+
+  .right-panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .right-panel-actions {
+    justify-content: flex-end;
   }
 }
 

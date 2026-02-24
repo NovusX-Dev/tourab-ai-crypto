@@ -1,16 +1,17 @@
 # Roadmap
 
-## Status Snapshot (as of 2026-02-23)
+## Status Snapshot (as of 2026-02-24)
 - Milestone 1: substantially delivered.
 - Milestone 2: delivered.
 - Milestone 3: production-grade complete.
 - Milestone 4: production-grade complete.
 - Milestone 5: in progress.
-  - Latest M5 evidence (`logs/m5-evidence-2026-02-23T08-28-23-766Z/summary.md`): today `pass=true`, `qualifiedDays=5/7`, `streakDays=3`, `milestoneReady=false`.
+  - Latest M5 evidence (`logs/m5-evidence-2026-02-24T08-43-18-170Z/summary.md`): today `pass=true`, `qualifiedDays=6/7`, `streakDays=4`, `milestoneReady=false`.
 - Milestone 6: engineering acceptance complete (production promotion remains gated by real M5 readiness evidence).
-- Milestone 7: complete (governed pipeline complete; completion criteria validated with remediated walk-forward-stable candidate).
+- Milestone 7: complete (governed pipeline complete; completion criteria validated with remediated walk-forward-stable candidate); SOL `moderate` re-entry remains under ongoing tuning/monitoring on fresh cycles.
 - Milestone 8: pending.
 - Milestone 9: pending.
+- Milestone 10 (optional): pending.
 
 ## Milestone 1: Read-Only OKX Connectivity + Operator Visibility
 - Build signed private-read client and public market-read client.
@@ -228,6 +229,20 @@ Implementation status (current):
   - gate artifact (with walk-forward required):
     - `logs/m7-gate-2026-02-23T09-55-30-036Z/gate-result.json`
     - result: `pass=true` with `walkForwardStabilityPass=true`.
+- SOL moderate follow-up calibration cycles (2026-02-24):
+  - baseline fresh cycle:
+    - calibration: `logs/m7-sol-calibration-2026-02-24T08-45-10-516Z/summary.md`
+    - m5 soak: `logs/m5-soak-2026-02-24T08-45-14-303Z/report.json`
+    - dataset: `logs/m7-dataset-2026-02-24T08-53-29-852Z/dataset-manifest.json`
+    - reentry: `logs/m7-sol-reentry-2026-02-24T08-53-30-755Z/summary.md`
+    - outcome: `moderate` failed (`windowsPassed=2/5`, `passRatePct=40`); `reintroduce` passed (`4/5`, `80%`).
+  - targeted expectancy iteration cycle:
+    - calibration: `logs/m7-sol-calibration-2026-02-24T09-49-57-318Z/summary.md`
+    - m5 soak: `logs/m5-soak-2026-02-24T09-50-02-987Z/report.json`
+    - dataset: `logs/m7-dataset-2026-02-24T09-57-37-486Z/dataset-manifest.json`
+    - reentry: `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/summary.md`
+    - outcome: `moderate` still failed but improved (`windowsPassed=2/4`, `passRatePct=50`); `reintroduce` passed (`4/4`, `100%`).
+  - current state: keep M7 as ongoing monitoring + targeted SOL expectancy tuning until fresh `moderate` pass evidence is produced.
 - Implemented (Track 2 step 7: historical retention UX improvements):
   - backend learning retention API:
     - `GET /learning/retention-config`
@@ -279,6 +294,68 @@ Completion criteria:
 - Every promoted strategy has reproducible research artifacts and experiment lineage.
 - Backtest/walk-forward reports are attached to each promotion decision.
 - Human approval remains enforced for execution actions unless explicitly superseded by a future approved policy.
+
+## Milestone 10 (Optional): LLM Advisory Layer + MCP Tooling Fabric
+- Introduce an LLM-powered operator/advisory layer for analysis, explanation, and workflow acceleration.
+- Introduce MCP-based tool contracts so the LLM can access approved project capabilities through strict, typed interfaces.
+- Keep execution authority deterministic:
+  - LLM outputs are advisory by default.
+  - risk-gatekeeper and approval-mode policies remain authoritative for any executable action.
+
+Why this milestone exists (benefits):
+- Faster operator decisions:
+  - natural-language summaries for market state, incidents, drift, and strategy behavior.
+- Better explainability:
+  - operator-visible rationale tied to structured evidence (signals, risk checks, governance state).
+- Safer extensibility:
+  - new capabilities are added as MCP tools with explicit schemas, not prompt-only logic.
+- Stronger traceability:
+  - prompt context, tool invocations, outputs, and final decisions can be logged for audit/replay.
+- Lower integration churn:
+  - model/provider changes can be isolated from backend service contracts.
+
+How it enhances Tourab Crypto AI:
+- Mission Control augmentation:
+  - conversational assistant for "why blocked", "what changed", "show risk budget usage", "summarize open incidents".
+- Strategy/governance support:
+  - assisted preparation of promotion packets and incident post-mortems using governed data.
+- Research productivity:
+  - fast synthesis of backtest/walk-forward outputs and anomaly triage suggestions.
+- Operations resilience:
+  - guided runbook navigation using live incident taxonomy and alert context.
+
+How it should be used (operating model):
+- LLM role:
+  - interpretation, summarization, anomaly triage suggestions, operator Q&A.
+- MCP role:
+  - controlled access to data/actions via explicit tools (market/account reads, readiness checks, governance views, export/report endpoints).
+- Safety boundary:
+  - no direct autonomous live-order authority granted by LLM text.
+  - all executable intents still pass existing policy/risk/approval controls.
+- Environment boundary:
+  - strict demo vs live tool separation and explicit environment tagging in every decision path.
+- Audit boundary:
+  - persist correlation IDs across prompt -> tool call -> decision -> action for replayability.
+
+Suggested implementation slices:
+- Slice A: Advisory read-only MVP
+  - add MCP read-only tools for:
+    - readiness/evidence,
+    - incidents/alerts,
+    - managed trades and learning evaluation summaries.
+  - add Mission Control assistant panel with constrained prompts and source attribution.
+- Slice B: Governed workflow assistant
+  - add proposal/approval drafting helpers that produce structured artifacts for human review.
+  - require explicit operator confirmation before any state-changing backend request.
+- Slice C: Hardening and observability
+  - add policy tests for tool allowlists, role gating, and environment separation.
+  - add end-to-end audit/replay validation for assistant-assisted workflows.
+
+Completion criteria:
+- LLM interactions are advisory-only unless explicitly routed through existing approved execution pathways.
+- MCP tool contracts are schema-validated, role-gated, and environment-scoped (`demo`/`live`).
+- Assistant sessions are fully auditable with correlation IDs and reproducible evidence references.
+- Operator workflows show measurable efficiency gains (e.g., reduced triage/prep time) without increasing control violations.
 
 ## Cross-Cutting Delivery Tracks
 - Mission Control UI/Backend phases (Phase 1/2/3) are implementation tracks that support Milestone 4+ hardening.

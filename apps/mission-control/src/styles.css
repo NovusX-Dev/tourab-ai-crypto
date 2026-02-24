@@ -57,11 +57,11 @@ select {
   min-height: 100vh;
   height: 100vh;
   display: grid;
-  grid-template-columns: minmax(220px, 240px) minmax(0, 1fr) 10px minmax(320px, var(--right-panel-width, 480px));
-  grid-template-areas: "sidebar main splitter right";
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(240px, 280px);
+  grid-template-areas: "nav main info";
   gap: 12px;
   padding: 12px;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .card {
@@ -71,13 +71,18 @@ select {
   box-shadow: var(--shadow);
 }
 
-.sidebar {
-  grid-area: sidebar;
+.nav-panel {
+  grid-area: nav;
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-height: 0;
+  overflow: auto;
+}
+
+.nav-sound-toggle {
+  margin-top: auto;
 }
 
 .brand {
@@ -132,6 +137,16 @@ select optgroup {
   gap: 12px;
   min-width: 0;
   min-height: 0;
+}
+
+.info-panel {
+  grid-area: info;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .right-panel-splitter {
@@ -192,6 +207,11 @@ body.resizing-right-panel {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.scope-switch {
+  display: inline-flex;
+  gap: 6px;
 }
 
 .env-badge,
@@ -462,6 +482,17 @@ body.resizing-right-panel {
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
+}
+
+.dynamic-content {
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  overflow: hidden;
+}
+
+.dynamic-content.stream-mode {
+  overflow: hidden;
 }
 
 .panel-head {
@@ -794,6 +825,13 @@ body.resizing-right-panel {
   justify-content: center;
   font-size: 0.72rem;
   color: var(--text-secondary);
+}
+
+.nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgba(4, 8, 14, 0.55);
 }
 
 .tab-active {
@@ -1236,9 +1274,9 @@ body.resizing-right-panel {
 
 @media (max-width: 1540px) {
   .app-shell {
-    grid-template-columns: 220px 1fr 10px minmax(320px, min(46vw, var(--right-panel-width, 480px)));
+    grid-template-columns: minmax(180px, 210px) minmax(0, 1fr) minmax(240px, 260px);
     grid-template-areas:
-      "sidebar main splitter right";
+      "nav main info";
   }
 }
 
@@ -1246,9 +1284,53 @@ body.resizing-right-panel {
   .app-shell {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "sidebar"
       "main"
-      "right";
+      "info";
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .nav-panel {
+    position: fixed;
+    left: 12px;
+    top: 12px;
+    bottom: 12px;
+    width: min(80vw, 260px);
+    z-index: 30;
+    transform: translateX(calc(-100% - 24px));
+    transition: transform 160ms ease;
+    box-shadow: var(--shadow);
+  }
+
+  .nav-panel.open {
+    transform: translateX(0);
+  }
+
+  .nav-panel.compact {
+    grid-area: unset;
+  }
+
+  .main-grid {
+    grid-template-rows: auto auto minmax(540px, 1fr);
+  }
+
+  .info-panel {
+    grid-area: info;
+  }
+
+  .right-panel {
+    grid-area: unset;
+  }
+
+  .sidebar {
+    grid-area: unset;
+  }
+
+  .app-shell {
+    grid-template-areas:
+      "main"
+      "info";
   }
 
   .right-panel-splitter {
@@ -1291,6 +1373,12 @@ body.resizing-right-panel {
 
   .right-panel-actions {
     justify-content: flex-end;
+  }
+
+  .scope-switch {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 

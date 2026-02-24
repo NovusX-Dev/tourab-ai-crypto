@@ -1,4 +1,4 @@
-import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createDefaultBotApiClient } from "./api/LiveBotApiClient";
 import { ApprovalsPanel } from "./components/ApprovalsPanel";
 import { AlertsPanel } from "./components/AlertsPanel";
@@ -24,7 +24,7 @@ import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, I
 
 const client = createDefaultBotApiClient();
 
-type RightTab = "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops" | "autonomy";
+type PanelName = "stream" | "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops" | "autonomy";
 type ToastTone = "success" | "error" | "warning";
 type OperatorScope = "primary" | "btc" | "eth";
 type LearningTrendFocus = "expectancy" | "drawdown" | "slippage" | "controlViolationRate";
@@ -45,22 +45,13 @@ const EMPTY_LEARNING_RETENTION: LearningRetentionStatus = {
   }
 };
 
-const RIGHT_PANEL_WIDTH_KEY = "tourab_right_panel_width";
-const RIGHT_PANEL_MIN_WIDTH = 320;
-const RIGHT_PANEL_MAX_WIDTH = 720;
-const RIGHT_PANEL_DEFAULT_WIDTH = 480;
-
-function clampRightPanelWidth(value: number): number {
-  return Math.min(RIGHT_PANEL_MAX_WIDTH, Math.max(RIGHT_PANEL_MIN_WIDTH, Math.round(value)));
-}
-
 export default function App() {
   const [theme, setTheme] = useState<ThemeName>(() => {
     const initial = getInitialTheme();
     applyTheme(initial);
     return initial;
   });
-  const [tab, setTab] = useState<RightTab>("risk");
+  const [selectedPanel, setSelectedPanel] = useState<PanelName>("stream");
   const [learningTrendFocus, setLearningTrendFocus] = useState<LearningTrendFocus | undefined>(undefined);
   const [operatorScope, setOperatorScope] = useState<OperatorScope>("primary");
   const [autoScroll, setAutoScroll] = useState(true);
@@ -72,21 +63,13 @@ export default function App() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
   const [learningRetention, setLearningRetention] = useState<LearningRetentionStatus>(EMPTY_LEARNING_RETENTION);
-  const [rightPanelWidth, setRightPanelWidth] = useState<number>(() => {
+  const [isCompactLayout, setIsCompactLayout] = useState<boolean>(() => {
     if (typeof window === "undefined") {
-      return RIGHT_PANEL_DEFAULT_WIDTH;
+      return false;
     }
-    const raw = window.localStorage.getItem(RIGHT_PANEL_WIDTH_KEY);
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? clampRightPanelWidth(parsed) : RIGHT_PANEL_DEFAULT_WIDTH;
+    return window.innerWidth <= 1080;
   });
-  const [isDesktopLayout, setIsDesktopLayout] = useState<boolean>(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-    return window.innerWidth > 1080;
-  });
-  const [isRightPanelFocusOpen, setRightPanelFocusOpen] = useState(false);
+  const [isNavDrawerOpen, setNavDrawerOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("operator-1");
   const [authToken, setAuthToken] = useState<string>(() => {
     if (typeof window === "undefined") {
@@ -104,7 +87,6 @@ export default function App() {
   });
   const previousPendingApprovalIdsRef = useRef<string[]>([]);
   const previousOpenAlertIdsRef = useRef<string[]>([]);
-  const rightPanelDragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   const dashboard = useDashboardData(client);
   const { setSymbolFilter, setPinnedSymbol, setManagedTrades, setEntryAutonomy, setStrategyPromotion, setStrategyDegradation } =
@@ -132,15 +114,12 @@ export default function App() {
     if (typeof window === "undefined") {
       return;
     }
-    window.localStorage.setItem(RIGHT_PANEL_WIDTH_KEY, String(clampRightPanelWidth(rightPanelWidth)));
-  }, [rightPanelWidth]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
     const onResize = () => {
-      setIsDesktopLayout(window.innerWidth > 1080);
+      const compact = window.innerWidth <= 1080;
+      setIsCompactLayout(compact);
+      if (!compact) {
+        setNavDrawerOpen(false);
+      }
     };
     onResize();
     window.addEventListener("resize", onResize);
@@ -148,21 +127,6 @@ export default function App() {
       window.removeEventListener("resize", onResize);
     };
   }, []);
-
-  useEffect(() => {
-    if (!isRightPanelFocusOpen) {
-      return;
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setRightPanelFocusOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [isRightPanelFocusOpen]);
 
   const connectionLabel = dashboard.streamPaused
     ? "Paused"
@@ -182,58 +146,6 @@ export default function App() {
   const openOrdersLabel = `OPEN ORDERS ${dashboard.openOrders.orders.length}`;
 
   const scopedSymbol = operatorScope === "btc" ? "BTC-USDT" : operatorScope === "eth" ? "ETH-USDT" : "";
-  const setClampedRightPanelWidth = useCallback((nextWidth: number) => {
-    setRightPanelWidth(clampRightPanelWidth(nextWidth));
-  }, []);
-
-  const startRightPanelResize = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (!isDesktopLayout) {
-        return;
-      }
-      event.preventDefault();
-      rightPanelDragStateRef.current = {
-        startX: event.clientX,
-        startWidth: rightPanelWidth
-      };
-      document.body.classList.add("resizing-right-panel");
-      const onMove = (moveEvent: MouseEvent) => {
-        const dragState = rightPanelDragStateRef.current;
-        if (!dragState) {
-          return;
-        }
-        const delta = dragState.startX - moveEvent.clientX;
-        setClampedRightPanelWidth(dragState.startWidth + delta);
-      };
-      const stop = () => {
-        rightPanelDragStateRef.current = null;
-        document.body.classList.remove("resizing-right-panel");
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", stop);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", stop);
-    },
-    [isDesktopLayout, rightPanelWidth, setClampedRightPanelWidth]
-  );
-
-  const onRightPanelSplitterKeyDown = useCallback(
-    (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (!isDesktopLayout) {
-        return;
-      }
-      const step = event.shiftKey ? 48 : 16;
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        setClampedRightPanelWidth(rightPanelWidth - step);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        setClampedRightPanelWidth(rightPanelWidth + step);
-      }
-    },
-    [isDesktopLayout, rightPanelWidth, setClampedRightPanelWidth]
-  );
-
   const playApprovalChime = useCallback(() => {
     if (approvalSoundMuted || typeof window === "undefined") {
       return;
@@ -332,36 +244,36 @@ export default function App() {
     const nextPendingIds = pending.map((item) => item.id).sort();
     const previousPendingIds = previousPendingApprovalIdsRef.current;
     const newPendingExists = nextPendingIds.some((id) => !previousPendingIds.includes(id));
-    if (newPendingExists && tab !== "approvals") {
+    if (newPendingExists && selectedPanel !== "approvals") {
       setApprovalsAttention(true);
       playApprovalChime();
     }
     previousPendingApprovalIdsRef.current = nextPendingIds;
-  }, [pendingApprovals, playApprovalChime, tab]);
+  }, [pendingApprovals, playApprovalChime, selectedPanel]);
 
   useEffect(() => {
-    if (tab === "approvals") {
+    if (selectedPanel === "approvals") {
       setApprovalsAttention(false);
     }
-  }, [tab]);
+  }, [selectedPanel]);
 
   useEffect(() => {
     const openAlerts = alerts.filter((item) => item.status === "open");
     const nextOpenIds = openAlerts.map((item) => item.id).sort();
     const previousOpenIds = previousOpenAlertIdsRef.current;
     const newOpenAlertExists = nextOpenIds.some((id) => !previousOpenIds.includes(id));
-    if (newOpenAlertExists && tab !== "alerts") {
+    if (newOpenAlertExists && selectedPanel !== "alerts") {
       setAlertsAttention(true);
       playAlertChime();
     }
     previousOpenAlertIdsRef.current = nextOpenIds;
-  }, [alerts, playAlertChime, tab]);
+  }, [alerts, playAlertChime, selectedPanel]);
 
   useEffect(() => {
-    if (tab === "alerts") {
+    if (selectedPanel === "alerts") {
       setAlertsAttention(false);
     }
-  }, [tab]);
+  }, [selectedPanel]);
 
   const refreshApprovals = useCallback(async () => {
     const items = await client.listApprovals();
@@ -380,7 +292,7 @@ export default function App() {
     }
     if (latest.tags?.includes("circuit_breaker")) {
       lastCircuitEventRef.current = latest.id;
-      setTab("alerts");
+      setSelectedPanel("alerts");
       pushToast("error", "CIRCUIT_BREAKER", latest.message);
       void refreshAlerts();
     }
@@ -656,7 +568,7 @@ export default function App() {
               ? "controlViolationRate"
               : undefined;
     setLearningTrendFocus(focus);
-    setTab("autonomy");
+    setSelectedPanel("autonomy");
   }
 
   async function handleAction(action: ControlAction, approvalId?: string) {
@@ -670,14 +582,14 @@ export default function App() {
     const result = await client.performAction(action, dashboard.role, currentUserId, approvalId);
     if (!result.ok) {
       if (result.code === "APPROVAL_REQUIRED") {
-        setTab("approvals");
+        setSelectedPanel("approvals");
         setApprovalsAttention(true);
         await refreshApprovals();
         pushToast("warning", "APPROVAL_REQUIRED", result.message);
         return;
       }
       if (result.code === "APPROVAL_EXPIRED" || result.code === "APPROVAL_REJECTED") {
-        setTab("approvals");
+        setSelectedPanel("approvals");
         await refreshApprovals();
         pushToast("warning", result.code, result.message);
         return;
@@ -749,16 +661,17 @@ export default function App() {
   );
 
   const rightPanelTabs: Array<{
-    id: RightTab;
+    id: PanelName;
     label: string;
     count?: number;
     attention?: boolean;
   }> = [
+    { id: "stream", label: "Event Stream" },
     { id: "risk", label: "Risk" },
     { id: "audit", label: "Audit" },
     { id: "logs", label: "Logs" },
-    { id: "approvals", label: "Approvals", count: pendingApprovalCount, attention: approvalsAttention && tab !== "approvals" },
-    { id: "alerts", label: "Alerts", count: openAlertCount, attention: alertsAttention && tab !== "alerts" },
+    { id: "approvals", label: "Approvals", count: pendingApprovalCount, attention: approvalsAttention && selectedPanel !== "approvals" },
+    { id: "alerts", label: "Alerts", count: openAlertCount, attention: alertsAttention && selectedPanel !== "alerts" },
     { id: "incidents", label: "Incidents", count: unresolvedIncidentCount },
     { id: "portfolio", label: "Portfolio" },
     { id: "orders", label: "Orders" },
@@ -767,10 +680,34 @@ export default function App() {
   ];
 
   const renderRightPanelContent = () => {
-    if (tab === "risk") {
+    if (selectedPanel === "stream") {
+      return (
+        <EventStream
+          events={dashboard.filteredEvents}
+          quickFilter={dashboard.quickFilter}
+          onQuickFilterChange={dashboard.setQuickFilter}
+          symbolFilter={dashboard.symbolFilter}
+          onSymbolFilterChange={dashboard.setSymbolFilter}
+          symbolFilterLocked={operatorScope !== "primary"}
+          severityFilter={dashboard.severityFilter}
+          onSeverityFilterChange={dashboard.setSeverityFilter}
+          eventTypeFilter={dashboard.eventTypeFilter}
+          onEventTypeFilterChange={dashboard.setEventTypeFilter}
+          pinnedSymbol={dashboard.pinnedSymbol}
+          onPinSymbol={(symbol) => dashboard.setPinnedSymbol((current) => (current === symbol ? "" : symbol))}
+          streamPaused={dashboard.streamPaused}
+          onToggleStreamPaused={() => dashboard.setStreamPaused((prev) => !prev)}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={() => setAutoScroll((prev) => !prev)}
+          highlightedEventType={highlightedEventType}
+          highlightedSymbol={highlightedSymbol}
+        />
+      );
+    }
+    if (selectedPanel === "risk") {
       return <RiskPanel risk={dashboard.risk} />;
     }
-    if (tab === "audit") {
+    if (selectedPanel === "audit") {
       return (
         <AuditTimeline
           items={dashboard.audit}
@@ -780,7 +717,7 @@ export default function App() {
         />
       );
     }
-    if (tab === "approvals") {
+    if (selectedPanel === "approvals") {
       return (
         <ApprovalsPanel
           items={pendingApprovals}
@@ -792,7 +729,7 @@ export default function App() {
         />
       );
     }
-    if (tab === "alerts") {
+    if (selectedPanel === "alerts") {
       return (
         <AlertsPanel
           items={alerts}
@@ -806,7 +743,7 @@ export default function App() {
         />
       );
     }
-    if (tab === "incidents") {
+    if (selectedPanel === "incidents") {
       return (
         <IncidentsPanel
           items={incidents}
@@ -819,16 +756,16 @@ export default function App() {
         />
       );
     }
-    if (tab === "portfolio") {
+    if (selectedPanel === "portfolio") {
       return <PortfolioPanel portfolio={dashboard.portfolio} />;
     }
-    if (tab === "orders") {
+    if (selectedPanel === "orders") {
       return <OrdersPanel openOrders={dashboard.openOrders} />;
     }
-    if (tab === "ops") {
+    if (selectedPanel === "ops") {
       return <OpsMetricsPanel metrics={dashboard.metrics} />;
     }
-    if (tab === "autonomy") {
+    if (selectedPanel === "autonomy") {
       return (
         <AutonomyPanel
           config={dashboard.autoExitConfig}
@@ -946,51 +883,68 @@ export default function App() {
     pendingApprovals
   ]);
 
-  const appShellStyle = useMemo(
-    () =>
-      ({
-        "--right-panel-width": `${rightPanelWidth}px`
-      }) as CSSProperties,
-    [rightPanelWidth]
-  );
-
   return (
-    <div className="app-shell" style={appShellStyle}>
-      <aside className="sidebar card">
-        <div className="brand">Tourab Mission Control</div>
+    <div className="app-shell">
+      <aside className={`nav-panel card ${isCompactLayout ? "compact" : ""} ${isNavDrawerOpen ? "open" : ""}`}>
+        <div className="brand">Mission Panels</div>
         <div className="nav-group">
-          <button
-            className={`nav-item ${operatorScope === "primary" ? "nav-active" : ""}`}
-            onClick={() => setOperatorScope("primary")}
-            aria-pressed={operatorScope === "primary"}
-          >
-            Primary Bot
-          </button>
-          <button
-            className={`nav-item ${operatorScope === "btc" ? "nav-active" : ""}`}
-            onClick={() => setOperatorScope("btc")}
-            aria-pressed={operatorScope === "btc"}
-          >
-            BTC Operator
-          </button>
-          <button
-            className={`nav-item ${operatorScope === "eth" ? "nav-active" : ""}`}
-            onClick={() => setOperatorScope("eth")}
-            aria-pressed={operatorScope === "eth"}
-          >
-            ETH Operator
-          </button>
+          {rightPanelTabs.map((item) => (
+            <button
+              key={item.id}
+              className={`nav-item ${selectedPanel === item.id ? "nav-active" : ""} ${item.attention ? "tab-attention" : ""}`}
+              onClick={() => {
+                setSelectedPanel(item.id);
+                if (isCompactLayout) {
+                  setNavDrawerOpen(false);
+                }
+              }}
+              aria-pressed={selectedPanel === item.id}
+            >
+              <span>{item.label}</span>
+              {typeof item.count === "number" ? <span className="tab-count">{item.count}</span> : null}
+            </button>
+          ))}
         </div>
-        <DemoReadinessCard items={readinessItems} compact />
-        <Milestone5ReadinessCard evidence={dashboard.milestone5Evidence} />
-        <ThemeSwitcher value={theme} onChange={handleTheme} />
+        <button
+          className="btn btn-ghost nav-sound-toggle"
+          onClick={() => setApprovalSoundMuted((prev) => !prev)}
+          aria-pressed={!approvalSoundMuted}
+          title="Toggle approval sound"
+        >
+          {approvalSoundMuted ? "Sound Off" : "Sound On"}
+        </button>
       </aside>
 
       <main className="main-grid">
         <header className="topbar card">
           <div className="topbar-title">AI Bot Mission Control</div>
           <div className="topbar-meta">
+            {isCompactLayout ? (
+              <button className="btn btn-ghost" onClick={() => setNavDrawerOpen((prev) => !prev)}>
+                {isNavDrawerOpen ? "Close Panels" : "Panels"}
+              </button>
+            ) : null}
             <span className="env-badge">DEMO</span>
+            <div className="scope-switch">
+              <button
+                className={`chip ${operatorScope === "primary" ? "chip-active" : ""}`}
+                onClick={() => setOperatorScope("primary")}
+              >
+                Primary
+              </button>
+              <button
+                className={`chip ${operatorScope === "btc" ? "chip-active" : ""}`}
+                onClick={() => setOperatorScope("btc")}
+              >
+                BTC
+              </button>
+              <button
+                className={`chip ${operatorScope === "eth" ? "chip-active" : ""}`}
+                onClick={() => setOperatorScope("eth")}
+              >
+                ETH
+              </button>
+            </div>
             <select value={dashboard.role} onChange={(event) => dashboard.setRole(event.target.value as typeof dashboard.role)}>
               <option value="read_only">Read-only</option>
               <option value="operator">Operator</option>
@@ -1030,109 +984,18 @@ export default function App() {
           <ReconciliationCard status={dashboard.reconciliation} role={dashboard.role} onSetStatus={(input) => void setReconciliationStatus(input)} />
         </section>
 
-        <EventStream
-          events={dashboard.filteredEvents}
-          quickFilter={dashboard.quickFilter}
-          onQuickFilterChange={dashboard.setQuickFilter}
-          symbolFilter={dashboard.symbolFilter}
-          onSymbolFilterChange={dashboard.setSymbolFilter}
-          symbolFilterLocked={operatorScope !== "primary"}
-          severityFilter={dashboard.severityFilter}
-          onSeverityFilterChange={dashboard.setSeverityFilter}
-          eventTypeFilter={dashboard.eventTypeFilter}
-          onEventTypeFilterChange={dashboard.setEventTypeFilter}
-          pinnedSymbol={dashboard.pinnedSymbol}
-          onPinSymbol={(symbol) => dashboard.setPinnedSymbol((current) => (current === symbol ? "" : symbol))}
-          streamPaused={dashboard.streamPaused}
-          onToggleStreamPaused={() => dashboard.setStreamPaused((prev) => !prev)}
-          autoScroll={autoScroll}
-          onToggleAutoScroll={() => setAutoScroll((prev) => !prev)}
-          highlightedEventType={highlightedEventType}
-          highlightedSymbol={highlightedSymbol}
-        />
+        <section className={`dynamic-content ${selectedPanel === "stream" ? "stream-mode" : ""}`}>
+          {renderRightPanelContent()}
+        </section>
       </main>
 
-      <div
-        className={`right-panel-splitter ${isDesktopLayout ? "" : "disabled"}`}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize right panel"
-        aria-valuemin={RIGHT_PANEL_MIN_WIDTH}
-        aria-valuemax={RIGHT_PANEL_MAX_WIDTH}
-        aria-valuenow={Math.round(rightPanelWidth)}
-        tabIndex={isDesktopLayout ? 0 : -1}
-        onMouseDown={startRightPanelResize}
-        onKeyDown={onRightPanelSplitterKeyDown}
-      />
-
-      <aside className="right-panel card">
-        <div className="right-panel-header">
-          <div className="tab-strip" role="tablist" aria-label="Mission control panels">
-            {rightPanelTabs.map((item) => (
-              <button
-                key={item.id}
-                className={`tab ${tab === item.id ? "tab-active" : ""} ${item.attention ? "tab-attention" : ""}`}
-                onClick={() => setTab(item.id)}
-              >
-                {item.label}
-                {typeof item.count === "number" ? (
-                  <span className="tab-count" aria-label={`${item.count} ${item.label.toLowerCase()}`}>
-                    {item.count}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
-          <div className="right-panel-actions">
-            <button
-              className="header-icon-btn"
-              onClick={() => setApprovalSoundMuted((prev) => !prev)}
-              aria-pressed={!approvalSoundMuted}
-              title="Toggle approval sound"
-            >
-              {approvalSoundMuted ? "Sound Off" : "Sound On"}
-            </button>
-            <button
-              className="header-icon-btn"
-              onClick={() => setRightPanelFocusOpen(true)}
-              title="Expand current panel"
-            >
-              Expand
-            </button>
-          </div>
-        </div>
-        {isRightPanelFocusOpen ? (
-          <div className="panel-content">
-            <div className="hint">Panel expanded. Press ESC or Close to return.</div>
-          </div>
-        ) : (
-          renderRightPanelContent()
-        )}
+      <aside className="info-panel card">
+        <DemoReadinessCard items={readinessItems} compact />
+        <Milestone5ReadinessCard evidence={dashboard.milestone5Evidence} />
+        <ThemeSwitcher value={theme} onChange={handleTheme} />
       </aside>
 
-      {isRightPanelFocusOpen ? (
-        <div
-          className="right-panel-focus-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Expanded right panel"
-          onClick={(event) => {
-            if (event.currentTarget === event.target) {
-              setRightPanelFocusOpen(false);
-            }
-          }}
-        >
-          <section className="right-panel-focus-card card">
-            <div className="right-panel-focus-head">
-              <div className="panel-title">{`Focused: ${tab.toUpperCase()}`}</div>
-              <button className="btn btn-ghost" onClick={() => setRightPanelFocusOpen(false)}>
-                Close
-              </button>
-            </div>
-            <div className="right-panel-focus-content">{renderRightPanelContent()}</div>
-          </section>
-        </div>
-      ) : null}
+      {isCompactLayout && isNavDrawerOpen ? <div className="nav-backdrop" onClick={() => setNavDrawerOpen(false)} /> : null}
 
       <section className="toast-stack" aria-live="polite" aria-label="Notifications">
         {toasts.map((toast) => (

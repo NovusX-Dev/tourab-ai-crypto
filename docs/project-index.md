@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-24 11:55:02 UTC
+Generated: 2026-02-24 12:31:25 UTC
 
 ## Summary
 - Root: `.`
 - Directories indexed: 332
-- Files indexed: 926
+- Files indexed: 927
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -60,8 +60,8 @@ Generated: 2026-02-24 11:55:02 UTC
         - coverage-summary.json
       - dist/
         - assets/
-          - index-CJezhf1U.js
-          - index-XLkaMNCa.css
+          - index-B74nzjzU.css
+          - index-DhMkRn_p.js
         - index.html
       - node_modules/
         - .vite/
@@ -155,6 +155,7 @@ Generated: 2026-02-24 11:55:02 UTC
     - m7-research-pipeline.md
     - milestone-3-completion-report.md
     - milestone-3-invariants.md
+    - mission-control-layout-redesign.md
     - operator-playbook.md
     - roadmap.md
     - tomorrow-work.md
@@ -1317,9 +1318,9 @@ Generated: 2026-02-24 11:55:02 UTC
 | `apps/dashboard/src/proposal-helper.ts` | 6727 | 2026-02-16 09:01:09 | `c7904f9d9d4031626eae07d84e2c13fde3aeee8e158eb86af36e45834033e306` |
 | `apps/dashboard/src/reconciliation.ts` | 6040 | 2026-02-16 09:10:08 | `e5f55769e0e1138f12facf33e0575cf932b4237298f02e58439f36490e7e8ee4` |
 | `apps/mission-control/coverage/coverage-summary.json` | 2253 | 2026-02-20 08:11:47 | `80c9a184db23dfea6bb22877fe7295fd61abb53f4e2fc5be63c5845045d9c9ce` |
-| `apps/mission-control/dist/assets/index-CJezhf1U.js` | 313053 | 2026-02-24 11:35:38 | `eaca50e5be4256ca505b2518322e8dc044dd2525f6d84157a2c71b4529dcb81d` |
-| `apps/mission-control/dist/assets/index-XLkaMNCa.css` | 17071 | 2026-02-24 11:35:38 | `8bd52ea8584b0a22482238fdbeb596c7aa8617a22b610112dfa3f7254d0c7c0e` |
-| `apps/mission-control/dist/index.html` | 408 | 2026-02-24 11:35:38 | `f479fb763661bb0c97124a87036efd0c4257ae27b2c5de0055fea1e186f74a3d` |
+| `apps/mission-control/dist/assets/index-B74nzjzU.css` | 17908 | 2026-02-24 12:23:30 | `3c4900b57c7897861975dba445da5860f21dcbfc9424512ceec9cf4cb93231c0` |
+| `apps/mission-control/dist/assets/index-DhMkRn_p.js` | 310775 | 2026-02-24 12:23:30 | `055990dc008d89cf8a7d0b121931d88097d72d3736e3de3ab004de932319e3d5` |
+| `apps/mission-control/dist/index.html` | 408 | 2026-02-24 12:23:30 | `daa4b2cb3a8a3f300853b5c5c96623a0d7207a6537c20884149a9c3ff57bfbe6` |
 | `apps/mission-control/index.html` | 310 | 2026-02-16 17:06:38 | `08590a3a9a172d25533738243d7ead030a850e32d52ab09543d150a4ddec4253` |
 | `apps/mission-control/node_modules/.vite/deps/_metadata.json` | 1211 | 2026-02-24 10:56:31 | `5598df3271743690f9c3a4194033b45e375807c534a6138b0685c9e94f1f3978` |
 | `apps/mission-control/node_modules/.vite/deps/chunk-JPOJ7BIY.js` | 16132 | 2026-02-24 10:56:31 | `4f3c3830d64d7b27285b15fde6f43f138372b1891876d9cbb04d5f453c2ddf76` |
@@ -1337,13 +1338,13 @@ Generated: 2026-02-24 11:55:02 UTC
 | `apps/mission-control/node_modules/.vite/deps/react-dom.js.map` | 93 | 2026-02-24 10:56:31 | `ed562b0bba7ee7214e56ac7f728054b3496bec4597c94a4eb7b4179e6f5cb1c9` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js` | 1005187 | 2026-02-24 10:56:31 | `f14b7bce848f545229136f9afb30e703ae9582a00e355ba92207e4aa8399f858` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js.map` | 1559234 | 2026-02-24 10:56:31 | `6137b61d61b94540bff33a497aa550caed7b5fc5a22a550fdbe0109e9ae8ee22` |
-| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 460 | 2026-02-24 11:35:59 | `1862d7e68e8c4812ede49f1da5d4f8b6dadbd87b79adeab7db60d4e9eeb03d00` |
+| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 472 | 2026-02-24 12:23:33 | `c3f36a58358814b6602603c9cad0a0eceab4f6729a305e40a3816ac102ba7b58` |
 | `apps/mission-control/package.json` | 669 | 2026-02-16 17:42:43 | `3024c620c459bc2e3913d4089b1595f968279f16f76d94c51d93ade2b841ce8e` |
 | `apps/mission-control/README.md` | 5011 | 2026-02-17 13:32:41 | `8a2923353fdf2206681aa99dde2fdb85ab98505b108c85766f90d9f3c9a11c14` |
 | `apps/mission-control/src/api/BotApiClient.ts` | 5965 | 2026-02-23 10:50:15 | `538549d7c745b2699e4bbcdadd2b620309cd676a3054f2dc9b2fd477d6eb8d69` |
 | `apps/mission-control/src/api/LiveBotApiClient.ts` | 32505 | 2026-02-23 10:52:05 | `dc505e5ce44c0ae84f7dd6505c51df48868cf3748a88d9049a016da49ded052e` |
 | `apps/mission-control/src/api/MockBotApiClient.ts` | 31720 | 2026-02-23 10:53:37 | `3be76fac5699b9f00c159e4dc947b94fa9b6c44c4406142357f666bec3cb5dec` |
-| `apps/mission-control/src/App.tsx` | 45044 | 2026-02-24 11:30:41 | `6eeed5448eb9dc0cd1584a0cc78be3c8d6e970d248fd07ad2db90cb7e598d95b` |
+| `apps/mission-control/src/App.tsx` | 40632 | 2026-02-24 12:23:17 | `b4d2d07e0ff4c1648a8b68b2a4f7e4d86af8b450a0d85a23b48c6b0fba5ca6ef` |
 | `apps/mission-control/src/components/AlertsPanel.tsx` | 3935 | 2026-02-20 11:55:28 | `5fd90237a939c9ecef41427dda4e228879f630974f4fbee9ce2e22a719efd7d4` |
 | `apps/mission-control/src/components/ApprovalsPanel.tsx` | 4599 | 2026-02-17 16:33:52 | `d2147ce924654de3c6c36aab79043f1088419978e1bfb0772984278856d775b6` |
 | `apps/mission-control/src/components/AuditTimeline.tsx` | 1307 | 2026-02-16 17:05:08 | `4b7dce32b967dd32649ec3395eefc00800bda128404c5335da450528aaa3b6ea` |
@@ -1367,7 +1368,7 @@ Generated: 2026-02-24 11:55:02 UTC
 | `apps/mission-control/src/main.tsx` | 232 | 2026-02-16 17:06:38 | `adbc6a19142a0e6bfd6289063814cda1d9748df74d8f6dfc04d0d810f218a6ee` |
 | `apps/mission-control/src/mock/mockData.ts` | 6054 | 2026-02-16 17:43:47 | `0de386d7f19a8d5db8ad9e34d8c8c700f8fabbbb82e64e9cd177db2ef36a550a` |
 | `apps/mission-control/src/state/useDashboardData.ts` | 13783 | 2026-02-20 11:24:05 | `b84a2fbbd2262b3b8cf2ec9494bac2139004683e2bd3e51844301036bb7d5107` |
-| `apps/mission-control/src/styles.css` | 21405 | 2026-02-24 11:34:46 | `3be2bc1f603bcef5327efe7a50abdbac870f123b200826c017406738ffc3a699` |
+| `apps/mission-control/src/styles.css` | 22604 | 2026-02-24 12:23:02 | `a7c55637ee50b8d7c27dea4305a49fe39a9cc1a4b26086d69500dc31d4a472af` |
 | `apps/mission-control/src/test/control-availability.spec.ts` | 628 | 2026-02-16 17:06:56 | `f19d2b619f4bf956bb0e9763be060fa3c11f02de6f6e292d881fa53ef0d39560` |
 | `apps/mission-control/src/test/event-filters.spec.ts` | 1221 | 2026-02-16 17:06:56 | `e39b0758d48483a9fe3d35d7302cc60d33a48c46d1ed523f2d76534b88a3a8a5` |
 | `apps/mission-control/src/test/event-stream-virtualization.spec.ts` | 3099 | 2026-02-17 13:19:27 | `27a4d0b136cc8cf9078a26ff9bea052581d17865f0038d66e23bb3d3afc46ed5` |
@@ -1387,6 +1388,7 @@ Generated: 2026-02-24 11:55:02 UTC
 | `docs/m7-research-pipeline.md` | 3151 | 2026-02-23 12:02:15 | `13dede45dea62fba3bb26781a08eadf267e0f0164e28e25a27d647bf75c0aec7` |
 | `docs/milestone-3-completion-report.md` | 2402 | 2026-02-17 07:19:51 | `5ea39346e2dcf983ee4e36d81321851c9400b014910c8a395372108d0442225e` |
 | `docs/milestone-3-invariants.md` | 2457 | 2026-02-17 07:18:59 | `30e964d5ca026aa78c43971b8c828f0f8a5549348b6e7139ce68cd6ac713d8ea` |
+| `docs/mission-control-layout-redesign.md` | 5585 | 2026-02-24 12:19:11 | `ab41f406069c3ad4a10906eeb4a15c835e3043e2b23eef3deaecc4a8703a7dba` |
 | `docs/okx/okx-docs-v5-en.html` | 4731242 | 2026-02-15 08:37:49 | `f46686a9f46827dc51b633b0dcb80331ada0a0a18e1dc44efe1ce3f6449c0459` |
 | `docs/okx/source-verification.md` | 2779 | 2026-02-15 08:44:50 | `2ecd8ccbe303873fa80b753fd914f75c30a2cda753ad1ca7090d0aecc6c4facb` |
 | `docs/operator-playbook.md` | 3669 | 2026-02-24 11:19:11 | `c0474c0a28cabc00cfc60bd0d921f0877b4cb838fe8aab8c1b08f2cb6d80c4ab` |
@@ -2111,12 +2113,12 @@ Generated: 2026-02-24 11:55:02 UTC
 | `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json` | 1537 | 2026-02-23 11:07:36 | `c2424b81fc51660e4b8c5427ed6f422db4235bf7893712823a959d5f37ae8494` |
 | `logs/mc-server.err.log` | 40 | 2026-02-20 12:10:45 | `21454502b8590e3481d031ac1176aa84bd425c84897855c33042a8c5d234b827` |
 | `logs/mc-server.out.log` | 0 | 2026-02-20 12:10:37 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
-| `logs/mission-alerts.jsonl` | 38394 | 2026-02-24 11:53:41 | `1776b234324773a385f7bbc70fcb0a369b3625e63ac2a76b1bbd4745e9b4a833` |
+| `logs/mission-alerts.jsonl` | 41324 | 2026-02-24 12:30:43 | `70ea55171a003c69a36baffaa7be2da5c0a07eff10e00ccaf07fa221f95a04f3` |
 | `logs/mission-control-server.err.log` | 1018 | 2026-02-18 16:48:58 | `d8612be586905cbd5e63c8d3fb277b383bb1d95ded1ab09b1d0bc81d1d41426f` |
 | `logs/mission-control-server.out.log` | 0 | 2026-02-18 16:48:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
 | `logs/mission-events.jsonl` | 208 | 2026-02-16 17:35:42 | `53aca00c56fcb146948c23e537e0c20c4c98ed17c5c575bdf37ce8ff226f081d` |
-| `logs/mission-events.sqlite` | 6004736 | 2026-02-24 11:54:02 | `d4d880131011a7e4045093b9cbb7368643a3a5e6f53764e6007bb338fa1d4cc5` |
-| `logs/mission-ops.sqlite` | 757760 | 2026-02-24 11:54:02 | `18080d0553d62a07208333de012de1dae2c735eaef15ed20b848624c7453857d` |
+| `logs/mission-events.sqlite` | 6004736 | 2026-02-24 12:30:55 | `229b6b095c0a488f8d749516143502446af2d2f48ba0950cd967787be052a061` |
+| `logs/mission-ops.sqlite` | 757760 | 2026-02-24 12:30:55 | `c499df953ac257229b46539c5697b3958d2bc70bd38e8a357856d275c69f9490` |
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 1054 | 2026-02-17 14:06:49 | `5affbbeccef6f6dbf1a30e205218d368085c5ec6a63f0d2874c7807add0f45ad` |
 | `logs/proposal.e2e.json` | 223 | 2026-02-17 13:49:59 | `0ac6472f8abac22d422519d12c7d2bc01d0929317571d5b99e02d7ec3f058241` |

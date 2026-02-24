@@ -80,7 +80,7 @@ export function AutonomyPanel({
   onPromoteStrategy,
   onRollbackStrategy,
   onSaveDegradationConfig,
-  onSaveLearningAlertConfig
+  onSaveLearningAlertConfig,
   onSaveLearningRetentionConfig,
   onRunLearningRetentionPrune
 }: AutonomyPanelProps) {

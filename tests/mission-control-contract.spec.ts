@@ -166,6 +166,57 @@ describe("mission-control contract", () => {
     }
   });
 
+  it("recovers websocket replay after disconnect/reconnect gaps", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, logRequests: false });
+
+    try {
+      await postControl(handle.baseHttpUrl, "/start");
+      await postControl(handle.baseHttpUrl, "/pause");
+      await postControl(handle.baseHttpUrl, "/resume");
+
+      const wsFirst = new WebSocket(`${handle.baseWsUrl}/events?replay=1`);
+      const firstBuffer = createWsMessageBuffer(wsFirst);
+      await new Promise<void>((resolve, reject) => {
+        wsFirst.once("open", () => resolve());
+        wsFirst.once("error", (error) => reject(error));
+      });
+      const firstSnapshot = await waitForWsKind(firstBuffer, "snapshot");
+      if (firstSnapshot.kind !== "snapshot") {
+        throw new Error("Expected snapshot message");
+      }
+      const seenBeforeDisconnect = new Set(firstSnapshot.data.events.map((event) => event.id));
+      firstBuffer.dispose();
+      wsFirst.close();
+
+      await delay(40);
+      await postControl(handle.baseHttpUrl, "/pause");
+      await postControl(handle.baseHttpUrl, "/resume");
+
+      const wsSecond = new WebSocket(`${handle.baseWsUrl}/events?replay=10`);
+      const secondBuffer = createWsMessageBuffer(wsSecond);
+      await new Promise<void>((resolve, reject) => {
+        wsSecond.once("open", () => resolve());
+        wsSecond.once("error", (error) => reject(error));
+      });
+      const secondSnapshot = await waitForWsKind(secondBuffer, "snapshot");
+      expect(secondSnapshot.kind).toBe("snapshot");
+      if (secondSnapshot.kind !== "snapshot") {
+        throw new Error("Expected snapshot message");
+      }
+      expect(secondSnapshot.data.events.length).toBeGreaterThan(0);
+      const recoveredMissed = secondSnapshot.data.events.some((event) => !seenBeforeDisconnect.has(event.id));
+      expect(recoveredMissed).toBe(true);
+
+      secondBuffer.dispose();
+      wsSecond.close();
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("requires approval for critical controls and allows execution after approval", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
     const eventStorePath = join(tempDir, "events.jsonl");
@@ -797,6 +848,82 @@ describe("mission-control contract", () => {
       expect(payload.totals.slippageProxyBps).toBeGreaterThanOrEqual(0);
       expect(payload.byModelVersion.some((item) => item.version === "m7-baseline-v1" && item.trades >= 1)).toBe(true);
       expect(payload.byStrategyVersion.some((item) => item.version === "champion-v1" && item.trades >= 1)).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("caps learning drawdown percent at 100 for deep negative equity curves", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const store = await SqliteOpsStore.open(opsStorePath);
+    const now = Date.now();
+    const tradeAClosedAt = new Date(now - 4 * 60_000).toISOString();
+    const tradeBClosedAt = new Date(now - 2 * 60_000).toISOString();
+    store.upsertManagedTrade({
+      tradeId: "m7-dd-cap-1",
+      status: "closed",
+      symbol: "BTC-USDT",
+      entrySide: "buy",
+      entryOrdId: "entry-a",
+      entryClOrdId: "entry-cl-a",
+      requestedQty: 0.001,
+      entryFilledQty: 0.001,
+      entryAvgPrice: 50000,
+      exitOrdId: "exit-a",
+      exitClOrdId: "exit-cl-a",
+      exitFilledQty: 0.001,
+      exitAvgPrice: 50100,
+      remainingQty: 0,
+      exitReason: "take_profit",
+      stopPrice: 49500,
+      takeProfitPrice: 50100,
+      maxHoldSec: 600,
+      createdAt: new Date(now - 6 * 60_000).toISOString(),
+      updatedAt: tradeAClosedAt,
+      closedAt: tradeAClosedAt,
+      feeUsd: 0,
+      realizedPnlUsd: 1,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    });
+    store.upsertManagedTrade({
+      tradeId: "m7-dd-cap-2",
+      status: "closed",
+      symbol: "BTC-USDT",
+      entrySide: "buy",
+      entryOrdId: "entry-b",
+      entryClOrdId: "entry-cl-b",
+      requestedQty: 0.001,
+      entryFilledQty: 0.001,
+      entryAvgPrice: 50000,
+      exitOrdId: "exit-b",
+      exitClOrdId: "exit-cl-b",
+      exitFilledQty: 0.001,
+      exitAvgPrice: 49000,
+      remainingQty: 0,
+      exitReason: "stop_loss",
+      stopPrice: 49500,
+      takeProfitPrice: 50100,
+      maxHoldSec: 600,
+      createdAt: new Date(now - 3 * 60_000).toISOString(),
+      updatedAt: tradeBClosedAt,
+      closedAt: tradeBClosedAt,
+      feeUsd: 0,
+      realizedPnlUsd: -3,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    });
+    store.close();
+
+    const handle = await startMissionControlServer({ port: 0, eventStorePath, opsStorePath, logRequests: false });
+    try {
+      const res = await fetch(`${handle.baseHttpUrl}/learning/evaluation?lookbackDays=30`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as { totals: { maxDrawdownPct: number } };
+      expect(payload.totals.maxDrawdownPct).toBe(100);
     } finally {
       await handle.close();
       await rm(tempDir, { recursive: true, force: true });

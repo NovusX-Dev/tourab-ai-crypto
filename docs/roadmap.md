@@ -1,14 +1,17 @@
 # Roadmap
 
-## Status Snapshot (as of 2026-02-24)
+## Status Snapshot (as of 2026-02-25)
 - Milestone 1: substantially delivered.
 - Milestone 2: delivered.
 - Milestone 3: production-grade complete.
 - Milestone 4: production-grade complete.
-- Milestone 5: in progress.
-  - Latest M5 evidence (`logs/m5-evidence-2026-02-24T08-43-18-170Z/summary.md`): today `pass=true`, `qualifiedDays=6/7`, `streakDays=4`, `milestoneReady=false`.
-- Milestone 6: engineering acceptance complete (production promotion remains gated by real M5 readiness evidence).
-- Milestone 7: complete (governed pipeline complete; completion criteria validated with remediated walk-forward-stable candidate); SOL `moderate` re-entry remains under ongoing tuning/monitoring on fresh cycles.
+- Milestone 5: complete.
+  - Latest M5 evidence (`logs/m5-evidence-2026-02-25T08-26-50-199Z/summary.md`): today `pass=true`, `qualifiedDays=7/7`, `streakDays=5`, `milestoneReady=true`.
+  - Completion status: production-grade complete (calendar-day readiness gate satisfied + explicit edge-path acceptance coverage added and passing).
+- Milestone 6: complete.
+  - Live governance evidence with fresh real M5 readiness passed (`logs/m6-live-governance-2026-02-25T09-38-14-445Z/summary.md`): `allStepsOk=true`, `limitedProdReached=true`, `m5QualifiedDays=7/7`, `m5TodayPass=true`.
+  - Post-check safety rollback executed to stable champion (`champion-v1`) after proof run to avoid leaving the temporary challenger active.
+- Milestone 7: complete (governed pipeline complete; completion criteria validated with remediated walk-forward-stable candidate); SOL `moderate` re-entry now has fresh pass evidence and remains under routine monitoring.
 - Milestone 8: pending.
 - Milestone 9: pending.
 - Milestone 10 (optional): pending.
@@ -71,8 +74,15 @@ Implementation status (current):
   - compact Demo Readiness autonomy guardrail chip,
   - Milestone 5 evidence endpoint (`GET /milestone5/evidence`) + resumable rollup script (`npm run evidence:m5`) + sidebar readiness card (`qualifiedDays/7`, streak, blockers).
 - Pending before declaring complete:
-  - sustained demo soak + evidence for acceptance criteria below,
-  - validation coverage for all listed edge paths under production-like load.
+  - none.
+
+Completion status:
+- production-grade complete.
+- edge-path acceptance coverage now explicitly includes:
+  - partial fills (`tests/reconciliation.spec.ts`),
+  - cancel/replace lifecycle (`tests/reconciliation.spec.ts`),
+  - websocket gap + reconnect replay recovery (`tests/mission-control-contract.spec.ts`),
+  - duplicate-event idempotency (`tests/sqlite-event-store.spec.ts`, plus duplicate-fill drift detection in `tests/reconciliation.spec.ts`).
 
 Completion criteria:
 - >=95% of filled entries are closed by deterministic policy path without manual intervention.
@@ -118,7 +128,12 @@ Implementation status (current):
   - deterministic attribution verification for submitted orders (`approval_mode`, `strategy_version`, `policy_version`) via `tests/m6-attribution-contract.spec.ts`,
   - M6 promotion-pipeline acceptance walkthrough passed (`logs/m6-acceptance-2026-02-19T15-24-28-150Z/summary.md`) with `allStepsOk=true` and `limitedProdReached=true`.
 - Remaining operational gate (outside M6 engineering acceptance):
-  - run promotion decisions against fresh, real (non-seeded) M5 readiness evidence as part of live rollout governance.
+  - none.
+
+Completion status:
+- production-grade complete.
+- fresh, non-seeded M5 readiness was validated in live promotion governance flow (`logs/m6-live-governance-2026-02-25T09-38-14-445Z/summary.md`).
+- operational note: post-validation hardening keeps M7 learning alerts enabled with calibrated thresholds and capped drawdown percent logic (`maxDrawdownPct` constrained to `0..100`) to prevent pathological values from tiny equity peaks.
 
 Completion criteria:
 - New strategy versions cannot reach limited prod without passing promotion gates.
@@ -242,7 +257,14 @@ Implementation status (current):
     - dataset: `logs/m7-dataset-2026-02-24T09-57-37-486Z/dataset-manifest.json`
     - reentry: `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/summary.md`
     - outcome: `moderate` still failed but improved (`windowsPassed=2/4`, `passRatePct=50`); `reintroduce` passed (`4/4`, `100%`).
-  - current state: keep M7 as ongoing monitoring + targeted SOL expectancy tuning until fresh `moderate` pass evidence is produced.
+  - current state (as of 2026-02-24): keep M7 as ongoing monitoring + targeted SOL expectancy tuning until fresh `moderate` pass evidence is produced.
+- SOL moderate fresh baseline cycle (2026-02-25):
+  - calibration: `logs/m7-sol-calibration-2026-02-25T11-46-19-965Z/summary.md`
+  - m5 soak: `logs/m5-soak-2026-02-25T11-46-23-283Z/report.json`
+  - dataset: `logs/m7-dataset-2026-02-25T11-53-25-145Z/dataset-manifest.json`
+  - reentry: `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/summary.md`
+  - moderate walk-forward: `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/moderate/walk-forward-report.json`
+  - outcome: `moderate` passed (`windowsPassed=3/4`, `passRatePct=75`, `requiredStagePass=true`); `reintroduce` remained pass (`4/4`, `100%`).
 - Implemented (Track 2 step 7: historical retention UX improvements):
   - backend learning retention API:
     - `GET /learning/retention-config`

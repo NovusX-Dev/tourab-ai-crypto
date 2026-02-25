@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatDuration, formatTime, timeSinceMs } from "../format";
+import { formatTime } from "../format";
 import type {
   AutoExitConfig,
   EntryAutonomyConfig,
@@ -8,7 +8,6 @@ import type {
   LearningEvaluationSummary,
   LearningEvaluationTrendSummary,
   LearningRetentionStatus,
-  ManagedTradeItem,
   StrategyDegradationConfig,
   StrategyPromotionStage,
   StrategyPromotionState
@@ -16,7 +15,6 @@ import type {
 
 interface AutonomyPanelProps {
   config: AutoExitConfig;
-  managedTrades: ManagedTradeItem[];
   entryAutonomy: { config: EntryAutonomyConfig; status: EntryAutonomyStatus };
   strategyPromotion: StrategyPromotionState;
   strategyDegradation: StrategyDegradationConfig;
@@ -27,7 +25,6 @@ interface AutonomyPanelProps {
   trendFocus?: "expectancy" | "drawdown" | "slippage" | "controlViolationRate";
   canEdit: boolean;
   onSaveConfig: (next: Partial<AutoExitConfig>) => Promise<void>;
-  onRefreshTrades: () => Promise<void>;
   onSaveEntryAutonomy: (next: Partial<EntryAutonomyConfig>) => Promise<void>;
   onRegisterStrategy: (input: {
     version: string;
@@ -63,7 +60,6 @@ function parseNumberOr<T extends number>(raw: string, fallback: T): number {
 
 export function AutonomyPanel({
   config,
-  managedTrades,
   entryAutonomy,
   strategyPromotion,
   strategyDegradation,
@@ -74,7 +70,6 @@ export function AutonomyPanel({
   trendFocus,
   canEdit,
   onSaveConfig,
-  onRefreshTrades,
   onSaveEntryAutonomy,
   onRegisterStrategy,
   onPromoteStrategy,
@@ -179,8 +174,6 @@ export function AutonomyPanel({
   }, [strategyPromotion, promoteVersion]);
 
   const stageOptions: StrategyPromotionStage[] = ["research", "shadow", "paper_canary", "limited_prod"];
-  const openTrades = managedTrades.filter((item) => item.status !== "closed");
-  const closedTrades = managedTrades.filter((item) => item.status === "closed");
   const latestPromotion = useMemo(() => strategyPromotion.history[0], [strategyPromotion]);
   const trendModelOptions = useMemo(
     () =>
@@ -318,7 +311,7 @@ export function AutonomyPanel({
   }
 
   return (
-    <section className="panel-content" aria-label="Autonomy panel">
+    <section className="panel-content autonomy-panel" aria-label="Autonomy panel">
       <div className="panel-head">
         <div className="panel-title">Autonomy</div>
         <span className={`tag ${entryAutonomy.status.approvalMode === "policy_auto" ? "sev-info" : "sev-warn"}`}>
@@ -326,10 +319,10 @@ export function AutonomyPanel({
         </span>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Auto-Exit Config (M5)</div>
         <div className="hint">Deterministic exits for every approved entry order.</div>
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Enabled
             <select value={enabled ? "1" : "0"} onChange={(event) => setEnabled(event.target.value === "1")} disabled={!canEdit}>
@@ -354,16 +347,15 @@ export function AutonomyPanel({
             <input value={exitOffsetBps} onChange={(event) => setExitOffsetBps(event.target.value)} disabled={!canEdit} />
           </label>
         </div>
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void saveAutoExit()} disabled={!canEdit}>Save Auto-Exit</button>
-          <button className="btn btn-ghost" onClick={() => void onRefreshTrades()}>Refresh Trades</button>
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Entry Autonomy (M6)</div>
         <div className="hint">Policy gates for automatic entry approvals.</div>
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Approval Mode
             <select value={approvalMode} onChange={(event) => setApprovalMode(event.target.value as EntryAutonomyConfig["approvalMode"])} disabled={!canEdit}>
@@ -411,12 +403,12 @@ export function AutonomyPanel({
         {entryAutonomy.status.lastPolicyAutoBlockers.length > 0 ? (
           <div className="hint">{`last blockers: ${entryAutonomy.status.lastPolicyAutoBlockers.join(" | ")}`}</div>
         ) : null}
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void saveEntryAutonomy()} disabled={!canEdit}>Save Entry Policy</button>
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Strategy Promotion (M6)</div>
         <div className="hint">
           {`active=${strategyPromotion.activeVersion} champion=${strategyPromotion.championVersion} previous=${strategyPromotion.previousStableVersion || "-"}`}
@@ -424,7 +416,7 @@ export function AutonomyPanel({
         {latestPromotion ? (
           <div className="hint">{`last action=${latestPromotion.action} version=${latestPromotion.version} at=${formatTime(latestPromotion.at)}`}</div>
         ) : null}
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Register Version
             <input value={registerVersion} onChange={(event) => setRegisterVersion(event.target.value)} disabled={!canEdit} placeholder="candidate-v2" />
@@ -445,11 +437,11 @@ export function AutonomyPanel({
             </select>
           </label>
         </div>
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void registerStrategy()} disabled={!canEdit || !registerVersion.trim()}>Register</button>
         </div>
 
-        <div className="log-filters" style={{ marginTop: 10 }}>
+        <div className="log-filters autonomy-form-grid" style={{ marginTop: 10 }}>
           <label>
             Promote Version
             <select value={promoteVersion} onChange={(event) => setPromoteVersion(event.target.value)} disabled={!canEdit}>
@@ -480,7 +472,7 @@ export function AutonomyPanel({
             <input value={promoteCanaryUrl} onChange={(event) => setPromoteCanaryUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
           </label>
         </div>
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void promoteStrategy()} disabled={!canEdit || !promoteVersion}>Promote</button>
           <input
             value={rollbackReason}
@@ -493,9 +485,9 @@ export function AutonomyPanel({
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Degradation Rollback Thresholds (M6)</div>
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Enabled
             <select value={degradeEnabled ? "1" : "0"} onChange={(event) => setDegradeEnabled(event.target.value === "1")} disabled={!canEdit}>
@@ -516,12 +508,12 @@ export function AutonomyPanel({
             <input value={degradeConsecLosses} onChange={(event) => setDegradeConsecLosses(event.target.value)} disabled={!canEdit} />
           </label>
         </div>
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void saveDegradationConfig()} disabled={!canEdit}>Save Degradation Config</button>
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Learning Evaluation (M7)</div>
         <div className="hint">
           {`lookback=${learningEvaluation.lookbackDays}d | closedTrades=${learningEvaluation.closedTrades} | generated=${formatTime(learningEvaluation.generatedAt)}`}
@@ -572,10 +564,10 @@ export function AutonomyPanel({
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Learning Guard Thresholds (M7)</div>
         <div className="hint">Runtime thresholds for `LEARNING_*` alerts.</div>
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Enabled
             <select value={learningAlertEnabled ? "1" : "0"} onChange={(event) => setLearningAlertEnabled(event.target.value === "1")} disabled={!canEdit}>
@@ -616,17 +608,17 @@ export function AutonomyPanel({
             />
           </label>
         </div>
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void saveLearningAlertThresholds()} disabled={!canEdit}>
             Save Learning Thresholds
           </button>
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Learning Retention (M7)</div>
         <div className="hint">Retention policy and manual prune for closed-trade feature history.</div>
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Feature Retention Days
             <input value={learningRetentionDays} onChange={(event) => setLearningRetentionDays(event.target.value)} disabled={!canEdit} />
@@ -647,7 +639,7 @@ export function AutonomyPanel({
         <div className="hint">
           {`last prune=${learningRetention.lastPruneAt ? formatTime(learningRetention.lastPruneAt) : "never"} deleted=${learningRetention.lastPruneResult?.closedTradeFeaturesDeleted ?? 0}`}
         </div>
-        <div className="approval-actions">
+        <div className="approval-actions autonomy-actions">
           <button className="btn btn-primary" onClick={() => void saveLearningRetentionConfig()} disabled={!canEdit}>
             Save Retention
           </button>
@@ -657,12 +649,12 @@ export function AutonomyPanel({
         </div>
       </div>
 
-      <div className="risk-card">
+      <div className="risk-card autonomy-card">
         <div className="panel-title">Learning Trend (M7)</div>
         <div className="hint">
           {`lookback=${learningEvaluationTrend.lookbackDays}d bucket=${learningEvaluationTrend.bucketDays}d generated=${formatTime(learningEvaluationTrend.generatedAt)}`}
         </div>
-        <div className="log-filters">
+        <div className="log-filters autonomy-form-grid">
           <label>
             Breach Filter
             <select value={trendBreachFilter} onChange={(event) => setTrendBreachFilter(event.target.value as typeof trendBreachFilter)}>
@@ -724,42 +716,6 @@ export function AutonomyPanel({
             </article>
           ))}
         </div>
-      </div>
-
-      <div className="subhead">{`Managed Trades (${managedTrades.length})`}</div>
-      {managedTrades.length === 0 ? <div className="hint">No managed trades yet.</div> : null}
-      <div className="orders-list">
-        {openTrades.map((trade) => (
-          <article key={trade.tradeId} className="order-row">
-            <div className="order-main">
-              <strong>{trade.symbol}</strong>
-              <span className="tag">{trade.entrySide}</span>
-              <span className="tag">{trade.status}</span>
-              <span className="tag">{trade.exitReason ?? "pending"}</span>
-            </div>
-            <div className="order-meta">{`Entry ${trade.entryFilledQty}/${trade.requestedQty} @ ${trade.entryAvgPrice || 0}`}</div>
-            <div className="order-meta">{`Exit ${trade.exitFilledQty}/${trade.entryFilledQty || trade.requestedQty} @ ${trade.exitAvgPrice || 0}`}</div>
-            <div className="order-meta">{`SL ${trade.stopPrice} | TP ${trade.takeProfitPrice}`}</div>
-            <div className="order-meta">{`Age ${formatDuration(timeSinceMs(trade.createdAt))} | MaxHold ${formatDuration(trade.maxHoldSec * 1000)}`}</div>
-            <div className={`order-meta ${trade.realizedPnlUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>{`Realized ${fmtUsd(trade.realizedPnlUsd)} (fee ${fmtUsd(trade.feeUsd)})`}</div>
-            <div className="hint">{`Updated ${formatTime(trade.updatedAt)}`}</div>
-          </article>
-        ))}
-      </div>
-
-      {closedTrades.length > 0 ? <div className="subhead">{`Closed (${closedTrades.length})`}</div> : null}
-      <div className="orders-list">
-        {closedTrades.slice(0, 25).map((trade) => (
-          <article key={trade.tradeId} className="order-row">
-            <div className="order-main">
-              <strong>{trade.symbol}</strong>
-              <span className="tag">closed</span>
-              <span className="tag">{trade.exitReason ?? "unknown"}</span>
-            </div>
-            <div className={`order-meta ${trade.realizedPnlUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>{`Realized ${fmtUsd(trade.realizedPnlUsd)}`}</div>
-            <div className="hint">{`Closed ${trade.closedAt ? formatTime(trade.closedAt) : "-"}`}</div>
-          </article>
-        ))}
       </div>
     </section>
   );

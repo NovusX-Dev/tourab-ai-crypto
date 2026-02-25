@@ -53,6 +53,26 @@ select {
   font: inherit;
 }
 
+button {
+  transition:
+    transform 160ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
 .app-shell {
   min-height: 100vh;
   height: 100vh;
@@ -429,11 +449,7 @@ body.resizing-right-panel {
   border: 1px solid var(--border);
   padding: 9px 10px;
   cursor: pointer;
-  transition: transform 150ms ease, opacity 150ms ease;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
+  transition: opacity 150ms ease;
 }
 
 .btn:disabled {
@@ -868,6 +884,34 @@ body.resizing-right-panel {
   min-width: 0;
 }
 
+.autonomy-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.autonomy-card {
+  padding: 12px;
+}
+
+.autonomy-form-grid {
+  margin-top: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.autonomy-form-grid label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.autonomy-actions {
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
 .portfolio-list,
 .orders-list {
   margin-top: 10px;
@@ -1087,6 +1131,13 @@ body.resizing-right-panel {
   margin-top: 12px;
   margin-bottom: 8px;
   font-size: 0.84rem;
+}
+
+.managed-trades-closed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .timeline {

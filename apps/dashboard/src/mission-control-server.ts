@@ -153,6 +153,13 @@ function round6(value: number): number {
   return Number(value.toFixed(6));
 }
 
+function computeDrawdownPct(maxDrawdownUsd: number, peak: number): number {
+  if (!Number.isFinite(maxDrawdownUsd) || !Number.isFinite(peak) || peak <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, (maxDrawdownUsd / peak) * 100));
+}
+
 function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
   if (!raw) {
     return fallback;
@@ -3406,7 +3413,7 @@ export async function startMissionControlServer(
         }
       }
       const expectancy = bucket.length > 0 ? cumulative / bucket.length : 0;
-      const maxDrawdownPct = peak > 0 ? (maxDrawdownUsd / peak) * 100 : 0;
+      const maxDrawdownPct = computeDrawdownPct(maxDrawdownUsd, peak);
       const slippageProxyBps = bucket.length > 0 ? slippageTotal / bucket.length : 0;
       out.push({
         version,
@@ -3459,7 +3466,7 @@ export async function startMissionControlServer(
     });
     const expectancy = rows.length > 0 ? cumulative / rows.length : 0;
     const slippageProxyBps = rows.length > 0 ? slippageTotal / rows.length : 0;
-    const maxDrawdownPct = peak > 0 ? (maxDrawdownUsd / peak) * 100 : 0;
+    const maxDrawdownPct = computeDrawdownPct(maxDrawdownUsd, peak);
     return {
       generatedAt: nowIso,
       lookbackDays,
@@ -3562,7 +3569,7 @@ export async function startMissionControlServer(
       const closedTrades = bucket.length;
       const expectancyNetFeesUsd = closedTrades > 0 ? cumulative / closedTrades : 0;
       const slippageProxyBps = closedTrades > 0 ? slippageTotal / closedTrades : 0;
-      const maxDrawdownPct = peak > 0 ? (maxDrawdownUsd / peak) * 100 : 0;
+      const maxDrawdownPct = computeDrawdownPct(maxDrawdownUsd, peak);
       const controlViolationRatePct = closedTrades > 0 ? (controlViolations / closedTrades) * 100 : 0;
       const syntheticSummary: LearningEvaluationSummary = {
         generatedAt: nowIso,

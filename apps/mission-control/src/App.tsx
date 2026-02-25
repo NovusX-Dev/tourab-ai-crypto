@@ -9,6 +9,7 @@ import { ControlDeck } from "./components/ControlDeck";
 import { DemoReadinessCard } from "./components/DemoReadinessCard";
 import { EventStream } from "./components/EventStream";
 import { LogsPanel } from "./components/LogsPanel";
+import { ManagedTradesPanel } from "./components/ManagedTradesPanel";
 import { IncidentsPanel } from "./components/IncidentsPanel";
 import { Milestone5ReadinessCard } from "./components/Milestone5ReadinessCard";
 import { OpsMetricsPanel } from "./components/OpsMetricsPanel";
@@ -24,7 +25,19 @@ import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, I
 
 const client = createDefaultBotApiClient();
 
-type PanelName = "stream" | "risk" | "audit" | "logs" | "approvals" | "alerts" | "incidents" | "portfolio" | "orders" | "ops" | "autonomy";
+type PanelName =
+  | "stream"
+  | "risk"
+  | "audit"
+  | "logs"
+  | "approvals"
+  | "alerts"
+  | "incidents"
+  | "portfolio"
+  | "orders"
+  | "ops"
+  | "autonomy"
+  | "managed_trades";
 type ToastTone = "success" | "error" | "warning";
 type OperatorScope = "primary" | "btc" | "eth";
 type LearningTrendFocus = "expectancy" | "drawdown" | "slippage" | "controlViolationRate";
@@ -676,7 +689,8 @@ export default function App() {
     { id: "portfolio", label: "Portfolio" },
     { id: "orders", label: "Orders" },
     { id: "ops", label: "Ops" },
-    { id: "autonomy", label: "Autonomy" }
+    { id: "autonomy", label: "Autonomy" },
+    { id: "managed_trades", label: "Managed Trades", count: dashboard.managedTrades.length }
   ];
 
   const renderRightPanelContent = () => {
@@ -769,7 +783,6 @@ export default function App() {
       return (
         <AutonomyPanel
           config={dashboard.autoExitConfig}
-          managedTrades={dashboard.managedTrades}
           entryAutonomy={dashboard.entryAutonomy}
           strategyPromotion={dashboard.strategyPromotion}
           strategyDegradation={dashboard.strategyDegradation}
@@ -780,7 +793,6 @@ export default function App() {
           trendFocus={learningTrendFocus}
           canEdit={dashboard.role !== "read_only"}
           onSaveConfig={saveAutoExitConfig}
-          onRefreshTrades={refreshManagedTrades}
           onSaveEntryAutonomy={saveEntryAutonomyConfig}
           onRegisterStrategy={registerStrategyVersion}
           onPromoteStrategy={promoteStrategyVersion}
@@ -791,6 +803,9 @@ export default function App() {
           onRunLearningRetentionPrune={runLearningRetentionPrune}
         />
       );
+    }
+    if (selectedPanel === "managed_trades") {
+      return <ManagedTradesPanel trades={dashboard.managedTrades} onRefresh={refreshManagedTrades} />;
     }
     return <LogsPanel logs={dashboard.logs} onClearStreamsAndLogs={() => void clearStreamsAndLogs()} />;
   };

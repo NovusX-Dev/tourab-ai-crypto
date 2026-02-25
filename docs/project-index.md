@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-24 12:31:25 UTC
+Generated: 2026-02-25 11:58:40 UTC
 
 ## Summary
 - Root: `.`
-- Directories indexed: 332
-- Files indexed: 927
+- Directories indexed: 346
+- Files indexed: 968
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -60,8 +60,8 @@ Generated: 2026-02-24 12:31:25 UTC
         - coverage-summary.json
       - dist/
         - assets/
-          - index-B74nzjzU.css
-          - index-DhMkRn_p.js
+          - index-aJ8WyXdC.css
+          - index-CC08Uhem.js
         - index.html
       - node_modules/
         - .vite/
@@ -102,6 +102,7 @@ Generated: 2026-02-24 12:31:25 UTC
           - EventStream.tsx
           - IncidentsPanel.tsx
           - LogsPanel.tsx
+          - ManagedTradesPanel.tsx
           - Milestone5ReadinessCard.tsx
           - OpsMetricsPanel.tsx
           - OrdersPanel.tsx
@@ -266,6 +267,9 @@ Generated: 2026-02-24 12:31:25 UTC
       - evidence.json
       - summary.md
     - m5-evidence-2026-02-24T08-43-18-170Z/
+      - evidence.json
+      - summary.md
+    - m5-evidence-2026-02-25T08-26-50-199Z/
       - evidence.json
       - summary.md
     - m5-soak-2026-02-17T18-11-37-293Z/
@@ -453,10 +457,23 @@ Generated: 2026-02-24 12:31:25 UTC
     - m5-soak-2026-02-24T09-50-02-987Z/
       - report.json
       - summary.md
+    - m5-soak-2026-02-25T08-06-44-857Z/
+    - m5-soak-2026-02-25T08-08-40-134Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-02-25T11-46-23-283Z/
+      - report.json
+      - summary.md
     - m6-acceptance-2026-02-19T08-04-49-497Z/
       - report.json
       - summary.md
     - m6-acceptance-2026-02-19T15-24-28-150Z/
+      - report.json
+      - summary.md
+    - m6-live-governance-2026-02-25T08-53-05-219Z/
+      - report.json
+      - summary.md
+    - m6-live-governance-2026-02-25T09-38-14-445Z/
       - report.json
       - summary.md
     - m7-dataset-2026-02-20T09-53-18-101Z/
@@ -537,6 +554,10 @@ Generated: 2026-02-24 12:31:25 UTC
       - dataset-manifest.json
       - summary.md
     - m7-dataset-2026-02-24T09-57-37-486Z/
+      - closed-trade-features.ndjson
+      - dataset-manifest.json
+      - summary.md
+    - m7-dataset-2026-02-25T11-53-25-145Z/
       - closed-trade-features.ndjson
       - dataset-manifest.json
       - summary.md
@@ -743,6 +764,9 @@ Generated: 2026-02-24 12:31:25 UTC
       - report.json
       - summary.md
     - m7-sol-calibration-2026-02-24T09-49-57-318Z/
+      - report.json
+      - summary.md
+    - m7-sol-calibration-2026-02-25T11-46-19-965Z/
       - report.json
       - summary.md
     - m7-sol-reentry-2026-02-23T12-00-03-515Z/
@@ -1114,6 +1138,29 @@ Generated: 2026-02-24 12:31:25 UTC
         - summary.md
         - walk-forward-report.json
       - summary.md
+    - m7-sol-reentry-2026-02-25T11-53-26-375Z/
+      - dataset-curated/
+        - closed-trade-features.ndjson
+        - dataset-manifest.json
+      - moderate/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - reintroduce/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - retrain/
+        - approval-record.json
+        - metrics.json
+        - promotion-packet.json
+        - training-run.json
+        - validation-report.json
+      - strict/
+        - gate-result.json
+        - summary.md
+        - walk-forward-report.json
+      - summary.md
     - m7-walk-forward-2026-02-23T09-55-24-508Z/
       - summary.md
       - walk-forward-report.json
@@ -1144,6 +1191,8 @@ Generated: 2026-02-24 12:31:25 UTC
     - local-terminal.pid
     - m5-daily-server-2026-02-24.err.log
     - m5-daily-server-2026-02-24.out.log
+    - m5-daily-server-2026-02-25.err.log
+    - m5-daily-server-2026-02-25.out.log
     - m5-evidence-server.err.log
     - m5-evidence-server.out.log
     - m5-evidence-server.pid
@@ -1168,7 +1217,11 @@ Generated: 2026-02-24 12:31:25 UTC
     - mission-control-server.out.log
     - mission-events.jsonl
     - mission-events.sqlite
+    - mission-events.sqlite-shm
+    - mission-events.sqlite-wal
     - mission-ops.sqlite
+    - mission-ops.sqlite-shm
+    - mission-ops.sqlite-wal
     - okx-snapshot.json
     - order-intents.jsonl
     - proposal.e2e.json
@@ -1196,6 +1249,7 @@ Generated: 2026-02-24 12:31:25 UTC
     - m5-evidence-rollup.ts
     - m5-soak.ts
     - m6-acceptance-walkthrough.ts
+    - m6-live-governance-check.ts
     - m7-dataset-curate.ts
     - m7-dataset-snapshot.ts
     - m7-gate-promotion.ts
@@ -1252,6 +1306,7 @@ Generated: 2026-02-24 12:31:25 UTC
     - reconciliation.spec.ts
     - risk-gatekeeper.property.spec.ts
     - risk-gatekeeper.spec.ts
+    - sqlite-event-store.spec.ts
     - TEST_PLAN.md
     - worker-manager.spec.ts
     - worker-symbol-quality-gate.spec.ts
@@ -1306,7 +1361,7 @@ Generated: 2026-02-24 12:31:25 UTC
 | `apps/dashboard/src/mission-control/sqlite-event-store.ts` | 4967 | 2026-02-18 16:51:12 | `639918252486f4000bd224c1567bbb2a5e2962d61371baa597d7a416cf896e6c` |
 | `apps/dashboard/src/mission-control/sqlite-ops-store.ts` | 24341 | 2026-02-23 10:53:46 | `d6310f60f36af9ad76a921d8f4e5967ac84fde434280bbce6f7672b5b422090c` |
 | `apps/dashboard/src/mission-control/worker-manager.ts` | 12877 | 2026-02-23 19:22:42 | `112485af8ed4ede1dad8d3f3abf12f4147347178324c41f41134ebca6d19386e` |
-| `apps/dashboard/src/mission-control-server.ts` | 210852 | 2026-02-23 19:22:55 | `a358c38f1eb29334874cf663de47b86d460f4d2238d193f2eb9b14854387aca6` |
+| `apps/dashboard/src/mission-control-server.ts` | 211086 | 2026-02-25 09:59:24 | `018632427eb222074179fad72d107c6c28dc518d0defabe217c4f633e62701ae` |
 | `apps/dashboard/src/okx-demo-auto-loop-cli.ts` | 10196 | 2026-02-17 14:03:52 | `1a99e46e1bfceb646ce6a5c56bbe5ecde6bf9e8ee6a1c55f1a9c610b0d683c01` |
 | `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4304 | 2026-02-17 14:03:47 | `abf004a0c761c5feec4c7916124fb349256ff5a616acbc0dd708653107d72edf` |
 | `apps/dashboard/src/okx-demo-diagnostic-cli.ts` | 6491 | 2026-02-18 13:10:48 | `d3ed9b32a93474eef8fac634fa6c0a4bf2ed275a45fc333b0a3a46702afdd225` |
@@ -1318,9 +1373,9 @@ Generated: 2026-02-24 12:31:25 UTC
 | `apps/dashboard/src/proposal-helper.ts` | 6727 | 2026-02-16 09:01:09 | `c7904f9d9d4031626eae07d84e2c13fde3aeee8e158eb86af36e45834033e306` |
 | `apps/dashboard/src/reconciliation.ts` | 6040 | 2026-02-16 09:10:08 | `e5f55769e0e1138f12facf33e0575cf932b4237298f02e58439f36490e7e8ee4` |
 | `apps/mission-control/coverage/coverage-summary.json` | 2253 | 2026-02-20 08:11:47 | `80c9a184db23dfea6bb22877fe7295fd61abb53f4e2fc5be63c5845045d9c9ce` |
-| `apps/mission-control/dist/assets/index-B74nzjzU.css` | 17908 | 2026-02-24 12:23:30 | `3c4900b57c7897861975dba445da5860f21dcbfc9424512ceec9cf4cb93231c0` |
-| `apps/mission-control/dist/assets/index-DhMkRn_p.js` | 310775 | 2026-02-24 12:23:30 | `055990dc008d89cf8a7d0b121931d88097d72d3736e3de3ab004de932319e3d5` |
-| `apps/mission-control/dist/index.html` | 408 | 2026-02-24 12:23:30 | `daa4b2cb3a8a3f300853b5c5c96623a0d7207a6537c20884149a9c3ff57bfbe6` |
+| `apps/mission-control/dist/assets/index-aJ8WyXdC.css` | 18632 | 2026-02-24 12:40:37 | `dea97f399ef8550471b9b316032d260fab911dccb90057dac49e0127337e4a4a` |
+| `apps/mission-control/dist/assets/index-CC08Uhem.js` | 311930 | 2026-02-24 12:40:37 | `ae87017342166c8c6198a257ff8abbd9f1acb3d0c40fe0fa56b1316b28785499` |
+| `apps/mission-control/dist/index.html` | 408 | 2026-02-24 12:40:37 | `fed47d9ec9e386042e5a30bd869fc04bea5c75ee76924c3edd680a75e07c6957` |
 | `apps/mission-control/index.html` | 310 | 2026-02-16 17:06:38 | `08590a3a9a172d25533738243d7ead030a850e32d52ab09543d150a4ddec4253` |
 | `apps/mission-control/node_modules/.vite/deps/_metadata.json` | 1211 | 2026-02-24 10:56:31 | `5598df3271743690f9c3a4194033b45e375807c534a6138b0685c9e94f1f3978` |
 | `apps/mission-control/node_modules/.vite/deps/chunk-JPOJ7BIY.js` | 16132 | 2026-02-24 10:56:31 | `4f3c3830d64d7b27285b15fde6f43f138372b1891876d9cbb04d5f453c2ddf76` |
@@ -1338,23 +1393,24 @@ Generated: 2026-02-24 12:31:25 UTC
 | `apps/mission-control/node_modules/.vite/deps/react-dom.js.map` | 93 | 2026-02-24 10:56:31 | `ed562b0bba7ee7214e56ac7f728054b3496bec4597c94a4eb7b4179e6f5cb1c9` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js` | 1005187 | 2026-02-24 10:56:31 | `f14b7bce848f545229136f9afb30e703ae9582a00e355ba92207e4aa8399f858` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js.map` | 1559234 | 2026-02-24 10:56:31 | `6137b61d61b94540bff33a497aa550caed7b5fc5a22a550fdbe0109e9ae8ee22` |
-| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 472 | 2026-02-24 12:23:33 | `c3f36a58358814b6602603c9cad0a0eceab4f6729a305e40a3816ac102ba7b58` |
+| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 472 | 2026-02-24 12:40:38 | `6e91cf0682001affc117892e89df54b24b6c411e4987c89165d0aada274abe3d` |
 | `apps/mission-control/package.json` | 669 | 2026-02-16 17:42:43 | `3024c620c459bc2e3913d4089b1595f968279f16f76d94c51d93ade2b841ce8e` |
 | `apps/mission-control/README.md` | 5011 | 2026-02-17 13:32:41 | `8a2923353fdf2206681aa99dde2fdb85ab98505b108c85766f90d9f3c9a11c14` |
 | `apps/mission-control/src/api/BotApiClient.ts` | 5965 | 2026-02-23 10:50:15 | `538549d7c745b2699e4bbcdadd2b620309cd676a3054f2dc9b2fd477d6eb8d69` |
 | `apps/mission-control/src/api/LiveBotApiClient.ts` | 32505 | 2026-02-23 10:52:05 | `dc505e5ce44c0ae84f7dd6505c51df48868cf3748a88d9049a016da49ded052e` |
 | `apps/mission-control/src/api/MockBotApiClient.ts` | 31720 | 2026-02-23 10:53:37 | `3be76fac5699b9f00c159e4dc947b94fa9b6c44c4406142357f666bec3cb5dec` |
-| `apps/mission-control/src/App.tsx` | 40632 | 2026-02-24 12:23:17 | `b4d2d07e0ff4c1648a8b68b2a4f7e4d86af8b450a0d85a23b48c6b0fba5ca6ef` |
+| `apps/mission-control/src/App.tsx` | 40897 | 2026-02-24 12:34:14 | `17669ad0441e14f269923556ce3b77073115bcda561bb0b91b531e8f89fca90f` |
 | `apps/mission-control/src/components/AlertsPanel.tsx` | 3935 | 2026-02-20 11:55:28 | `5fd90237a939c9ecef41427dda4e228879f630974f4fbee9ce2e22a719efd7d4` |
 | `apps/mission-control/src/components/ApprovalsPanel.tsx` | 4599 | 2026-02-17 16:33:52 | `d2147ce924654de3c6c36aab79043f1088419978e1bfb0772984278856d775b6` |
 | `apps/mission-control/src/components/AuditTimeline.tsx` | 1307 | 2026-02-16 17:05:08 | `4b7dce32b967dd32649ec3395eefc00800bda128404c5335da450528aaa3b6ea` |
-| `apps/mission-control/src/components/AutonomyPanel.tsx` | 38406 | 2026-02-24 10:55:59 | `b52990ed16374f63bf874d0f74d978409cec623beab7ce8fe4e0febe5ab041f2` |
+| `apps/mission-control/src/components/AutonomyPanel.tsx` | 36108 | 2026-02-24 12:34:46 | `b4eaf23422e280164a2f0f5af1e5fd03022d2022ea9557d12ddbdf8a27350c82` |
 | `apps/mission-control/src/components/BotStatusCard.tsx` | 1480 | 2026-02-16 17:04:22 | `8e20b77c5543d8d4d8d2656fe82eae10c976b9a105ee5062d172db5c6099fadf` |
 | `apps/mission-control/src/components/ControlDeck.tsx` | 1610 | 2026-02-16 17:04:22 | `eb3c9bc99165976a7ecaa3dcb7489e336df8a315d8dbf908b97ad32a17afa159` |
 | `apps/mission-control/src/components/DemoReadinessCard.tsx` | 1532 | 2026-02-17 15:49:47 | `183b6da47182e40ab56c2cb19606758b719aec344c5645acc1bdcdaf1fd2ebef` |
 | `apps/mission-control/src/components/EventStream.tsx` | 7034 | 2026-02-17 13:15:12 | `043b3b5fd5e1e0eb83f7cccf9f1471e21215a12f3d03d88e77c64c56c62a4766` |
 | `apps/mission-control/src/components/IncidentsPanel.tsx` | 2971 | 2026-02-21 20:11:58 | `6ffb6c22006c41b5144da164710546cd48d31bbdc52a724349f52fc0f4f01757` |
 | `apps/mission-control/src/components/LogsPanel.tsx` | 2301 | 2026-02-17 16:52:22 | `21ba0d957605368d3e4e9add682446ede91f3940cf18ea88dcda9f68a6ac7ee1` |
+| `apps/mission-control/src/components/ManagedTradesPanel.tsx` | 3891 | 2026-02-24 12:40:19 | `5104d279d0fc7d8ace300d1f6c34f13b96211ed87274f4fae917fd2ffc0afa4e` |
 | `apps/mission-control/src/components/Milestone5ReadinessCard.tsx` | 1328 | 2026-02-17 19:29:30 | `644d8160c260b76ee356b7eac89614a6dda6fc9727a5aa5e890cdd9c21e14aed` |
 | `apps/mission-control/src/components/OpsMetricsPanel.tsx` | 2381 | 2026-02-17 14:54:17 | `059fb7100261676e15041908fdb21269b88f494a39dabd73503331c4504b74b0` |
 | `apps/mission-control/src/components/OrdersPanel.tsx` | 1854 | 2026-02-17 13:11:29 | `c068a905309ad03371156a89c9533d1cb67ce95d94e07af8f40c6c8c6902d9c1` |
@@ -1368,7 +1424,7 @@ Generated: 2026-02-24 12:31:25 UTC
 | `apps/mission-control/src/main.tsx` | 232 | 2026-02-16 17:06:38 | `adbc6a19142a0e6bfd6289063814cda1d9748df74d8f6dfc04d0d810f218a6ee` |
 | `apps/mission-control/src/mock/mockData.ts` | 6054 | 2026-02-16 17:43:47 | `0de386d7f19a8d5db8ad9e34d8c8c700f8fabbbb82e64e9cd177db2ef36a550a` |
 | `apps/mission-control/src/state/useDashboardData.ts` | 13783 | 2026-02-20 11:24:05 | `b84a2fbbd2262b3b8cf2ec9494bac2139004683e2bd3e51844301036bb7d5107` |
-| `apps/mission-control/src/styles.css` | 22604 | 2026-02-24 12:23:02 | `a7c55637ee50b8d7c27dea4305a49fe39a9cc1a4b26086d69500dc31d4a472af` |
+| `apps/mission-control/src/styles.css` | 23511 | 2026-02-24 12:40:31 | `93d8896fea2f75b757bcf9373b9cf9a0c257e9fc91c22315d7c0638800602db7` |
 | `apps/mission-control/src/test/control-availability.spec.ts` | 628 | 2026-02-16 17:06:56 | `f19d2b619f4bf956bb0e9763be060fa3c11f02de6f6e292d881fa53ef0d39560` |
 | `apps/mission-control/src/test/event-filters.spec.ts` | 1221 | 2026-02-16 17:06:56 | `e39b0758d48483a9fe3d35d7302cc60d33a48c46d1ed523f2d76534b88a3a8a5` |
 | `apps/mission-control/src/test/event-stream-virtualization.spec.ts` | 3099 | 2026-02-17 13:19:27 | `27a4d0b136cc8cf9078a26ff9bea052581d17865f0038d66e23bb3d3afc46ed5` |
@@ -1392,14 +1448,14 @@ Generated: 2026-02-24 12:31:25 UTC
 | `docs/okx/okx-docs-v5-en.html` | 4731242 | 2026-02-15 08:37:49 | `f46686a9f46827dc51b633b0dcb80331ada0a0a18e1dc44efe1ce3f6449c0459` |
 | `docs/okx/source-verification.md` | 2779 | 2026-02-15 08:44:50 | `2ecd8ccbe303873fa80b753fd914f75c30a2cda753ad1ca7090d0aecc6c4facb` |
 | `docs/operator-playbook.md` | 3669 | 2026-02-24 11:19:11 | `c0474c0a28cabc00cfc60bd0d921f0877b4cb838fe8aab8c1b08f2cb6d80c4ab` |
-| `docs/roadmap.md` | 22735 | 2026-02-24 10:05:38 | `0128c2f9da5c3eaa41bc55aed2127542c9c7023ba77a22f86d6930e3a4e950a8` |
+| `docs/roadmap.md` | 24414 | 2026-02-25 11:55:12 | `4b94b4332ee70faedc6f7ae94a30cab5606044e1c94723334f2a9e0a48f2df75` |
 | `docs/runbooks/approval-governance.md` | 511 | 2026-02-17 08:14:21 | `22173a75980107cd50ea20e20026edc797b638ddca01af77054dc59c4998e7a0` |
 | `docs/runbooks/control-plane-incident.md` | 2732 | 2026-02-17 13:33:00 | `00a6a6aae859f6b82d31d5c44d6d823544d2aafdc5064d958f4aa99cc768f421` |
 | `docs/runbooks/exchange-reliability.md` | 508 | 2026-02-17 08:14:36 | `05b52676536a6fe45d01f85e54778cfe30239fb313f6e8fff7146f813b22e40e` |
 | `docs/runbooks/freshness-guard.md` | 612 | 2026-02-17 08:14:21 | `9b34580d9ee2080fe59c635ed4a4fe675401c29d8ed318d785957ca2efb0d8e4` |
 | `docs/runbooks/learning-evaluation-guard.md` | 1814 | 2026-02-20 10:54:42 | `1170205da16105b7171b98f71994c8ff4037700ae0603809ce855f8310cb7a59` |
 | `docs/runbooks/reconciliation-drift-circuit.md` | 660 | 2026-02-17 08:14:21 | `e1c20250b36afbd059c08da1dc10747313821972de49feae9febdb22f0ae6217` |
-| `docs/tomorrow-work.md` | 4648 | 2026-02-24 09:58:05 | `1e6794c1d76bfad834fada829b8b7652e36b00cc01ec486c4ff7d45d43479d65` |
+| `docs/tomorrow-work.md` | 8299 | 2026-02-25 11:56:18 | `3955006873f315357ee249a199f729b1833ba8876826424939cbfa6175708246` |
 | `docs/ui-prompts.md` | 16045 | 2026-02-16 17:00:33 | `de5e884a5d4fc1f5b340efe9bc28adfcb313ccee16d4e9136b1c73818e832c3c` |
 | `eslint.config.mjs` | 1975 | 2026-02-20 08:19:22 | `7bc26fbaf896e1ba9bbc8a9d658cd60fe4eac6c53878f21fdc6e0a6c268d7be3` |
 | `logs/context.e2e.json` | 295 | 2026-02-17 13:49:59 | `30cbda451beabc5dd7ac3a11ba4e4c148bf6785692c71239c36148fb9b16205e` |
@@ -1408,6 +1464,8 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/local-terminal.pid` | 7 | 2026-02-17 20:01:00 | `ccb7cf046f379b2fd4753d38a546dfedea3fd4aca8912adb1ab1d41102b73c40` |
 | `logs/m5-daily-server-2026-02-24.err.log` | 1066 | 2026-02-24 08:25:09 | `a72cb8a60819cba6b0d7e50a886cc4d7263f2f9c9dfcc1cc6397d08c6e55e20c` |
 | `logs/m5-daily-server-2026-02-24.out.log` | 131417 | 2026-02-24 08:43:18 | `d27745b2761f42f99f59729adc2cd380e9de15e3e6b4c79ead746d94902b33be` |
+| `logs/m5-daily-server-2026-02-25.err.log` | 169 | 2026-02-25 10:00:19 | `e6a8ac0c8fee54028bb3d41278be71f3e9cc95b743059a43fe7021c177482d47` |
+| `logs/m5-daily-server-2026-02-25.out.log` | 1427 | 2026-02-25 11:56:11 | `7652f1719619534dcc458501994240e2141f41b4e8500f5692edc6a9cd8c326b` |
 | `logs/m5-evidence-2026-02-17T19-33-51-490Z/evidence.json` | 783 | 2026-02-17 19:33:51 | `73401ad671d41ef76718aeea02eac9cd71cfe92ee3eccd8d3356ef8ea8f60f18` |
 | `logs/m5-evidence-2026-02-17T19-33-51-490Z/summary.md` | 470 | 2026-02-17 19:33:51 | `387de3aa1153c2c24a3c17891ab21e9e6be7cf5f6033970df81192e3ea0bf634` |
 | `logs/m5-evidence-2026-02-17T20-03-47-498Z/evidence.json` | 852 | 2026-02-17 20:03:47 | `4218b9feb07b2ced27598b20c0cde4f6b9d6a4acf581cbf1792973e3522c23c7` |
@@ -1478,6 +1536,8 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m5-evidence-2026-02-23T08-28-23-766Z/summary.md` | 1038 | 2026-02-23 08:28:23 | `b5658614a4824c5e8a0f6bdd794e562f59427f0066d250a8006cee89a4b63c04` |
 | `logs/m5-evidence-2026-02-24T08-43-18-170Z/evidence.json` | 3215 | 2026-02-24 08:43:18 | `fec45a210461e65a856bbc9af34ff5e9ffec5222c43621ca8bbb2e75cb1d1df9` |
 | `logs/m5-evidence-2026-02-24T08-43-18-170Z/summary.md` | 1132 | 2026-02-24 08:43:18 | `f8ec8de0f7f307c0b76cd9e669195f64ad7d417991c2a70b2ab0faa3bcd3e17d` |
+| `logs/m5-evidence-2026-02-25T08-26-50-199Z/evidence.json` | 3561 | 2026-02-25 08:26:50 | `d61154f78723880945e395a0604bd03dfe4771ee67e2a9803acabdc9174cb254` |
+| `logs/m5-evidence-2026-02-25T08-26-50-199Z/summary.md` | 1226 | 2026-02-25 08:26:50 | `99415c5e4e9f168186aaafb193401f56cb85e60734e240b77ee63652e6e57b0c` |
 | `logs/m5-evidence-server.err.log` | 170 | 2026-02-17 19:40:37 | `d9a645ccb73ee43ae720ee86d1671b9cbfa20afd564d804c8d91231f91e14a1d` |
 | `logs/m5-evidence-server.out.log` | 493 | 2026-02-17 19:33:51 | `975802daaf5e23ce651bdbc7b6540b02071da907031fa9882ef1efb219a402d6` |
 | `logs/m5-evidence-server.pid` | 7 | 2026-02-17 19:33:33 | `a5f588000542d5c04e807c71ab9db3c9c084639ea83b7f5f77f0082cc5b00a36` |
@@ -1591,6 +1651,10 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m5-soak-2026-02-24T08-45-14-303Z/summary.md` | 784 | 2026-02-24 08:53:29 | `944fd92f369ec841b5e918b7e776fa76b5e59443bb1c28b419daf0aaedbbd708` |
 | `logs/m5-soak-2026-02-24T09-50-02-987Z/report.json` | 1128 | 2026-02-24 09:57:36 | `380cc993824378c5d1c73a55e362807991253ff258635a70d8d9695562372031` |
 | `logs/m5-soak-2026-02-24T09-50-02-987Z/summary.md` | 784 | 2026-02-24 09:57:36 | `08ea60875345c6dc0f323d07fbcde574a79507b4eb2635825fcc8a8f4ea667be` |
+| `logs/m5-soak-2026-02-25T08-08-40-134Z/report.json` | 1127 | 2026-02-25 08:26:43 | `e2a6ebee2d71540d20a6d179baeb371a80304de36f2780b5e1c7185b7e0e3ea2` |
+| `logs/m5-soak-2026-02-25T08-08-40-134Z/summary.md` | 783 | 2026-02-25 08:26:43 | `788e580b99fb1b431dafe75dabdd3b12e0c3d63e11cef0f915869736242c1e49` |
+| `logs/m5-soak-2026-02-25T11-46-23-283Z/report.json` | 1127 | 2026-02-25 11:53:24 | `0070c564554b1e1571a8c1a20279329fa84fe71bb26c5954f185e21ba16dbac6` |
+| `logs/m5-soak-2026-02-25T11-46-23-283Z/summary.md` | 783 | 2026-02-25 11:53:24 | `afd241e0c456ee3d6556a7d4d345c0639b2cd7830f3199707b53a2d95d9932ed` |
 | `logs/m5-soak-run.err.log` | 375 | 2026-02-19 06:53:40 | `0c12ad4352b5f4110bf7ee1302283b76662f15eff4629b197a10de2b01ebeb6f` |
 | `logs/m5-soak-run.out.log` | 823 | 2026-02-19 08:18:27 | `4acc3d9aef736926027fb38a4653d1ec0071da0e9c8bcb5c4d5ba86070de2352` |
 | `logs/m5-soak-server.err.log` | 169 | 2026-02-19 06:53:56 | `6d6432eae09ebe038866b6ffd2cb85d11f85d43761728834388996d6693e0b33` |
@@ -1600,6 +1664,10 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m6-acceptance-2026-02-19T08-04-49-497Z/summary.md` | 613 | 2026-02-19 08:04:50 | `1630c41db3deb9367036f779418d9ebb889fac155e97f1deb2b83d1a1a85d412` |
 | `logs/m6-acceptance-2026-02-19T15-24-28-150Z/report.json` | 98547 | 2026-02-19 15:24:29 | `e2631a9713b657b5a13a46a6f44ff0539f4c80674b391b33c27fd04b26112219` |
 | `logs/m6-acceptance-2026-02-19T15-24-28-150Z/summary.md` | 613 | 2026-02-19 15:24:29 | `3bcc1d755a9f2017202d2a1a3fc9564468ea59cf42a31fd0afd10dfaebe8c25a` |
+| `logs/m6-live-governance-2026-02-25T08-53-05-219Z/report.json` | 20709 | 2026-02-25 08:53:05 | `53431b347c65298388b4900ae9de8ae83b9c76cca6fd21d0c236fc6546d066b6` |
+| `logs/m6-live-governance-2026-02-25T08-53-05-219Z/summary.md` | 641 | 2026-02-25 08:53:05 | `cbb628abd25a03b538fe37c7e612a74e824642e78a5129319ff9f326d260fe6c` |
+| `logs/m6-live-governance-2026-02-25T09-38-14-445Z/report.json` | 37992 | 2026-02-25 09:38:14 | `3d3043eab5ce5bdfbc04d134d4a2f7e649dd95eb4012fb67ebbd341be7b0cc06` |
+| `logs/m6-live-governance-2026-02-25T09-38-14-445Z/summary.md` | 736 | 2026-02-25 09:38:14 | `09b9d8a88b3aa4e06e8b976a1bd731ff7accc79966bcdc50a6fbaaa82a25b8e0` |
 | `logs/m7-dataset-2026-02-20T09-53-18-101Z/closed-trade-features.ndjson` | 0 | 2026-02-20 09:53:18 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
 | `logs/m7-dataset-2026-02-20T09-53-18-101Z/dataset-manifest.json` | 731 | 2026-02-20 09:53:18 | `e24b4b31f3c46d94f3a79e758b3d0b1bb6ef8832275e3fc5475d61e388f1c2b7` |
 | `logs/m7-dataset-2026-02-20T09-53-18-101Z/summary.md` | 449 | 2026-02-20 09:53:18 | `d170de16f84e646368fd509a881f8f47a83542ffcead839fa9de7b649fab5587` |
@@ -1660,6 +1728,9 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m7-dataset-2026-02-24T09-57-37-486Z/closed-trade-features.ndjson` | 278539 | 2026-02-24 09:57:37 | `4e9782f16a2cbb1b17ebec294c81c32a3d608e6cbfc9f5237c126090e9f8e2ee` |
 | `logs/m7-dataset-2026-02-24T09-57-37-486Z/dataset-manifest.json` | 1057 | 2026-02-24 09:57:37 | `9490fa8227452bdab4bb71940f932c75668c8413d6ea5f9b9e15f2985569bb8a` |
 | `logs/m7-dataset-2026-02-24T09-57-37-486Z/summary.md` | 492 | 2026-02-24 09:57:37 | `63c64cd4879bc1c569ee2b5a2381908bde3a79704acd45001dcfe6552350a4aa` |
+| `logs/m7-dataset-2026-02-25T11-53-25-145Z/closed-trade-features.ndjson` | 325975 | 2026-02-25 11:53:25 | `209bca5455588303dab4b600773de815bef79eec9e247b4ef99decf0bd4fa49d` |
+| `logs/m7-dataset-2026-02-25T11-53-25-145Z/dataset-manifest.json` | 1078 | 2026-02-25 11:53:25 | `5ac1bb8fc12bf09c4ed8ab230515a8cf9e1d09e2c9192dd2c288bd2144139c9d` |
+| `logs/m7-dataset-2026-02-25T11-53-25-145Z/summary.md` | 492 | 2026-02-25 11:53:25 | `d1b3ec4d42659bc1bd4d22513f6eb3c5a817ebec8e64bec0d7a98367bb39cbb3` |
 | `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00/closed-trade-features.ndjson` | 98294 | 2026-02-23 11:10:32 | `de704690f3632186beaa148a066d8e98820e2815c8a70279f177e13b4072423d` |
 | `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00/dataset-manifest.json` | 1118 | 2026-02-23 11:10:32 | `35f7063edda65b7fdd6518bca3d333ccebd9a16b3c6d9c1b9743ae8b597a19f2` |
 | `logs/m7-dataset-curated-validation-2026-02-23T08-10-32-002-03-00/summary.md` | 293 | 2026-02-23 11:10:32 | `d187e67edd4a07d798b0f84af6edec229debc2e08110a68616b42a5374fb1f81` |
@@ -1818,6 +1889,8 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m7-sol-calibration-2026-02-24T08-45-10-516Z/summary.md` | 409 | 2026-02-24 08:53:30 | `5160392000a08600d4b0d1a7fb092f078bc3d05f808499f6bbb4b7a7caafa758` |
 | `logs/m7-sol-calibration-2026-02-24T09-49-57-318Z/report.json` | 561 | 2026-02-24 09:57:38 | `55e782a5d8ef4566c8fab70a70a35982c1d2716a38e27c6c1318a7167814a997` |
 | `logs/m7-sol-calibration-2026-02-24T09-49-57-318Z/summary.md` | 409 | 2026-02-24 09:57:38 | `e43f4a33d5a147af80fee6d7cba57e2f57fa2e5ae5bb87993196114f139e5c44` |
+| `logs/m7-sol-calibration-2026-02-25T11-46-19-965Z/report.json` | 559 | 2026-02-25 11:53:26 | `0cb0250fa6543b556af5db452558a70c15a473ebe315ee93a87678d0d80a2078` |
+| `logs/m7-sol-calibration-2026-02-25T11-46-19-965Z/summary.md` | 407 | 2026-02-25 11:53:26 | `1cfd328ba58ebe4790f5894bbd1599288b5192c714f863facb4d19e1c7edaab7` |
 | `logs/m7-sol-calib-server.err.log` | 6468 | 2026-02-23 14:05:50 | `6f5c1f9108d6e3761cc50354e1d14a48de1e8bee17257afa19919ebf819242d2` |
 | `logs/m7-sol-calib-server.out.log` | 78 | 2026-02-23 14:05:48 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
 | `logs/m7-sol-calib-server2.err.log` | 169 | 2026-02-23 14:26:06 | `62a460786402080c3024c6742bb16345ef52578196882069bca11465c8946d8b` |
@@ -2094,6 +2167,23 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/strict/summary.md` | 177 | 2026-02-24 09:57:38 | `949209930f49d455eb5f029a3e8065149eadf34e85bcf14d0fb872c2ab5437b2` |
 | `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/strict/walk-forward-report.json` | 1523 | 2026-02-24 09:57:38 | `b07d43db93f056e1836375281389760088c8ed32add4bfdf127418873cb8ecf2` |
 | `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/summary.md` | 938 | 2026-02-24 09:57:38 | `be8427e79c235b21a01cdfd5b8fe946572cfd427616a429306b7363077470b19` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/dataset-curated/closed-trade-features.ndjson` | 151036 | 2026-02-25 11:53:26 | `0ffa312ac4a97c40c694fa7395915c3d480019ab86c3c2f6710fdfaa84d77ea5` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/dataset-curated/dataset-manifest.json` | 1106 | 2026-02-25 11:53:26 | `c29e078c940627d38cb707eb97bdf16e06ea9a29fc25aa2cfd1beeb2e85cfa3f` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/moderate/gate-result.json` | 524 | 2026-02-25 11:53:26 | `01bed5e3efa71f6089ed8bbcdec8aa4989abc9c098d93a6d7bcfba18038a70f7` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/moderate/summary.md` | 162 | 2026-02-25 11:53:26 | `596d9f207ef7069577e6ab64457481094ee8cb7aeb163019807bea56b2a43833` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/moderate/walk-forward-report.json` | 1518 | 2026-02-25 11:53:26 | `bded6590464d9800bf872e0c4aad8f614493988ba007c5a6eddf9f3ac9af1a05` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/reintroduce/gate-result.json` | 524 | 2026-02-25 11:53:26 | `460be0f5483c1773ea657bcf68276b306480b7d8218c0c526a579ee638304b11` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/reintroduce/summary.md` | 166 | 2026-02-25 11:53:26 | `ecf3d89f67f70d121f28588bb27e215d6332d12e48421f43dd0a584bdfeac52f` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/reintroduce/walk-forward-report.json` | 1518 | 2026-02-25 11:53:26 | `b8407e728042090f80451166c2476b3ce007fdeb4dcba53a943292610644ab4f` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/retrain/approval-record.json` | 314 | 2026-02-25 11:53:26 | `e17617f62a76a4ba15d676f18356751f1922fbbb98a97c2867684f9548e15801` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/retrain/metrics.json` | 320 | 2026-02-25 11:53:26 | `91ed9f17e85e073d6ce4098f04185d0c2781db607460c0cbed4ee61345e17397` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/retrain/promotion-packet.json` | 698 | 2026-02-25 11:53:26 | `1ced85a6ef8504ff85819eb8bcd7284d16dc89c89e992d641100ebb4179139b3` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/retrain/training-run.json` | 1208 | 2026-02-25 11:53:26 | `c3763680a635600aea3f0f5c1b13e824c2b7329a5287932453396c666ce173da` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/retrain/validation-report.json` | 780 | 2026-02-25 11:53:26 | `48d1a33eb5f535551b284a92bb30f7aecd3d13ff63e0727163cff56208b3f3d5` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/strict/gate-result.json` | 560 | 2026-02-25 11:53:26 | `afa76d766eeb7f2e369a1aab0cb2b89943a72d663f4e300f3e6f6e9b5a7639e2` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/strict/summary.md` | 177 | 2026-02-25 11:53:26 | `949209930f49d455eb5f029a3e8065149eadf34e85bcf14d0fb872c2ab5437b2` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/strict/walk-forward-report.json` | 1516 | 2026-02-25 11:53:26 | `f331b424cd68b8c751abbf9e1a508f2981414dc47c15f73799d7c93776c41d35` |
+| `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/summary.md` | 935 | 2026-02-25 11:53:26 | `3c7333f72315096e580b16e13824d069b11fa1e72b606c06094b66f2310be09c` |
 | `logs/m7-sol-reentry-summary-2026-02-23T11-54-23-106Z.md` | 564 | 2026-02-23 11:54:28 | `4ffe3acde6002b610e5498ff8ce7547805f5760ca632a609f5f7fb830ebdc220` |
 | `logs/m7-sol-soak-server.err.log` | 2642 | 2026-02-23 13:46:52 | `1537411193c5fa11eb3c315f337a310547a1568b07297338ff6aabcf79f807ab` |
 | `logs/m7-sol-soak-server.out.log` | 78 | 2026-02-23 13:46:50 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
@@ -2113,12 +2203,16 @@ Generated: 2026-02-24 12:31:25 UTC
 | `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json` | 1537 | 2026-02-23 11:07:36 | `c2424b81fc51660e4b8c5427ed6f422db4235bf7893712823a959d5f37ae8494` |
 | `logs/mc-server.err.log` | 40 | 2026-02-20 12:10:45 | `21454502b8590e3481d031ac1176aa84bd425c84897855c33042a8c5d234b827` |
 | `logs/mc-server.out.log` | 0 | 2026-02-20 12:10:37 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
-| `logs/mission-alerts.jsonl` | 41324 | 2026-02-24 12:30:43 | `70ea55171a003c69a36baffaa7be2da5c0a07eff10e00ccaf07fa221f95a04f3` |
+| `logs/mission-alerts.jsonl` | 7578 | 2026-02-25 11:46:23 | `54893b982cd489af0d281a1e2677362a5dd10ba7b0cf72d761021618b9250d9d` |
 | `logs/mission-control-server.err.log` | 1018 | 2026-02-18 16:48:58 | `d8612be586905cbd5e63c8d3fb277b383bb1d95ded1ab09b1d0bc81d1d41426f` |
 | `logs/mission-control-server.out.log` | 0 | 2026-02-18 16:48:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
 | `logs/mission-events.jsonl` | 208 | 2026-02-16 17:35:42 | `53aca00c56fcb146948c23e537e0c20c4c98ed17c5c575bdf37ce8ff226f081d` |
-| `logs/mission-events.sqlite` | 6004736 | 2026-02-24 12:30:55 | `229b6b095c0a488f8d749516143502446af2d2f48ba0950cd967787be052a061` |
-| `logs/mission-ops.sqlite` | 757760 | 2026-02-24 12:30:55 | `c499df953ac257229b46539c5697b3958d2bc70bd38e8a357856d275c69f9490` |
+| `logs/mission-events.sqlite` | 6004736 | 2026-02-25 11:56:02 | `febb86d9f17749eb0fccc3ee3d50b3eeb6e73548ec45ff52025f5638850040d6` |
+| `logs/mission-events.sqlite-shm` | 32768 | 2026-02-25 10:00:19 | `0ccefe3a17de229fd5c7ca1190acb3c6ad99e1a14c9800f8b0ed6ea2b7676d6b` |
+| `logs/mission-events.sqlite-wal` | 4152992 | 2026-02-25 11:57:22 | `9b5122c30d8023ff12d461a598fe7c74a74d0df0593e2214a44953624ef8292d` |
+| `logs/mission-ops.sqlite` | 823296 | 2026-02-25 11:57:10 | `2a37b284d9369a246184daee34f91588e016ba4bc96e7160d43ea8cf4834d77c` |
+| `logs/mission-ops.sqlite-shm` | 32768 | 2026-02-25 10:00:19 | `43b202ef90cd43ae9b0a929e5aaa15431d28b0c08e7a592001f2f2e95130099b` |
+| `logs/mission-ops.sqlite-wal` | 4157112 | 2026-02-25 11:57:25 | `aa2ed52c9c57acd834fd8ad57c15924d9f385eb2d4c3ca72767bd4fb82562b81` |
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 1054 | 2026-02-17 14:06:49 | `5affbbeccef6f6dbf1a30e205218d368085c5ec6a63f0d2874c7807add0f45ad` |
 | `logs/proposal.e2e.json` | 223 | 2026-02-17 13:49:59 | `0ac6472f8abac22d422519d12c7d2bc01d0929317571d5b99e02d7ec3f058241` |
@@ -2143,6 +2237,7 @@ Generated: 2026-02-24 12:31:25 UTC
 | `scripts/m5-evidence-rollup.ts` | 4031 | 2026-02-18 17:04:29 | `5bc20e5f33f17f442c1f7750082b8e6414d53bb72945c9e22ef3e301db15fcc5` |
 | `scripts/m5-soak.ts` | 17551 | 2026-02-22 08:56:15 | `69dc4c0c8239003a8bd1646650dc0463392447947d82188f4aecef6b11923720` |
 | `scripts/m6-acceptance-walkthrough.ts` | 7271 | 2026-02-19 08:04:40 | `51c7459811fd2d20203866a506f1ce7da7bd3bfd2e42d56b61c5292ccf21b56c` |
+| `scripts/m6-live-governance-check.ts` | 6323 | 2026-02-25 09:38:09 | `6d366355f5e2def55c14ccfb6e771cc248c5dbee8ad17d64ce829d446a126b3c` |
 | `scripts/m7-dataset-curate.ts` | 3390 | 2026-02-23 11:10:11 | `1ed4c15e4f40b2a0b41ef3b7fc35d7e7fe90420874dbd9ab34e2ac10344060b3` |
 | `scripts/m7-dataset-snapshot.ts` | 3841 | 2026-02-20 09:20:59 | `7d6a432522b46c5e3cebafdd7a3c38170aedc2391ee57e3accefa1d2e25af000` |
 | `scripts/m7-gate-promotion.ts` | 6594 | 2026-02-23 09:53:27 | `7d4eb7036551628438cbf6fde9ac6d230a72d52ced44deb94a29cfb2812cb4fd` |
@@ -2186,15 +2281,16 @@ Generated: 2026-02-24 12:31:25 UTC
 | `tests/m7-research-pipeline.spec.ts` | 3604 | 2026-02-20 09:21:45 | `fe5a4fe02c8eb833c890732c9b7160bfa66b126281e8d1774b5a524ee35fe11f` |
 | `tests/m7-walk-forward.spec.ts` | 2852 | 2026-02-23 09:55:00 | `cbb2eea3a8348fe112c5ed048135231532c6c1057c82f9e5c97f7d73adc224ee` |
 | `tests/milestone3-integration.spec.ts` | 4772 | 2026-02-17 07:59:12 | `d5700ebca30526054e04606fe40fc092c9e23a2381bad3f41bbdd829f45dd02e` |
-| `tests/mission-control-contract.spec.ts` | 56557 | 2026-02-21 20:12:27 | `b25874169a1b9c5ed830f27416c81f76fecf5790e75b47428e5795b9c69f0a4d` |
+| `tests/mission-control-contract.spec.ts` | 61322 | 2026-02-25 09:59:40 | `b78c4eb109bf191312d69bf9930de656bf966ab4668a24b8bccabd570dc236e6` |
 | `tests/mission-control-event-normalization.spec.ts` | 1145 | 2026-02-17 16:25:11 | `aa42516419d9d46030fbd74a0536920361c9d105ea9a2858b21e29cc4607c3e5` |
 | `tests/mission-control-policy.spec.ts` | 895 | 2026-02-17 14:30:49 | `24e2f4cd0044527c2fea8c2fec8bb16f2c83fa46d3cf2afecb906f6a3aba47cf` |
 | `tests/mission-control-runtime.spec.ts` | 695 | 2026-02-16 17:33:52 | `aefbdd2825497fc8d9411989202274238d06235796b100a6c62bb682d9975219` |
 | `tests/okx-demo-adapter.spec.ts` | 8264 | 2026-02-19 14:09:19 | `d48c3a732c7233d46a1564470ebd42949bcfe43bb63b5fbf820f9cc6709bb79d` |
 | `tests/proposal-helper.spec.ts` | 2442 | 2026-02-16 09:02:04 | `4a3010d8af6acac630ff69c2f7bd75227d2f5ddb42b377ca49735cd9bf59a8c6` |
-| `tests/reconciliation.spec.ts` | 3445 | 2026-02-16 09:10:16 | `94d83a0fb4c1bb0ffece49834295fa4cdc4b9ef027abd74fa5f1ad4c4ac06f99` |
+| `tests/reconciliation.spec.ts` | 7172 | 2026-02-25 08:49:34 | `79b9ad89d81ce85593c57639f6d3e13e3bd61d37b9d309d31aeb8be7de0613dd` |
 | `tests/risk-gatekeeper.property.spec.ts` | 3603 | 2026-02-17 07:13:03 | `513d72fca85d8371bca0a4954b70b43848d787abca00f18bf15af993bb4c9bfd` |
 | `tests/risk-gatekeeper.spec.ts` | 6690 | 2026-02-17 07:13:17 | `3c88b946823f43129f0a472b38972600afbec9cf67574bbd97cd00c75cf7d126` |
+| `tests/sqlite-event-store.spec.ts` | 1351 | 2026-02-25 08:49:43 | `807a48d699e9e7554a215c3936b6700bb721abec12d714f417758d9ff85aa383` |
 | `tests/TEST_PLAN.md` | 2553 | 2026-02-16 08:16:15 | `8cc0e2a87f4e729d9d83167f38dfac40fc08c469d21234055ea01c01f25d3834` |
 | `tests/worker-manager.spec.ts` | 6022 | 2026-02-23 12:43:39 | `f001e03dd4eeda28aea83097b81924caa3bba803dfab15e245c0419c8f8f0760` |
 | `tests/worker-symbol-quality-gate.spec.ts` | 3284 | 2026-02-23 11:53:52 | `d2018d4df82e2de7363305dc3782e9e9bc4d0f2fe6f60d019c0007a92a00ad35` |

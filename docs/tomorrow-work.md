@@ -50,19 +50,64 @@ When you say we are done for today, I will append the next day plan here.
     - reentry: `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/summary.md`
     - moderate result: still failed but improved (`windowsPassed=2/4`, `passRatePct=50`, `requiredStagePass=false`).
     - reintroduce remains pass (`4/4`, `100%`).
+- Mission Control UI work completed (frontend only, backend wiring preserved):
+  - fixed startup parse issue in `apps/mission-control/src/components/AutonomyPanel.tsx` and restored `mission-control:start`.
+  - implemented layout redesign from `docs/mission-control-layout-redesign.md` (left panel navigation, dynamic center panel, responsive nav drawer).
+  - added dedicated `Managed Trades` tab under `Autonomy`; moved managed trades content out of `Autonomy` into `apps/mission-control/src/components/ManagedTradesPanel.tsx`.
+  - decluttered Autonomy spacing/forms and improved readability in narrow widths.
+  - added consistent hover/press animation treatment for buttons in `apps/mission-control/src/styles.css`.
+  - validation: `npm run mission-control:build` and `npm run mission-control:test` both passed.
 
-## 2026-02-25 (next session)
-- Goal: close M5 readiness to `7/7`, then continue M7 moderate closure.
-- Step 1: run daily M5 cycle first (non-negotiable gate):
-  - `npm run soak:m5 -- --base-url http://localhost:7071 --duration-sec 900 --drain-sec 180 --poll-ms 2000 --max-hold-sec 40 --tp-r 0.5 --exit-offset-bps 1`
-  - `npm run evidence:m5 -- --base-url http://localhost:7071`
-  - update this file with `qualifiedDays/7`, `streakDays`, and `milestoneReady`.
-- Step 2: run M7 moderate-gated SOL baseline after M5 evidence:
+## 2026-02-25
+- Daily M5 qualification/evidence cycle completed (priority run before M7 work):
+  - soak: `logs/m5-soak-2026-02-25T08-08-40-134Z/report.json`
+  - evidence: `logs/m5-evidence-2026-02-25T08-26-50-199Z/evidence.json`
+  - summary: `logs/m5-evidence-2026-02-25T08-26-50-199Z/summary.md`
+  - result: `today.pass=true`, `qualifiedDays=7/7`, `streakDays=5`, `milestoneReady=true`.
+  - today metrics: `closureRatePct=100`, `filledEntries=39`, `deterministicClosed=39`, `tradeErrors=0`, `reconciliationPass=true`.
+- Step 2: Mission Control UI smoke check before trading runs:
+  - `npm run mission-control:start`
+  - verify key tabs and flows: `Autonomy`, `Managed Trades`, `Approvals`, `Alerts`, `Portfolio`, `Orders`.
+  - confirm no regressions in stream scrolling, responsive drawer behavior, and button interactions.
+- Step 3: run M7 moderate-gated SOL baseline after M5 evidence:
   - `npm run sol-calibrate:m7 -- --require-stage moderate`
   - record artifacts (`m5-soak`, `m7-dataset`, `m7-sol-reentry`) plus calibration summary.
-- Step 3: targeted expectancy iteration only if moderate still fails:
+- Step 4: targeted expectancy iteration only if moderate still fails:
   - focus on realized expectancy improvements and rerun the same command.
   - compare against latest reference: `logs/m7-sol-reentry-2026-02-24T09-57-38-293Z/summary.md`.
-- Step 4: acceptance/docs sync:
+- Step 5: acceptance/docs sync:
   - verify M7 completion criteria against latest artifacts.
   - update `docs/roadmap.md` with current M5/M7 status and evidence paths.
+- M7 moderate baseline execution (today, fresh cycle after M5 gate):
+  - calibration: `logs/m7-sol-calibration-2026-02-25T11-46-19-965Z/summary.md`
+  - m5 soak: `logs/m5-soak-2026-02-25T11-46-23-283Z/report.json`
+  - dataset: `logs/m7-dataset-2026-02-25T11-53-25-145Z/dataset-manifest.json`
+  - reentry: `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/summary.md`
+  - moderate walk-forward: `logs/m7-sol-reentry-2026-02-25T11-53-26-375Z/moderate/walk-forward-report.json`
+  - outcome: `moderate` passed (`windowsPassed=3/4`, `passRatePct=75`, `requiredStagePass=true`); `reintroduce` pass (`4/4`, `100%`).
+- Step 4 update:
+  - skipped targeted expectancy iteration because `moderate` passed in Step 3 baseline.
+- Step 5 update:
+  - docs synced with new M7 evidence and status update.
+- Milestone 5 close-out note:
+  - readiness evidence gate is green (`qualifiedDays=7/7`, `milestoneReady=true`),
+  - explicit edge-path acceptance sign-off completed:
+    - partial fills + cancel/replace + duplicate-fill drift (`tests/reconciliation.spec.ts`),
+    - websocket gap/reconnect replay recovery (`tests/mission-control-contract.spec.ts`),
+    - duplicate-event idempotency (`tests/sqlite-event-store.spec.ts`).
+  - milestone decision: Milestone 5 marked complete.
+- Milestone 6 close-out note:
+  - live governance run against fresh real M5 evidence passed:
+    - `logs/m6-live-governance-2026-02-25T09-38-14-445Z/summary.md`
+    - result: `allStepsOk=true`, `limitedProdReached=true`.
+  - temporary challenger promotion was rolled back immediately after validation to keep runtime on stable champion (`champion-v1`).
+  - post-validation hardening completed:
+    - learning drawdown metric now caps `maxDrawdownPct` to `0..100` in backend evaluation/trend logic,
+    - learning alerts re-enabled with calibrated thresholds (`expectancyMinUsd=-0.01`, `maxDrawdownPct=100`, `maxSlippageBps=2500`, `maxControlViolationRatePct=20`),
+    - verification cycle (`~70s`) showed no reopened `LEARNING_*` alerts/incidents.
+  - milestone decision: Milestone 6 marked complete.
+- Final state sanity snapshot (post Step 5 sync):
+  - health: `ok=true`, `state=paused`, `exchangeConnected=true`, `exchangeMode=demo`.
+  - open alerts: `4` total (`INVALID_STATE_TRANSITION x2`, `APPROVAL_REJECTED`, `APPROVAL_EXPIRED`), `0` open `LEARNING_*`.
+  - incidents: `0` open (all resolved).
+  - strategy stage: `activeVersion=champion-v1`, `championVersion=champion-v1`, effective `approvalMode=manual`.

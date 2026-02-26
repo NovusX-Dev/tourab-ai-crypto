@@ -1,6 +1,6 @@
 # Project Index
 
-Generated: 2026-02-25 11:58:40 UTC
+Generated: 2026-02-26 08:19:26 UTC
 
 ## Summary
 - Root: `.`
@@ -61,7 +61,7 @@ Generated: 2026-02-25 11:58:40 UTC
       - dist/
         - assets/
           - index-aJ8WyXdC.css
-          - index-CC08Uhem.js
+          - index-UUsIlUv5.js
         - index.html
       - node_modules/
         - .vite/
@@ -94,6 +94,8 @@ Generated: 2026-02-25 11:58:40 UTC
         - components/
           - AlertsPanel.tsx
           - ApprovalsPanel.tsx
+          - ApprovalTechnicalDetails.tsx
+          - ApprovalTradeCard.tsx
           - AuditTimeline.tsx
           - AutonomyPanel.tsx
           - BotStatusCard.tsx
@@ -111,6 +113,8 @@ Generated: 2026-02-25 11:58:40 UTC
           - RiskPanel.tsx
           - ThemeSwitcher.tsx
         - logic/
+          - alertIncidentPresentation.ts
+          - approvalLifecycle.ts
           - controlAvailability.ts
           - eventFilters.ts
         - mock/
@@ -1217,11 +1221,7 @@ Generated: 2026-02-25 11:58:40 UTC
     - mission-control-server.out.log
     - mission-events.jsonl
     - mission-events.sqlite
-    - mission-events.sqlite-shm
-    - mission-events.sqlite-wal
     - mission-ops.sqlite
-    - mission-ops.sqlite-shm
-    - mission-ops.sqlite-wal
     - okx-snapshot.json
     - order-intents.jsonl
     - proposal.e2e.json
@@ -1373,9 +1373,9 @@ Generated: 2026-02-25 11:58:40 UTC
 | `apps/dashboard/src/proposal-helper.ts` | 6727 | 2026-02-16 09:01:09 | `c7904f9d9d4031626eae07d84e2c13fde3aeee8e158eb86af36e45834033e306` |
 | `apps/dashboard/src/reconciliation.ts` | 6040 | 2026-02-16 09:10:08 | `e5f55769e0e1138f12facf33e0575cf932b4237298f02e58439f36490e7e8ee4` |
 | `apps/mission-control/coverage/coverage-summary.json` | 2253 | 2026-02-20 08:11:47 | `80c9a184db23dfea6bb22877fe7295fd61abb53f4e2fc5be63c5845045d9c9ce` |
-| `apps/mission-control/dist/assets/index-aJ8WyXdC.css` | 18632 | 2026-02-24 12:40:37 | `dea97f399ef8550471b9b316032d260fab911dccb90057dac49e0127337e4a4a` |
-| `apps/mission-control/dist/assets/index-CC08Uhem.js` | 311930 | 2026-02-24 12:40:37 | `ae87017342166c8c6198a257ff8abbd9f1acb3d0c40fe0fa56b1316b28785499` |
-| `apps/mission-control/dist/index.html` | 408 | 2026-02-24 12:40:37 | `fed47d9ec9e386042e5a30bd869fc04bea5c75ee76924c3edd680a75e07c6957` |
+| `apps/mission-control/dist/assets/index-aJ8WyXdC.css` | 18632 | 2026-02-25 12:04:24 | `dea97f399ef8550471b9b316032d260fab911dccb90057dac49e0127337e4a4a` |
+| `apps/mission-control/dist/assets/index-UUsIlUv5.js` | 312472 | 2026-02-25 12:04:24 | `0e4ddb00e03de94af0901ac9d5f2892a76d11ceb0d35eebc98078a9794a5fc43` |
+| `apps/mission-control/dist/index.html` | 408 | 2026-02-25 12:04:24 | `c8aa644b83858fd345679121ab7aba9900dc4b2b5c33cd7ae14975e73d27bbdc` |
 | `apps/mission-control/index.html` | 310 | 2026-02-16 17:06:38 | `08590a3a9a172d25533738243d7ead030a850e32d52ab09543d150a4ddec4253` |
 | `apps/mission-control/node_modules/.vite/deps/_metadata.json` | 1211 | 2026-02-24 10:56:31 | `5598df3271743690f9c3a4194033b45e375807c534a6138b0685c9e94f1f3978` |
 | `apps/mission-control/node_modules/.vite/deps/chunk-JPOJ7BIY.js` | 16132 | 2026-02-24 10:56:31 | `4f3c3830d64d7b27285b15fde6f43f138372b1891876d9cbb04d5f453c2ddf76` |
@@ -1393,24 +1393,26 @@ Generated: 2026-02-25 11:58:40 UTC
 | `apps/mission-control/node_modules/.vite/deps/react-dom.js.map` | 93 | 2026-02-24 10:56:31 | `ed562b0bba7ee7214e56ac7f728054b3496bec4597c94a4eb7b4179e6f5cb1c9` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js` | 1005187 | 2026-02-24 10:56:31 | `f14b7bce848f545229136f9afb30e703ae9582a00e355ba92207e4aa8399f858` |
 | `apps/mission-control/node_modules/.vite/deps/react-dom_client.js.map` | 1559234 | 2026-02-24 10:56:31 | `6137b61d61b94540bff33a497aa550caed7b5fc5a22a550fdbe0109e9ae8ee22` |
-| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 472 | 2026-02-24 12:40:38 | `6e91cf0682001affc117892e89df54b24b6c411e4987c89165d0aada274abe3d` |
+| `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 471 | 2026-02-25 12:04:35 | `09c3b96571d972ac64f1896c88516e207ab44719229afc6a2f688ee0be8952ab` |
 | `apps/mission-control/package.json` | 669 | 2026-02-16 17:42:43 | `3024c620c459bc2e3913d4089b1595f968279f16f76d94c51d93ade2b841ce8e` |
 | `apps/mission-control/README.md` | 5011 | 2026-02-17 13:32:41 | `8a2923353fdf2206681aa99dde2fdb85ab98505b108c85766f90d9f3c9a11c14` |
 | `apps/mission-control/src/api/BotApiClient.ts` | 5965 | 2026-02-23 10:50:15 | `538549d7c745b2699e4bbcdadd2b620309cd676a3054f2dc9b2fd477d6eb8d69` |
 | `apps/mission-control/src/api/LiveBotApiClient.ts` | 32505 | 2026-02-23 10:52:05 | `dc505e5ce44c0ae84f7dd6505c51df48868cf3748a88d9049a016da49ded052e` |
 | `apps/mission-control/src/api/MockBotApiClient.ts` | 31720 | 2026-02-23 10:53:37 | `3be76fac5699b9f00c159e4dc947b94fa9b6c44c4406142357f666bec3cb5dec` |
-| `apps/mission-control/src/App.tsx` | 40897 | 2026-02-24 12:34:14 | `17669ad0441e14f269923556ce3b77073115bcda561bb0b91b531e8f89fca90f` |
-| `apps/mission-control/src/components/AlertsPanel.tsx` | 3935 | 2026-02-20 11:55:28 | `5fd90237a939c9ecef41427dda4e228879f630974f4fbee9ce2e22a719efd7d4` |
-| `apps/mission-control/src/components/ApprovalsPanel.tsx` | 4599 | 2026-02-17 16:33:52 | `d2147ce924654de3c6c36aab79043f1088419978e1bfb0772984278856d775b6` |
+| `apps/mission-control/src/App.tsx` | 42076 | 2026-02-25 12:53:02 | `6fc3886abbcc28343d8dbdaa62d56d6127ef0af7e0a1a834ad96037d74650345` |
+| `apps/mission-control/src/components/AlertsPanel.tsx` | 8775 | 2026-02-25 12:59:30 | `b679fd71ad40e555dd7b28b33840ad5df30a0e2cfc8c71148528b04f29fed743` |
+| `apps/mission-control/src/components/ApprovalsPanel.tsx` | 4447 | 2026-02-25 12:50:03 | `f97ccbffe116508a5ffa828bf65e64b65edaa5430dc6c2f39e7b4377164e8cd9` |
+| `apps/mission-control/src/components/ApprovalTechnicalDetails.tsx` | 2675 | 2026-02-25 12:39:06 | `37b3b4c69ff32ca1ac8b505ac5a5e0b94170a0c9f8118d07477855e66296cd80` |
+| `apps/mission-control/src/components/ApprovalTradeCard.tsx` | 10054 | 2026-02-25 12:50:24 | `070ee9970843d454815df66fe2ba87efe7b2a8c99e0c0ab51887c3359b814496` |
 | `apps/mission-control/src/components/AuditTimeline.tsx` | 1307 | 2026-02-16 17:05:08 | `4b7dce32b967dd32649ec3395eefc00800bda128404c5335da450528aaa3b6ea` |
-| `apps/mission-control/src/components/AutonomyPanel.tsx` | 36108 | 2026-02-24 12:34:46 | `b4eaf23422e280164a2f0f5af1e5fd03022d2022ea9557d12ddbdf8a27350c82` |
+| `apps/mission-control/src/components/AutonomyPanel.tsx` | 43756 | 2026-02-25 13:05:59 | `3d8cda831f2f1f228ce20ca918dc4c78684cbfd8d4d005b441bf43cfea45fe0c` |
 | `apps/mission-control/src/components/BotStatusCard.tsx` | 1480 | 2026-02-16 17:04:22 | `8e20b77c5543d8d4d8d2656fe82eae10c976b9a105ee5062d172db5c6099fadf` |
 | `apps/mission-control/src/components/ControlDeck.tsx` | 1610 | 2026-02-16 17:04:22 | `eb3c9bc99165976a7ecaa3dcb7489e336df8a315d8dbf908b97ad32a17afa159` |
 | `apps/mission-control/src/components/DemoReadinessCard.tsx` | 1532 | 2026-02-17 15:49:47 | `183b6da47182e40ab56c2cb19606758b719aec344c5645acc1bdcdaf1fd2ebef` |
 | `apps/mission-control/src/components/EventStream.tsx` | 7034 | 2026-02-17 13:15:12 | `043b3b5fd5e1e0eb83f7cccf9f1471e21215a12f3d03d88e77c64c56c62a4766` |
-| `apps/mission-control/src/components/IncidentsPanel.tsx` | 2971 | 2026-02-21 20:11:58 | `6ffb6c22006c41b5144da164710546cd48d31bbdc52a724349f52fc0f4f01757` |
+| `apps/mission-control/src/components/IncidentsPanel.tsx` | 7025 | 2026-02-25 13:00:07 | `002ecb3728648116c2da36a95a7fe64accc9ea88da8b1d73284d121e13316b75` |
 | `apps/mission-control/src/components/LogsPanel.tsx` | 2301 | 2026-02-17 16:52:22 | `21ba0d957605368d3e4e9add682446ede91f3940cf18ea88dcda9f68a6ac7ee1` |
-| `apps/mission-control/src/components/ManagedTradesPanel.tsx` | 3891 | 2026-02-24 12:40:19 | `5104d279d0fc7d8ace300d1f6c34f13b96211ed87274f4fae917fd2ffc0afa4e` |
+| `apps/mission-control/src/components/ManagedTradesPanel.tsx` | 6242 | 2026-02-25 12:35:01 | `e7db681a7c77ae9b12d02a1a85230bd4dff27422b35664c733528bc35d1a6991` |
 | `apps/mission-control/src/components/Milestone5ReadinessCard.tsx` | 1328 | 2026-02-17 19:29:30 | `644d8160c260b76ee356b7eac89614a6dda6fc9727a5aa5e890cdd9c21e14aed` |
 | `apps/mission-control/src/components/OpsMetricsPanel.tsx` | 2381 | 2026-02-17 14:54:17 | `059fb7100261676e15041908fdb21269b88f494a39dabd73503331c4504b74b0` |
 | `apps/mission-control/src/components/OrdersPanel.tsx` | 1854 | 2026-02-17 13:11:29 | `c068a905309ad03371156a89c9533d1cb67ce95d94e07af8f40c6c8c6902d9c1` |
@@ -1419,12 +1421,14 @@ Generated: 2026-02-25 11:58:40 UTC
 | `apps/mission-control/src/components/RiskPanel.tsx` | 2004 | 2026-02-24 11:27:51 | `b6bfe44059cccce197ec4d2afed1657fd457115e2a5461547fc0055c854158da` |
 | `apps/mission-control/src/components/ThemeSwitcher.tsx` | 565 | 2026-02-16 17:04:22 | `861e77d8dd27e259d3347d23616f888b0e14f558086650b2eb5f667f3ca79a05` |
 | `apps/mission-control/src/format.ts` | 733 | 2026-02-17 17:13:58 | `40a94e946986d80831ce0527981df67a85c8fe3b41afbcab85dd7cbdb16df02c` |
+| `apps/mission-control/src/logic/alertIncidentPresentation.ts` | 5491 | 2026-02-25 12:58:40 | `7f57f77b447443399eb4c7bb19cb878e74444a5647c5dd9fe6d914e15ab865af` |
+| `apps/mission-control/src/logic/approvalLifecycle.ts` | 737 | 2026-02-25 12:49:47 | `a29452681efce0b33d72f3d13ea6b0044324b47a440ac8b99f57d176896b63a4` |
 | `apps/mission-control/src/logic/controlAvailability.ts` | 1258 | 2026-02-17 14:26:12 | `59cb9bbf799732d838a0591f4d284f3497d82b40cbefd996d1c213aee9e99d85` |
 | `apps/mission-control/src/logic/eventFilters.ts` | 1743 | 2026-02-16 17:34:21 | `82adc811a7d2838f41805609311bc10b8c5699f37658e9db5e923aca183a1776` |
 | `apps/mission-control/src/main.tsx` | 232 | 2026-02-16 17:06:38 | `adbc6a19142a0e6bfd6289063814cda1d9748df74d8f6dfc04d0d810f218a6ee` |
 | `apps/mission-control/src/mock/mockData.ts` | 6054 | 2026-02-16 17:43:47 | `0de386d7f19a8d5db8ad9e34d8c8c700f8fabbbb82e64e9cd177db2ef36a550a` |
 | `apps/mission-control/src/state/useDashboardData.ts` | 13783 | 2026-02-20 11:24:05 | `b84a2fbbd2262b3b8cf2ec9494bac2139004683e2bd3e51844301036bb7d5107` |
-| `apps/mission-control/src/styles.css` | 23511 | 2026-02-24 12:40:31 | `93d8896fea2f75b757bcf9373b9cf9a0c257e9fc91c22315d7c0638800602db7` |
+| `apps/mission-control/src/styles.css` | 33014 | 2026-02-25 13:06:14 | `0febaabfe17c8ba21cdd74cb673ad65ac24aff8ed0d05abe2c95aebe9d4cb6a0` |
 | `apps/mission-control/src/test/control-availability.spec.ts` | 628 | 2026-02-16 17:06:56 | `f19d2b619f4bf956bb0e9763be060fa3c11f02de6f6e292d881fa53ef0d39560` |
 | `apps/mission-control/src/test/event-filters.spec.ts` | 1221 | 2026-02-16 17:06:56 | `e39b0758d48483a9fe3d35d7302cc60d33a48c46d1ed523f2d76534b88a3a8a5` |
 | `apps/mission-control/src/test/event-stream-virtualization.spec.ts` | 3099 | 2026-02-17 13:19:27 | `27a4d0b136cc8cf9078a26ff9bea052581d17865f0038d66e23bb3d3afc46ed5` |
@@ -2203,16 +2207,12 @@ Generated: 2026-02-25 11:58:40 UTC
 | `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json` | 1537 | 2026-02-23 11:07:36 | `c2424b81fc51660e4b8c5427ed6f422db4235bf7893712823a959d5f37ae8494` |
 | `logs/mc-server.err.log` | 40 | 2026-02-20 12:10:45 | `21454502b8590e3481d031ac1176aa84bd425c84897855c33042a8c5d234b827` |
 | `logs/mc-server.out.log` | 0 | 2026-02-20 12:10:37 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
-| `logs/mission-alerts.jsonl` | 7578 | 2026-02-25 11:46:23 | `54893b982cd489af0d281a1e2677362a5dd10ba7b0cf72d761021618b9250d9d` |
+| `logs/mission-alerts.jsonl` | 23040 | 2026-02-25 13:28:11 | `21bd67e9e9e9c9ca6d05742e5bb66575c8aac29eb4e01b34ec6abe291127248d` |
 | `logs/mission-control-server.err.log` | 1018 | 2026-02-18 16:48:58 | `d8612be586905cbd5e63c8d3fb277b383bb1d95ded1ab09b1d0bc81d1d41426f` |
 | `logs/mission-control-server.out.log` | 0 | 2026-02-18 16:48:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
 | `logs/mission-events.jsonl` | 208 | 2026-02-16 17:35:42 | `53aca00c56fcb146948c23e537e0c20c4c98ed17c5c575bdf37ce8ff226f081d` |
-| `logs/mission-events.sqlite` | 6004736 | 2026-02-25 11:56:02 | `febb86d9f17749eb0fccc3ee3d50b3eeb6e73548ec45ff52025f5638850040d6` |
-| `logs/mission-events.sqlite-shm` | 32768 | 2026-02-25 10:00:19 | `0ccefe3a17de229fd5c7ca1190acb3c6ad99e1a14c9800f8b0ed6ea2b7676d6b` |
-| `logs/mission-events.sqlite-wal` | 4152992 | 2026-02-25 11:57:22 | `9b5122c30d8023ff12d461a598fe7c74a74d0df0593e2214a44953624ef8292d` |
-| `logs/mission-ops.sqlite` | 823296 | 2026-02-25 11:57:10 | `2a37b284d9369a246184daee34f91588e016ba4bc96e7160d43ea8cf4834d77c` |
-| `logs/mission-ops.sqlite-shm` | 32768 | 2026-02-25 10:00:19 | `43b202ef90cd43ae9b0a929e5aaa15431d28b0c08e7a592001f2f2e95130099b` |
-| `logs/mission-ops.sqlite-wal` | 4157112 | 2026-02-25 11:57:25 | `aa2ed52c9c57acd834fd8ad57c15924d9f385eb2d4c3ca72767bd4fb82562b81` |
+| `logs/mission-events.sqlite` | 6004736 | 2026-02-26 08:07:34 | `faffaccb149aa1668dd9a9fde957d4bd339d5d947b7f0a1e55af5411c41e7c88` |
+| `logs/mission-ops.sqlite` | 909312 | 2026-02-26 08:07:51 | `318327898907129c29d51e42ebe269c8f0c39e0e41a3e4df8f2f77768c939a3e` |
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 1054 | 2026-02-17 14:06:49 | `5affbbeccef6f6dbf1a30e205218d368085c5ec6a63f0d2874c7807add0f45ad` |
 | `logs/proposal.e2e.json` | 223 | 2026-02-17 13:49:59 | `0ac6472f8abac22d422519d12c7d2bc01d0929317571d5b99e02d7ec3f058241` |

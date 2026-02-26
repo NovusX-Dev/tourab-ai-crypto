@@ -715,6 +715,11 @@ body.resizing-right-panel {
   word-break: break-word;
 }
 
+.approval-value-mono {
+  font-family: "JetBrains Mono", "Consolas", "SFMono-Regular", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 .approval-head {
   display: flex;
   justify-content: space-between;
@@ -733,6 +738,214 @@ body.resizing-right-panel {
   gap: 8px;
 }
 
+.approval-trade-card {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.approval-card-expired {
+  border-color: color-mix(in oklab, var(--warning), transparent 35%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--warning), transparent 95%),
+    rgba(255, 255, 255, 0.02)
+  );
+}
+
+.approval-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.approval-side {
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-weight: 800;
+  font-size: 0.83rem;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--border);
+}
+
+.approval-side-buy {
+  color: var(--success);
+  border-color: color-mix(in oklab, var(--success), transparent 35%);
+  background: color-mix(in oklab, var(--success), transparent 88%);
+}
+
+.approval-side-sell {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger), transparent 35%);
+  background: color-mix(in oklab, var(--danger), transparent 88%);
+}
+
+.approval-side-unknown {
+  color: var(--text-secondary);
+}
+
+.approval-symbol {
+  font-size: 1.04rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.approval-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.approval-metric {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.approval-metric-label {
+  color: var(--text-secondary);
+  font-size: 0.79rem;
+}
+
+.approval-metric-value {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.approval-risk-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.approval-risk-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.approval-risk-tag {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+}
+
+.approval-risk-tag-ok {
+  color: var(--success);
+  border-color: color-mix(in oklab, var(--success), transparent 35%);
+  background: color-mix(in oklab, var(--success), transparent 90%);
+}
+
+.approval-risk-tag-warn {
+  color: var(--warning);
+  border-color: color-mix(in oklab, var(--warning), transparent 35%);
+  background: color-mix(in oklab, var(--warning), transparent 88%);
+}
+
+.approval-risk-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.approval-metadata {
+  display: grid;
+  gap: 3px;
+}
+
+.approval-meta-line {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.approval-expiry-neutral {
+  color: var(--text-secondary);
+}
+
+.approval-expiry-warn {
+  color: var(--warning);
+}
+
+.approval-expiry-critical {
+  color: var(--danger);
+}
+
+.approval-actions-priority {
+  display: flex;
+  gap: 8px;
+}
+
+.approval-btn-approve {
+  flex: 1;
+  font-weight: 700;
+  background: color-mix(in oklab, var(--success), black 55%);
+  color: #ecfff4;
+  border-color: color-mix(in oklab, var(--success), transparent 45%);
+}
+
+.approval-btn-reject {
+  border-color: color-mix(in oklab, var(--danger), transparent 50%);
+  color: color-mix(in oklab, var(--danger), white 6%);
+  background: transparent;
+}
+
+.approval-tech {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+}
+
+.approval-tech > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  list-style: none;
+}
+
+.approval-tech > summary::-webkit-details-marker {
+  display: none;
+}
+
+.approval-tech > summary::before {
+  content: "▸ ";
+}
+
+.approval-tech[open] > summary::before {
+  content: "▾ ";
+}
+
+.approval-tech-grid {
+  margin-top: 7px;
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  gap: 6px 10px;
+  font-size: 0.79rem;
+}
+
+.approval-tech-key {
+  color: var(--text-secondary);
+}
+
+.approval-tech-value {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .alerts-list {
   margin-top: 10px;
   display: grid;
@@ -744,6 +957,10 @@ body.resizing-right-panel {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   padding: 9px;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    border-color 180ms ease;
 }
 
 .alert-head {
@@ -757,6 +974,125 @@ body.resizing-right-panel {
   font-weight: 700;
 }
 
+.alert-summary {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.alert-ops-card {
+  padding: 11px;
+  display: grid;
+  gap: 8px;
+}
+
+.alert-ops-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.alert-ops-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.alert-ops-symbol {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-size: 0.95rem;
+}
+
+.alert-severity-badge {
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  border: 1px solid var(--border);
+}
+
+.alert-severity-badge-info {
+  color: #73b7ff;
+  border-color: color-mix(in oklab, #73b7ff, transparent 35%);
+  background: color-mix(in oklab, #73b7ff, transparent 88%);
+}
+
+.alert-severity-badge-warn {
+  color: var(--warning);
+  border-color: color-mix(in oklab, var(--warning), transparent 35%);
+  background: color-mix(in oklab, var(--warning), transparent 88%);
+}
+
+.alert-severity-badge-error,
+.alert-severity-badge-critical {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger), transparent 35%);
+  background: color-mix(in oklab, var(--danger), transparent 88%);
+}
+
+.alert-severity-critical .alert-severity-badge-critical {
+  animation: alert-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes alert-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 93, 106, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(240, 93, 106, 0.02);
+  }
+}
+
+.alert-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.alert-impact-cell {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 7px 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.alert-impact-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.alert-impact-value {
+  color: var(--text-primary);
+  font-size: 0.87rem;
+}
+
+.alert-value-mono {
+  font-family: "JetBrains Mono", "Consolas", "SFMono-Regular", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-suggested {
+  border: 1px solid color-mix(in oklab, var(--accent), transparent 45%);
+  border-radius: 10px;
+  padding: 7px 8px;
+  color: color-mix(in oklab, var(--text-primary), var(--accent) 18%);
+  background: color-mix(in oklab, var(--accent), transparent 92%);
+  font-size: 0.83rem;
+}
+
+.alert-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
 .alert-meta {
   margin-top: 5px;
   color: var(--text-secondary);
@@ -767,6 +1103,7 @@ body.resizing-right-panel {
   margin-top: 9px;
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .alert-status-open {
@@ -779,6 +1116,76 @@ body.resizing-right-panel {
 
 .alert-status-resolved {
   color: var(--success);
+}
+
+.alert-tech {
+  border-top: 1px dashed var(--border);
+  padding-top: 7px;
+}
+
+.alert-tech > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  list-style: none;
+}
+
+.alert-tech > summary::-webkit-details-marker {
+  display: none;
+}
+
+.alert-tech > summary::before {
+  content: "▸ ";
+}
+
+.alert-tech[open] > summary::before {
+  content: "▾ ";
+}
+
+.alert-tech-grid {
+  margin-top: 7px;
+  display: grid;
+  grid-template-columns: minmax(100px, 160px) minmax(0, 1fr);
+  gap: 6px 9px;
+}
+
+.alert-tech-key {
+  color: var(--text-secondary);
+  font-size: 0.79rem;
+}
+
+.alert-tech-value {
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.alert-resolved-group {
+  margin-top: 8px;
+}
+
+.alert-resolved-group > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  list-style: none;
+}
+
+.alert-resolved-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.alert-resolved-group > summary::before {
+  content: "▸ ";
+}
+
+.alert-resolved-group[open] > summary::before {
+  content: "▾ ";
+}
+
+.alert-resolved-card {
+  opacity: 0.84;
 }
 
 .right-panel-header {
@@ -888,6 +1295,44 @@ body.resizing-right-panel {
   display: grid;
   align-content: start;
   gap: 12px;
+}
+
+.autonomy-panel [data-tooltip] {
+  position: relative;
+}
+
+.autonomy-panel [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  min-width: 180px;
+  max-width: 320px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg-surface), black 18%);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  line-height: 1.3;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s linear 120ms;
+  pointer-events: none;
+}
+
+.autonomy-panel [data-tooltip]:hover::after,
+.autonomy-panel [data-tooltip]:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 1s;
 }
 
 .autonomy-card {
@@ -1064,6 +1509,26 @@ body.resizing-right-panel {
   color: var(--text-secondary);
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.order-meta.trade-outcome-profit {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.order-meta.trade-outcome-loss {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.order-meta.trade-outcome-breakeven {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.order-meta.trade-outcome-na {
+  color: var(--warning);
+  font-weight: 600;
 }
 
 .order-row {
@@ -1436,5 +1901,35 @@ body.resizing-right-panel {
 @media (max-width: 720px) {
   .pnl-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .approval-topline {
+    align-items: flex-start;
+  }
+
+  .approval-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-actions-priority {
+    flex-direction: column;
+  }
+
+  .approval-actions-priority .btn {
+    width: 100%;
+  }
+
+  .approval-tech-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .alert-impact-grid,
+  .alert-meta-grid,
+  .alert-tech-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .alert-ops-head {
+    align-items: flex-start;
   }
 }

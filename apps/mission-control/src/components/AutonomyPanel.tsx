@@ -58,6 +58,10 @@ function parseNumberOr<T extends number>(raw: string, fallback: T): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function tt(text: string): { "data-tooltip": string } {
+  return { "data-tooltip": text };
+}
+
 export function AutonomyPanel({
   config,
   entryAutonomy,
@@ -313,244 +317,245 @@ export function AutonomyPanel({
   return (
     <section className="panel-content autonomy-panel" aria-label="Autonomy panel">
       <div className="panel-head">
-        <div className="panel-title">Autonomy</div>
+        <div className="panel-title" {...tt("Control how the bot enters, exits, and learns from trades.")}>Autonomy</div>
         <span className={`tag ${entryAutonomy.status.approvalMode === "policy_auto" ? "sev-info" : "sev-warn"}`}>
           {entryAutonomy.status.approvalMode === "policy_auto" ? "ENTRY AUTO" : "ENTRY MANUAL"}
         </span>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Auto-Exit Config (M5)</div>
-        <div className="hint">Deterministic exits for every approved entry order.</div>
+      <div className="risk-card autonomy-card" {...tt("Set how and when open trades should be closed automatically.")}>
+        <div className="panel-title" {...tt("Rules that close trades by time, target, or flatten schedule.")}>Auto-Exit Config (M5)</div>
+        <div className="hint" {...tt("These settings protect positions from staying open too long.")}>Deterministic exits for every approved entry order.</div>
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("Turn automatic exits on or off.")}>
             Enabled
-            <select value={enabled ? "1" : "0"} onChange={(event) => setEnabled(event.target.value === "1")} disabled={!canEdit}>
+            <select {...tt("Enable or disable auto-closing logic.")} value={enabled ? "1" : "0"} onChange={(event) => setEnabled(event.target.value === "1")} disabled={!canEdit}>
               <option value="1">On</option>
               <option value="0">Off</option>
             </select>
           </label>
-          <label>
+          <label {...tt("Maximum time a trade can stay open before forced exit.")}>
             Max Hold (sec)
-            <input value={maxHoldSec} onChange={(event) => setMaxHoldSec(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Higher value keeps trades open longer.")} value={maxHoldSec} onChange={(event) => setMaxHoldSec(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Profit target distance based on risk multiple.")}>
             TP R-Multiple
-            <input value={takeProfitRMultiple} onChange={(event) => setTakeProfitRMultiple(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Larger number targets bigger gains before exit.")} value={takeProfitRMultiple} onChange={(event) => setTakeProfitRMultiple(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Daily scheduled flatten time in UTC.")}>
             Flatten (UTC HH:MM)
-            <input value={flattenTimeUtc} onChange={(event) => setFlattenTimeUtc(event.target.value)} placeholder="23:45" disabled={!canEdit} />
+            <input {...tt("At this UTC time, open trades are flattened.")} value={flattenTimeUtc} onChange={(event) => setFlattenTimeUtc(event.target.value)} placeholder="23:45" disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Extra price buffer for exit orders in basis points.")}>
             Exit Offset (bps)
-            <input value={exitOffsetBps} onChange={(event) => setExitOffsetBps(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Helps exits fill faster in moving markets.")} value={exitOffsetBps} onChange={(event) => setExitOffsetBps(event.target.value)} disabled={!canEdit} />
           </label>
         </div>
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void saveAutoExit()} disabled={!canEdit}>Save Auto-Exit</button>
+          <button className="btn btn-primary" {...tt("Save these auto-exit settings.")} onClick={() => void saveAutoExit()} disabled={!canEdit}>Save Auto-Exit</button>
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Entry Autonomy (M6)</div>
-        <div className="hint">Policy gates for automatic entry approvals.</div>
+      <div className="risk-card autonomy-card" {...tt("Set rules that decide when entries can be auto-approved.")}>
+        <div className="panel-title" {...tt("Risk limits and policy gates for opening new trades.")}>Entry Autonomy (M6)</div>
+        <div className="hint" {...tt("These values prevent overexposure and oversized losses.")}>Policy gates for automatic entry approvals.</div>
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("Choose manual approval or policy-driven auto approval.")}>
             Approval Mode
-            <select value={approvalMode} onChange={(event) => setApprovalMode(event.target.value as EntryAutonomyConfig["approvalMode"])} disabled={!canEdit}>
+            <select {...tt("Manual needs operator approval; policy auto follows your limits.")} value={approvalMode} onChange={(event) => setApprovalMode(event.target.value as EntryAutonomyConfig["approvalMode"])} disabled={!canEdit}>
               <option value="manual">Manual</option>
               <option value="policy_auto">Policy Auto</option>
             </select>
           </label>
-          <label>
+          <label {...tt("Only these symbols are allowed for entries.")}>
             Allowed Symbols (comma)
-            <input value={allowedSymbols} onChange={(event) => setAllowedSymbols(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Comma-separated list like BTC-USDT,ETH-USDT.")} value={allowedSymbols} onChange={(event) => setAllowedSymbols(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Maximum trade size for a single order.")}>
             Max Per-Order Notional USD
-            <input value={maxPerOrderNotionalUsd} onChange={(event) => setMaxPerOrderNotionalUsd(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Caps dollar amount per new position.")} value={maxPerOrderNotionalUsd} onChange={(event) => setMaxPerOrderNotionalUsd(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Maximum total open exposure across positions.")}>
             Max Open Exposure USD
-            <input value={maxOpenExposureUsd} onChange={(event) => setMaxOpenExposureUsd(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Stops the bot from holding too much risk at once.")} value={maxOpenExposureUsd} onChange={(event) => setMaxOpenExposureUsd(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Daily loss cap before risk blocks kick in.")}>
             Max Daily Loss USD
-            <input value={maxDailyLossUsd} onChange={(event) => setMaxDailyLossUsd(event.target.value)} disabled={!canEdit} />
+            <input {...tt("If losses exceed this, new risk is restricted.")} value={maxDailyLossUsd} onChange={(event) => setMaxDailyLossUsd(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Weekly loss cap for broader risk control.")}>
             Max Weekly Loss USD
-            <input value={maxWeeklyLossUsd} onChange={(event) => setMaxWeeklyLossUsd(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Adds a multi-day safety boundary.")} value={maxWeeklyLossUsd} onChange={(event) => setMaxWeeklyLossUsd(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("How many losses in a row trigger cooldown.")}>
             Loss Streak Cooldown Count
-            <input value={lossStreakCooldownCount} onChange={(event) => setLossStreakCooldownCount(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Limits repeated losses in unstable conditions.")} value={lossStreakCooldownCount} onChange={(event) => setLossStreakCooldownCount(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("How long trading should pause after a loss streak.")}>
             Cooldown Minutes
-            <input value={cooldownMinutes} onChange={(event) => setCooldownMinutes(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Pause period before entries are allowed again.")} value={cooldownMinutes} onChange={(event) => setCooldownMinutes(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Name for the currently active policy settings.")}>
             Policy Version
-            <input value={policyVersion} onChange={(event) => setPolicyVersion(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Use clear version names to track changes over time.")} value={policyVersion} onChange={(event) => setPolicyVersion(event.target.value)} disabled={!canEdit} />
           </label>
         </div>
-        <div className="hint">
+        <div className="hint" {...tt("Shows fallback state and active strategy.")}>
           {`fallback=${entryAutonomy.status.fallbackActive ? "on" : "off"} strategy=${entryAutonomy.config.strategyVersion}`}
           {entryAutonomy.status.lastFallbackReason ? ` | reason=${entryAutonomy.status.lastFallbackReason}` : ""}
         </div>
         {entryAutonomy.status.lastPolicyAutoBlockers.length > 0 ? (
-          <div className="hint">{`last blockers: ${entryAutonomy.status.lastPolicyAutoBlockers.join(" | ")}`}</div>
+          <div className="hint" {...tt("Most recent reasons that blocked auto approval.")}>{`last blockers: ${entryAutonomy.status.lastPolicyAutoBlockers.join(" | ")}`}</div>
         ) : null}
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void saveEntryAutonomy()} disabled={!canEdit}>Save Entry Policy</button>
+          <button className="btn btn-primary" {...tt("Save entry approval and risk rules.")} onClick={() => void saveEntryAutonomy()} disabled={!canEdit}>Save Entry Policy</button>
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Strategy Promotion (M6)</div>
-        <div className="hint">
+      <div className="risk-card autonomy-card" {...tt("Register, promote, or roll back strategy versions safely.")}>
+        <div className="panel-title" {...tt("Manage strategy version lifecycle from research to production.")}>Strategy Promotion (M6)</div>
+        <div className="hint" {...tt("Shows currently active, champion, and previous stable versions.")}>
           {`active=${strategyPromotion.activeVersion} champion=${strategyPromotion.championVersion} previous=${strategyPromotion.previousStableVersion || "-"}`}
         </div>
         {latestPromotion ? (
-          <div className="hint">{`last action=${latestPromotion.action} version=${latestPromotion.version} at=${formatTime(latestPromotion.at)}`}</div>
+          <div className="hint" {...tt("Most recent promotion activity for audit visibility.")}>{`last action=${latestPromotion.action} version=${latestPromotion.version} at=${formatTime(latestPromotion.at)}`}</div>
         ) : null}
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("New strategy version name to register.")}>
             Register Version
-            <input value={registerVersion} onChange={(event) => setRegisterVersion(event.target.value)} disabled={!canEdit} placeholder="candidate-v2" />
+            <input {...tt("Example: candidate-v2.")} value={registerVersion} onChange={(event) => setRegisterVersion(event.target.value)} disabled={!canEdit} placeholder="candidate-v2" />
           </label>
-          <label>
+          <label {...tt("Short note about what changed in this version.")}>
             Register Notes
-            <input value={registerNotes} onChange={(event) => setRegisterNotes(event.target.value)} disabled={!canEdit} placeholder="research summary" />
+            <input {...tt("Explain why this version exists.")} value={registerNotes} onChange={(event) => setRegisterNotes(event.target.value)} disabled={!canEdit} placeholder="research summary" />
           </label>
-          <label>
+          <label {...tt("Link to the supporting research report.")}>
             Research Report URL
-            <input value={registerResearchUrl} onChange={(event) => setRegisterResearchUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
+            <input {...tt("Optional report URL for traceability.")} value={registerResearchUrl} onChange={(event) => setRegisterResearchUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
           </label>
-          <label>
+          <label {...tt("Mark as challenger to compare against champion.")}>
             Challenger
-            <select value={registerChallenger ? "1" : "0"} onChange={(event) => setRegisterChallenger(event.target.value === "1")} disabled={!canEdit}>
+            <select {...tt("Challenger versions are evaluated before full promotion.")} value={registerChallenger ? "1" : "0"} onChange={(event) => setRegisterChallenger(event.target.value === "1")} disabled={!canEdit}>
               <option value="0">No</option>
               <option value="1">Yes</option>
             </select>
           </label>
         </div>
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void registerStrategy()} disabled={!canEdit || !registerVersion.trim()}>Register</button>
+          <button className="btn btn-primary" {...tt("Register this strategy version.")} onClick={() => void registerStrategy()} disabled={!canEdit || !registerVersion.trim()}>Register</button>
         </div>
 
         <div className="log-filters autonomy-form-grid" style={{ marginTop: 10 }}>
-          <label>
+          <label {...tt("Choose a registered version to promote.")}>
             Promote Version
-            <select value={promoteVersion} onChange={(event) => setPromoteVersion(event.target.value)} disabled={!canEdit}>
+            <select {...tt("Select the version you want to move forward.")} value={promoteVersion} onChange={(event) => setPromoteVersion(event.target.value)} disabled={!canEdit}>
               <option value="">Select</option>
               {strategyPromotion.versions.map((item) => (
                 <option key={item.version} value={item.version}>{`${item.version} (${item.stage})`}</option>
               ))}
             </select>
           </label>
-          <label>
+          <label {...tt("Pick the next rollout stage for this version.")}>
             Target Stage
-            <select value={promoteStage} onChange={(event) => setPromoteStage(event.target.value as StrategyPromotionStage)} disabled={!canEdit}>
+            <select {...tt("Stages move from safer testing to broader exposure.")} value={promoteStage} onChange={(event) => setPromoteStage(event.target.value as StrategyPromotionStage)} disabled={!canEdit}>
               {stageOptions.map((stage) => (
                 <option key={stage} value={stage}>{stage}</option>
               ))}
             </select>
           </label>
-          <label>
+          <label {...tt("Why you are promoting this version.")}>
             Promote Reason
-            <input value={promoteReason} onChange={(event) => setPromoteReason(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Keep this reason short and clear.")} value={promoteReason} onChange={(event) => setPromoteReason(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Link to shadow-stage validation report.")}>
             Shadow Report URL
-            <input value={promoteShadowUrl} onChange={(event) => setPromoteShadowUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
+            <input {...tt("Optional evidence link for shadow testing.")} value={promoteShadowUrl} onChange={(event) => setPromoteShadowUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
           </label>
-          <label>
+          <label {...tt("Link to canary-stage validation report.")}>
             Canary Report URL
-            <input value={promoteCanaryUrl} onChange={(event) => setPromoteCanaryUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
+            <input {...tt("Optional evidence link for canary testing.")} value={promoteCanaryUrl} onChange={(event) => setPromoteCanaryUrl(event.target.value)} disabled={!canEdit} placeholder="https://..." />
           </label>
         </div>
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void promoteStrategy()} disabled={!canEdit || !promoteVersion}>Promote</button>
+          <button className="btn btn-primary" {...tt("Promote selected version to the target stage.")} onClick={() => void promoteStrategy()} disabled={!canEdit || !promoteVersion}>Promote</button>
           <input
+            {...tt("Why this rollback is needed.")}
             value={rollbackReason}
             onChange={(event) => setRollbackReason(event.target.value)}
             disabled={!canEdit}
             placeholder="Rollback reason"
             style={{ minWidth: 180 }}
           />
-          <button className="btn btn-ghost" onClick={() => void onRollbackStrategy(rollbackReason.trim() || undefined)} disabled={!canEdit}>Rollback</button>
+          <button className="btn btn-ghost" {...tt("Roll back to the previous stable strategy version.")} onClick={() => void onRollbackStrategy(rollbackReason.trim() || undefined)} disabled={!canEdit}>Rollback</button>
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Degradation Rollback Thresholds (M6)</div>
+      <div className="risk-card autonomy-card" {...tt("Automatic rollback triggers based on performance degradation.")}>
+        <div className="panel-title" {...tt("If thresholds are breached, strategy can be rolled back.")}>Degradation Rollback Thresholds (M6)</div>
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("Enable or disable automatic degradation checks.")}>
             Enabled
-            <select value={degradeEnabled ? "1" : "0"} onChange={(event) => setDegradeEnabled(event.target.value === "1")} disabled={!canEdit}>
+            <select {...tt("Turn rollback guardrails on or off.")} value={degradeEnabled ? "1" : "0"} onChange={(event) => setDegradeEnabled(event.target.value === "1")} disabled={!canEdit}>
               <option value="1">On</option>
               <option value="0">Off</option>
             </select>
           </label>
-          <label>
+          <label {...tt("Daily loss amount that triggers rollback protection.")}>
             Max Daily Loss USD
-            <input value={degradeDailyLoss} onChange={(event) => setDegradeDailyLoss(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Lower value is safer but may rollback sooner.")} value={degradeDailyLoss} onChange={(event) => setDegradeDailyLoss(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Largest allowed drawdown before rollback.")}>
             Max Drawdown %
-            <input value={degradeDrawdownPct} onChange={(event) => setDegradeDrawdownPct(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Keeps strategy from drifting too far from peak.")} value={degradeDrawdownPct} onChange={(event) => setDegradeDrawdownPct(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Consecutive losses allowed before protection triggers.")}>
             Max Consecutive Losing Trades
-            <input value={degradeConsecLosses} onChange={(event) => setDegradeConsecLosses(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Controls tolerance for repeated losing trades.")} value={degradeConsecLosses} onChange={(event) => setDegradeConsecLosses(event.target.value)} disabled={!canEdit} />
           </label>
         </div>
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void saveDegradationConfig()} disabled={!canEdit}>Save Degradation Config</button>
+          <button className="btn btn-primary" {...tt("Save rollback threshold settings.")} onClick={() => void saveDegradationConfig()} disabled={!canEdit}>Save Degradation Config</button>
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Learning Evaluation (M7)</div>
-        <div className="hint">
+      <div className="risk-card autonomy-card" {...tt("Performance summary for the current learning window.")}>
+        <div className="panel-title" {...tt("Tracks model outcomes, drawdown, slippage, and violations.")}>Learning Evaluation (M7)</div>
+        <div className="hint" {...tt("Current evaluation window and generation time.")}>
           {`lookback=${learningEvaluation.lookbackDays}d | closedTrades=${learningEvaluation.closedTrades} | generated=${formatTime(learningEvaluation.generatedAt)}`}
         </div>
         <div className="ops-grid" style={{ marginTop: 8 }}>
-          <article className="ops-card">
+          <article className="ops-card" {...tt("Average profit per trade after fees.")}>
             <div className="ops-label">Expectancy (net fees)</div>
             <div className={`ops-value ${learningEvaluation.totals.expectancyNetFeesUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>
               {fmtUsd(learningEvaluation.totals.expectancyNetFeesUsd)}
             </div>
           </article>
-          <article className="ops-card">
+          <article className="ops-card" {...tt("Total net profit across the lookback period.")}>
             <div className="ops-label">Cumulative Net PnL</div>
             <div className={`ops-value ${learningEvaluation.totals.cumulativeNetPnlUsd >= 0 ? "pnl-positive" : "pnl-negative"}`}>
               {fmtUsd(learningEvaluation.totals.cumulativeNetPnlUsd)}
             </div>
           </article>
-          <article className="ops-card">
+          <article className="ops-card" {...tt("Largest drop from peak during the period.")}>
             <div className="ops-label">Max Drawdown</div>
             <div className="ops-value">{`${fmtUsd(learningEvaluation.totals.maxDrawdownUsd)} (${learningEvaluation.totals.maxDrawdownPct.toFixed(2)}%)`}</div>
           </article>
-          <article className="ops-card">
+          <article className="ops-card" {...tt("Estimated execution cost from price impact.")}>
             <div className="ops-label">Slippage (proxy)</div>
             <div className="ops-value">{fmtBps(learningEvaluation.totals.slippageProxyBps)}</div>
           </article>
-          <article className="ops-card">
+          <article className="ops-card" {...tt("Number of guardrail rule violations.")}>
             <div className="ops-label">Control Violations</div>
             <div className={`ops-value ${learningEvaluation.totals.controlViolations > 0 ? "pnl-negative" : "pnl-positive"}`}>
               {learningEvaluation.totals.controlViolations}
             </div>
           </article>
         </div>
-        <div className="subhead">By Model Version</div>
+        <div className="subhead" {...tt("Breakdown of evaluation metrics for each model version.")}>By Model Version</div>
         {learningEvaluation.byModelVersion.length === 0 ? <div className="hint">No model-version evaluation data yet.</div> : null}
         <div className="orders-list">
           {learningEvaluation.byModelVersion.slice(0, 8).map((row) => (
-            <article key={row.version} className="order-row">
+            <article key={row.version} className="order-row" {...tt("Per-model performance summary.")}>
               <div className="order-main">
                 <strong>{row.version}</strong>
                 <span className="tag">{`trades ${row.trades}`}</span>
@@ -564,44 +569,45 @@ export function AutonomyPanel({
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Learning Guard Thresholds (M7)</div>
-        <div className="hint">Runtime thresholds for `LEARNING_*` alerts.</div>
+      <div className="risk-card autonomy-card" {...tt("Alert thresholds that detect learning performance drift.")}>
+        <div className="panel-title" {...tt("Set limits that trigger learning alerts.")}>Learning Guard Thresholds (M7)</div>
+        <div className="hint" {...tt("These limits decide when LEARNING alerts are raised.")}>Runtime thresholds for `LEARNING_*` alerts.</div>
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("Enable or disable learning guard alerts.")}>
             Enabled
-            <select value={learningAlertEnabled ? "1" : "0"} onChange={(event) => setLearningAlertEnabled(event.target.value === "1")} disabled={!canEdit}>
+            <select {...tt("Turn all learning threshold alerts on or off.")} value={learningAlertEnabled ? "1" : "0"} onChange={(event) => setLearningAlertEnabled(event.target.value === "1")} disabled={!canEdit}>
               <option value="1">On</option>
               <option value="0">Off</option>
             </select>
           </label>
-          <label>
+          <label {...tt("How many days of data to evaluate.")}>
             Lookback Days
-            <input value={learningLookbackDays} onChange={(event) => setLearningLookbackDays(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Longer window is smoother but slower to react.")} value={learningLookbackDays} onChange={(event) => setLearningLookbackDays(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Maximum number of records used in evaluation.")}>
             Sample Limit
-            <input value={learningLimit} onChange={(event) => setLearningLimit(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Limits workload and keeps queries fast.")} value={learningLimit} onChange={(event) => setLearningLimit(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Minimum trade count before evaluation is considered valid.")}>
             Min Trades
-            <input value={learningMinTrades} onChange={(event) => setLearningMinTrades(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Avoids alerts on tiny sample sizes.")} value={learningMinTrades} onChange={(event) => setLearningMinTrades(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Lowest acceptable average profit per trade.")}>
             Min Expectancy USD
-            <input value={learningExpectancyMinUsd} onChange={(event) => setLearningExpectancyMinUsd(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Alerts if expectancy drops below this value.")} value={learningExpectancyMinUsd} onChange={(event) => setLearningExpectancyMinUsd(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Maximum acceptable drawdown percentage.")}>
             Max Drawdown %
-            <input value={learningMaxDrawdownPct} onChange={(event) => setLearningMaxDrawdownPct(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Alerts if drawdown becomes too large.")} value={learningMaxDrawdownPct} onChange={(event) => setLearningMaxDrawdownPct(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Maximum slippage allowed before warning.")}>
             Max Slippage (bps)
-            <input value={learningMaxSlippageBps} onChange={(event) => setLearningMaxSlippageBps(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Alerts if execution quality worsens.")} value={learningMaxSlippageBps} onChange={(event) => setLearningMaxSlippageBps(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Maximum control violation rate allowed.")}>
             Max Control Violations %
             <input
+              {...tt("Alerts if rule-violation rate goes too high.")}
               value={learningMaxControlViolationRatePct}
               onChange={(event) => setLearningMaxControlViolationRatePct(event.target.value)}
               disabled={!canEdit}
@@ -609,55 +615,55 @@ export function AutonomyPanel({
           </label>
         </div>
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void saveLearningAlertThresholds()} disabled={!canEdit}>
+          <button className="btn btn-primary" {...tt("Save learning alert threshold settings.")} onClick={() => void saveLearningAlertThresholds()} disabled={!canEdit}>
             Save Learning Thresholds
           </button>
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Learning Retention (M7)</div>
-        <div className="hint">Retention policy and manual prune for closed-trade feature history.</div>
+      <div className="risk-card autonomy-card" {...tt("How long learning features are kept, and when to prune.")}>
+        <div className="panel-title" {...tt("Storage retention settings for learning feature history.")}>Learning Retention (M7)</div>
+        <div className="hint" {...tt("Use this to limit old data and control storage size.")}>Retention policy and manual prune for closed-trade feature history.</div>
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("Number of days to keep feature history.")}>
             Feature Retention Days
-            <input value={learningRetentionDays} onChange={(event) => setLearningRetentionDays(event.target.value)} disabled={!canEdit} />
+            <input {...tt("Older records are removed after this many days.")} value={learningRetentionDays} onChange={(event) => setLearningRetentionDays(event.target.value)} disabled={!canEdit} />
           </label>
-          <label>
+          <label {...tt("Current count of stored feature rows.")}>
             Feature Rows
-            <input value={String(learningRetention.stats.featureCount)} disabled />
+            <input {...tt("Read-only total feature rows currently stored.")} value={String(learningRetention.stats.featureCount)} disabled />
           </label>
-          <label>
+          <label {...tt("Oldest closed trade currently kept in storage.")}>
             Oldest Closed At
-            <input value={learningRetention.stats.oldestClosedAt ?? "-"} disabled />
+            <input {...tt("Read-only oldest record timestamp.")} value={learningRetention.stats.oldestClosedAt ?? "-"} disabled />
           </label>
-          <label>
+          <label {...tt("Newest closed trade currently kept in storage.")}>
             Newest Closed At
-            <input value={learningRetention.stats.newestClosedAt ?? "-"} disabled />
+            <input {...tt("Read-only newest record timestamp.")} value={learningRetention.stats.newestClosedAt ?? "-"} disabled />
           </label>
         </div>
-        <div className="hint">
+        <div className="hint" {...tt("Shows last prune run and how many rows were deleted.")}>
           {`last prune=${learningRetention.lastPruneAt ? formatTime(learningRetention.lastPruneAt) : "never"} deleted=${learningRetention.lastPruneResult?.closedTradeFeaturesDeleted ?? 0}`}
         </div>
         <div className="approval-actions autonomy-actions">
-          <button className="btn btn-primary" onClick={() => void saveLearningRetentionConfig()} disabled={!canEdit}>
+          <button className="btn btn-primary" {...tt("Save retention window settings.")} onClick={() => void saveLearningRetentionConfig()} disabled={!canEdit}>
             Save Retention
           </button>
-          <button className="btn btn-ghost" onClick={() => void onRunLearningRetentionPrune()} disabled={!canEdit}>
+          <button className="btn btn-ghost" {...tt("Run cleanup now using current retention settings.")} onClick={() => void onRunLearningRetentionPrune()} disabled={!canEdit}>
             Run Prune Now
           </button>
         </div>
       </div>
 
-      <div className="risk-card autonomy-card">
-        <div className="panel-title">Learning Trend (M7)</div>
-        <div className="hint">
+      <div className="risk-card autonomy-card" {...tt("Trend view of learning performance across time buckets.")}>
+        <div className="panel-title" {...tt("Monitor trend lines and breach flags over time.")}>Learning Trend (M7)</div>
+        <div className="hint" {...tt("Window size, bucket size, and generation time.")}>
           {`lookback=${learningEvaluationTrend.lookbackDays}d bucket=${learningEvaluationTrend.bucketDays}d generated=${formatTime(learningEvaluationTrend.generatedAt)}`}
         </div>
         <div className="log-filters autonomy-form-grid">
-          <label>
+          <label {...tt("Filter trend points by breach type.")}>
             Breach Filter
-            <select value={trendBreachFilter} onChange={(event) => setTrendBreachFilter(event.target.value as typeof trendBreachFilter)}>
+            <select {...tt("Show all points or only selected breach conditions.")} value={trendBreachFilter} onChange={(event) => setTrendBreachFilter(event.target.value as typeof trendBreachFilter)}>
               <option value="all">All</option>
               <option value="breached_any">Any Breach</option>
               <option value="expectancy">Expectancy</option>
@@ -666,18 +672,18 @@ export function AutonomyPanel({
               <option value="controlViolationRate">Control Violation Rate</option>
             </select>
           </label>
-          <label>
+          <label {...tt("Filter trend by model version.")}>
             Model Version
-            <select value={trendModelFilter} onChange={(event) => setTrendModelFilter(event.target.value)}>
+            <select {...tt("Use this to isolate one model's trend.")} value={trendModelFilter} onChange={(event) => setTrendModelFilter(event.target.value)}>
               <option value="all">All</option>
               {trendModelOptions.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </label>
-          <label>
+          <label {...tt("Filter trend by strategy version.")}>
             Strategy Version
-            <select value={trendStrategyFilter} onChange={(event) => setTrendStrategyFilter(event.target.value)}>
+            <select {...tt("Use this to isolate one strategy's trend.")} value={trendStrategyFilter} onChange={(event) => setTrendStrategyFilter(event.target.value)}>
               <option value="all">All</option>
               {trendStrategyOptions.map((item) => (
                 <option key={item} value={item}>{item}</option>
@@ -686,19 +692,19 @@ export function AutonomyPanel({
           </label>
         </div>
         {latestTrendPoint ? (
-          <div className="hint">
+          <div className="hint" {...tt("Latest visible trend bucket summary.")}>
             {`latest bucket trades=${latestTrendPoint.closedTrades} expectancy=${fmtUsd(latestTrendPoint.expectancyNetFeesUsd)} dd=${latestTrendPoint.maxDrawdownPct.toFixed(2)}% slip=${fmtBps(latestTrendPoint.slippageProxyBps)} cvRate=${latestTrendPoint.controlViolationRatePct.toFixed(2)}%`}
           </div>
         ) : (
-          <div className="hint">No trend points yet.</div>
+          <div className="hint" {...tt("No data available for current filters yet.")}>No trend points yet.</div>
         )}
-        <div className="hint">
+        <div className="hint" {...tt("Configured thresholds used to mark breaches.")}>
           {`thresholds: expectancy>=${learningEvaluationTrend.thresholds.expectancyMinUsd} drawdown<=${learningEvaluationTrend.thresholds.maxDrawdownPct}% slippage<=${learningEvaluationTrend.thresholds.maxSlippageBps}bps cvRate<=${learningEvaluationTrend.thresholds.maxControlViolationRatePct}%`}
         </div>
-        <div className="hint">{`visible buckets=${filteredTrendPoints.length}/${learningEvaluationTrend.points.length}`}</div>
+        <div className="hint" {...tt("Number of buckets visible after filters.")}>{`visible buckets=${filteredTrendPoints.length}/${learningEvaluationTrend.points.length}`}</div>
         <div className="orders-list">
           {filteredTrendPoints.slice(-12).reverse().map((row) => (
-            <article key={`${row.bucketStartAt}-${row.bucketEndAt}`} className="order-row">
+            <article key={`${row.bucketStartAt}-${row.bucketEndAt}`} className="order-row" {...tt("Trend bucket details and breach flags.")}>
               <div className="order-main">
                 <strong>{formatTime(row.bucketEndAt)}</strong>
                 <span className="tag">{`trades ${row.closedTrades}`}</span>

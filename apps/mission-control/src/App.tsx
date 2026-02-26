@@ -19,6 +19,7 @@ import { ReconciliationCard } from "./components/ReconciliationCard";
 import { RiskPanel } from "./components/RiskPanel";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { formatEquityRoundedThousands } from "./format";
+import { deriveApprovalStatus } from "./logic/approvalLifecycle";
 import { applyTheme, getInitialTheme, type ThemeName } from "./theme";
 import { useDashboardData } from "./state/useDashboardData";
 import type { AlertItem, ApprovalRequest, AuditItem, ControlAction, EventType, IncidentItem, LearningRetentionStatus } from "./types";
@@ -73,6 +74,7 @@ export default function App() {
   const [highlightedSymbol, setHighlightedSymbol] = useState<string | undefined>(undefined);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalRequest[]>([]);
+  const [executedApprovalIds, setExecutedApprovalIds] = useState<Set<string>>(new Set());
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [incidents, setIncidents] = useState<IncidentItem[]>([]);
   const [learningRetention, setLearningRetention] = useState<LearningRetentionStatus>(EMPTY_LEARNING_RETENTION);
@@ -253,7 +255,7 @@ export default function App() {
   const lastCircuitEventRef = useRef<string>("");
 
   useEffect(() => {
-    const pending = pendingApprovals.filter((item) => item.status === "pending");
+    const pending = pendingApprovals.filter((item) => deriveApprovalStatus(item, Date.now(), executedApprovalIds) === "pending");
     const nextPendingIds = pending.map((item) => item.id).sort();
     const previousPendingIds = previousPendingApprovalIdsRef.current;
     const newPendingExists = nextPendingIds.some((id) => !previousPendingIds.includes(id));
@@ -262,7 +264,7 @@ export default function App() {
       playApprovalChime();
     }
     previousPendingApprovalIdsRef.current = nextPendingIds;
-  }, [pendingApprovals, playApprovalChime, selectedPanel]);
+  }, [executedApprovalIds, pendingApprovals, playApprovalChime, selectedPanel]);
 
   useEffect(() => {
     if (selectedPanel === "approvals") {
@@ -291,6 +293,18 @@ export default function App() {
   const refreshApprovals = useCallback(async () => {
     const items = await client.listApprovals();
     setPendingApprovals(items);
+    setExecutedApprovalIds((prev) => {
+      if (prev.size === 0) {
+        return prev;
+      }
+      const next = new Set(prev);
+      for (const item of items) {
+        if (item.status !== "pending" && item.status !== "expired") {
+          next.delete(item.id);
+        }
+      }
+      return next;
+    });
   }, []);
 
   const refreshAlerts = useCallback(async () => {
@@ -449,7 +463,7 @@ export default function App() {
       await refreshApprovals();
       return;
     }
-    if (existing.status === "pending") {
+    if (deriveApprovalStatus(existing, Date.now(), executedApprovalIds) === "pending") {
       if (existing.approvedBy.includes(currentUserId)) {
         pushToast("warning", "APPROVAL_WAITING", `Approval ${id} already signed by ${currentUserId}. Waiting for other signer(s).`);
         return;
@@ -465,7 +479,16 @@ export default function App() {
         return;
       }
     }
-    await handleAction(action, id);
+    const executed = await handleAction(action, id);
+    if (executed) {
+      setExecutedApprovalIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+      setPendingApprovals((prev) => prev.filter((item) => item.id !== id));
+      pushToast("success", "APPROVAL_RESOLVED", `Approval ${id} executed and removed from view.`);
+    }
   }
 
   async function rejectApproval(id: string) {
@@ -584,12 +607,12 @@ export default function App() {
     setSelectedPanel("autonomy");
   }
 
-  async function handleAction(action: ControlAction, approvalId?: string) {
+  async function handleAction(action: ControlAction, approvalId?: string): Promise<boolean> {
     const destructive = action === "stop" || action === "cancel_all" || action === "emergency_stop";
     if (destructive && !approvalId) {
       const confirmed = window.confirm(`Confirm action: ${action.replace("_", " ")}?`);
       if (!confirmed) {
-        return;
+        return false;
       }
     }
     const result = await client.performAction(action, dashboard.role, currentUserId, approvalId);
@@ -599,20 +622,21 @@ export default function App() {
         setApprovalsAttention(true);
         await refreshApprovals();
         pushToast("warning", "APPROVAL_REQUIRED", result.message);
-        return;
+        return false;
       }
       if (result.code === "APPROVAL_EXPIRED" || result.code === "APPROVAL_REJECTED") {
         setSelectedPanel("approvals");
         await refreshApprovals();
         pushToast("warning", result.code, result.message);
-        return;
+        return false;
       }
       pushToast("error", `${result.code}`, result.message);
-      return;
+      return false;
     }
     dashboard.setState((prev) => ({ ...prev, state: result.state }));
     pushToast("success", `${result.code}`, result.message);
     await refreshApprovals();
+    return true;
   }
 
   async function setReconciliationStatus(input: Partial<Pick<typeof dashboard.reconciliation, "positions" | "pnl" | "orders">>) {
@@ -661,8 +685,8 @@ export default function App() {
   }, [refreshAlerts, refreshApprovals, refreshIncidents, refreshM6AutonomyState, refreshManagedTrades]);
 
   const pendingApprovalCount = useMemo(
-    () => pendingApprovals.filter((item) => item.status === "pending").length,
-    [pendingApprovals]
+    () => pendingApprovals.filter((item) => deriveApprovalStatus(item, Date.now(), executedApprovalIds) === "pending").length,
+    [executedApprovalIds, pendingApprovals]
   );
   const openAlertCount = useMemo(
     () => alerts.filter((item) => item.status === "open").length,
@@ -737,6 +761,7 @@ export default function App() {
           items={pendingApprovals}
           demoQueue={dashboard.demoQueue}
           currentUserId={currentUserId}
+          executedApprovalIds={executedApprovalIds}
           onRefresh={() => void refreshApprovals()}
           onApproveExecute={(action, id) => void approveAndExecuteApproval(action, id)}
           onReject={(id) => void rejectApproval(id)}
@@ -812,7 +837,7 @@ export default function App() {
 
   const readinessItems = useMemo(() => {
     const now = Date.now();
-    const pending = pendingApprovals.filter((item) => item.status === "pending");
+    const pending = pendingApprovals.filter((item) => deriveApprovalStatus(item, now, executedApprovalIds) === "pending");
     const approvalFresh =
       pending.length === 0 || pending.every((item) => Number.isFinite(Date.parse(item.expiresAt)) && Date.parse(item.expiresAt) > now);
     const nearestApprovalExpiry = pending
@@ -895,7 +920,8 @@ export default function App() {
     dashboard.autoExitConfig,
     dashboard.entryAutonomy,
     dashboard.managedTrades,
-    pendingApprovals
+    pendingApprovals,
+    executedApprovalIds
   ]);
 
   return (

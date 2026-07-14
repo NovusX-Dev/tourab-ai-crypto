@@ -1,11 +1,11 @@
 # Project Index
 
-Generated: 2026-02-26 08:19:26 UTC
+Generated: 2026-07-14 17:19:55 UTC
 
 ## Summary
 - Root: `.`
-- Directories indexed: 346
-- Files indexed: 968
+- Directories indexed: 457
+- Files indexed: 1522
 - Exclusions: .git, .idea, node_modules, dist, build, coverage, .venv, venv, __pycache__, .pytest_cache
 
 ## Tree
@@ -23,6 +23,7 @@ Generated: 2026-02-26 08:19:26 UTC
       - src/
         - learning/
           - m7-research-pipeline.ts
+          - strategy-economics.ts
         - mission-control/
           - approval-store.ts
           - auth.ts
@@ -30,13 +31,17 @@ Generated: 2026-02-26 08:19:26 UTC
           - event-factory.ts
           - jsonl-alert-store.ts
           - jsonl-event-store.ts
+          - market-intelligence.ts
           - policy.ts
           - rate-limit.ts
           - runtime-events.ts
           - runtime-lifecycle-manager.ts
+          - signal-intelligence.ts
           - sqlite-event-store.ts
           - sqlite-ops-store.ts
+          - trading-intelligence.ts
           - worker-manager.ts
+        - autonomy-rollout.ts
         - cli.ts
         - cli-validation.ts
         - env-loader.ts
@@ -111,6 +116,7 @@ Generated: 2026-02-26 08:19:26 UTC
           - PortfolioPanel.tsx
           - ReconciliationCard.tsx
           - RiskPanel.tsx
+          - RolloutStatusCard.tsx
           - ThemeSwitcher.tsx
         - logic/
           - alertIncidentPresentation.ts
@@ -147,11 +153,17 @@ Generated: 2026-02-26 08:19:26 UTC
       - source-verification.md
     - runbooks/
       - approval-governance.md
+      - auto-exit-decision-diagnostics.md
       - control-plane-incident.md
       - exchange-reliability.md
       - freshness-guard.md
       - learning-evaluation-guard.md
+      - pause-and-research.md
       - reconciliation-drift-circuit.md
+    - autonomy-master-plan.md
+    - btc-entry-forensics-report-2026-03-24.md
+    - btc-eth-trading-thesis-2026-04-03.md
+    - btc-strategy-research-report-2026-03-25.md
     - decisions.md
     - deep-research-report.md
     - incident-taxonomy-and-slo.md
@@ -162,10 +174,374 @@ Generated: 2026-02-26 08:19:26 UTC
     - milestone-3-invariants.md
     - mission-control-layout-redesign.md
     - operator-playbook.md
+    - operator-quick-checklist.md
+    - project-charter.md
     - roadmap.md
+    - strategy-economics-program-2026-03-25.md
+    - strategy-reset-plan-2026-03-30.md
     - tomorrow-work.md
+    - trading-intelligence-research-2026-04-03.md
+    - trading-intelligence-upgrade-plan-2026-03-24.md
     - ui-prompts.md
   - logs/
+    - archive/
+      - mission-ops-20260227-055326.sqlite
+      - mission-ops-20260227-062744.sqlite
+      - mission-ops-20260227-081728.sqlite
+    - auto-exit-diag-2026-02-27T11-06-23-491Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T13-47-14-369Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T14-08-23-663Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T14-20-33-930Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T14-32-52-795Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T14-47-34-935Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T14-53-18-828Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T15-30-28-692Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T16-02-57-493Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T16-37-25-887Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T17-11-46-370Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T17-23-39-557Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-17T17-44-26-102Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T11-52-08-116Z/
+    - auto-exit-diag-2026-03-18T12-00-37-107Z/
+    - auto-exit-diag-2026-03-18T12-54-10-843Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T13-07-20-874Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T13-16-34-288Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T13-35-16-333Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T14-22-37-580Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T14-42-09-892Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T15-41-31-081Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T16-00-22-326Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T16-14-58-756Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T16-29-32-035Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T16-37-14-069Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-18T16-44-24-114Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T08-19-54-405Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T11-19-41-791Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T11-36-32-581Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T11-49-35-125Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T12-03-48-050Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T12-38-22-602Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T12-50-00-235Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T13-07-01-281Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-19T14-00-04-344Z/
+    - auto-exit-diag-2026-03-19T15-53-21-397Z/
+    - auto-exit-diag-2026-03-19T16-54-36-262Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-20T13-13-20-790Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-21T06-12-06-607Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-23T12-59-41-932Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-23T15-59-44-713Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-23T16-00-40-893Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-24T06-24-39-085Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-24T07-20-31-738Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-24T08-02-21-238Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-24T11-40-28-206Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-24T16-36-26-729Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-25T07-59-52-979Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-25T09-20-33-487Z/
+    - auto-exit-diag-2026-03-25T11-19-14-494Z/
+    - auto-exit-diag-2026-03-25T11-54-41-405Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-25T16-42-39-877Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-26T07-37-39-224Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-26T08-11-44-960Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-26T12-47-57-292Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-26T15-47-37-967Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-26T16-34-47-349Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-30T12-32-35-723Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-30T14-31-09-935Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-31T11-55-52-255Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-31T13-23-33-689Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-31T16-17-05-135Z/
+    - auto-exit-diag-2026-03-31T16-31-09-295Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-31T17-13-13-137Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-03-31T17-51-58-035Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-04-01T06-32-24-280Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-04-01T10-51-13-713Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-04-01T13-14-21-586Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - auto-exit-diag-2026-04-02T11-50-04-414Z/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
+    - autonomy-demo-20260227-051319/
+      - policy-auto-run-2/
+        - alerts-after.json
+        - report.json
+        - samples.json
+      - policy-auto-run-3/
+        - alerts-after.json
+        - report.json
+        - samples.json
+      - policy-auto-run-after-guardrail-patch/
+        - alerts-after.json
+        - report.json
+        - samples.json
+      - policy-auto-run-after-stale-patch/
+        - alerts-after.json
+        - report.json
+        - samples.json
+      - soak-run/
+        - report.json
+        - summary.md
+      - baseline-entry-autonomy.json
+      - baseline-health.json
+      - baseline-learning-alert-config.json
+      - baseline-open-alerts.json
+      - learning-alert-monitor.json
+      - post-run-checks.json
+      - readiness-note-2026-02-27.md
+    - btc-policy-auto-smoke/
+      - decision-trace.json
+      - report.json
+      - samples.json
+      - summary.md
     - m5-evidence-2026-02-17T19-33-51-490Z/
       - evidence.json
       - summary.md
@@ -466,6 +842,9 @@ Generated: 2026-02-26 08:19:26 UTC
       - report.json
       - summary.md
     - m5-soak-2026-02-25T11-46-23-283Z/
+      - report.json
+      - summary.md
+    - m5-soak-2026-03-17T13-54-30-771Z/
       - report.json
       - summary.md
     - m6-acceptance-2026-02-19T08-04-49-497Z/
@@ -1189,6 +1568,173 @@ Generated: 2026-02-26 08:19:26 UTC
     - session/
       - mission-control-server.err.log
       - mission-control-server.out.log
+    - strategy-economics-2026-03-25T07-23-33-410Z/
+      - report.json
+      - summary.md
+    - strategy-economics-2026-03-25T07-51-45-178Z/
+      - report.json
+      - summary.md
+    - strategy-economics-2026-03-25T16-07-01-577Z/
+      - report.json
+      - summary.md
+    - strategy-economics-2026-03-30T12-29-39-500Z/
+    - strategy-economics-2026-03-30T12-30-17-223Z/
+      - report.json
+      - summary.md
+    - strategy-economics-btc-postrun-2026-03-30/
+      - report.json
+      - summary.md
+    - strategy-economics-trace-btc-2026-03-30/
+    - btc-policy-auto-1h-progress-20260323-125941.err.log
+    - btc-policy-auto-1h-progress-20260323-125941.out.log
+    - btc-policy-auto-1h-progress-20260323-130037.err.log
+    - btc-policy-auto-1h-progress-20260323-130037.out.log
+    - btc-policy-auto-1h-progress-20260324-133619.err.log
+    - btc-policy-auto-1h-progress-20260324-133619.out.log
+    - btc-policy-auto-1h-progress-20260325-045945.err.log
+    - btc-policy-auto-1h-progress-20260325-045945.out.log
+    - btc-policy-auto-1h-progress-20260325-081909.err.log
+    - btc-policy-auto-1h-progress-20260325-081909.out.log
+    - btc-policy-auto-1h-progress-20260330-093229.err.log
+    - btc-policy-auto-1h-progress-20260330-093229.out.log
+    - btc-policy-auto-1h-progress-20260330-113059.err.log
+    - btc-policy-auto-1h-progress-20260330-113059.out.log
+    - btc-policy-auto-1h-progress-20260331-085546.err.log
+    - btc-policy-auto-1h-progress-20260331-085546.out.log
+    - btc-policy-auto-1h-progress-20260331-102326.err.log
+    - btc-policy-auto-1h-progress-20260331-102326.out.log
+    - btc-policy-auto-1h-server-20260323-125941.err.log
+    - btc-policy-auto-1h-server-20260323-125941.out.log
+    - btc-policy-auto-1h-server-20260323-130037.err.log
+    - btc-policy-auto-1h-server-20260323-130037.out.log
+    - btc-policy-auto-1h-server-20260324-133619.err.log
+    - btc-policy-auto-1h-server-20260324-133619.out.log
+    - btc-policy-auto-1h-server-20260325-045945.err.log
+    - btc-policy-auto-1h-server-20260325-045945.out.log
+    - btc-policy-auto-1h-server-20260325-081909.err.log
+    - btc-policy-auto-1h-server-20260325-081909.out.log
+    - btc-policy-auto-1h-server-20260330-093229.err.log
+    - btc-policy-auto-1h-server-20260330-093229.out.log
+    - btc-policy-auto-1h-server-20260330-113059.err.log
+    - btc-policy-auto-1h-server-20260330-113059.out.log
+    - btc-policy-auto-1h-server-20260331-085546.err.log
+    - btc-policy-auto-1h-server-20260331-085546.out.log
+    - btc-policy-auto-1h-server-20260331-102326.err.log
+    - btc-policy-auto-1h-server-20260331-102326.out.log
+    - btc-policy-auto-2h-20260318-085207.err.log
+    - btc-policy-auto-2h-20260318-085207.out.log
+    - btc-policy-auto-2h-progress-20260318-090036.err.log
+    - btc-policy-auto-2h-progress-20260318-090036.out.log
+    - btc-policy-auto-2h-progress-20260319-110000.err.log
+    - btc-policy-auto-2h-progress-20260319-110000.out.log
+    - btc-policy-auto-2h-progress-20260319-125318.err.log
+    - btc-policy-auto-2h-progress-20260319-125318.out.log
+    - btc-policy-auto-2h-progress-20260320-101310.err.log
+    - btc-policy-auto-2h-progress-20260320-101310.out.log
+    - btc-policy-auto-2h-progress-20260321-031202.err.log
+    - btc-policy-auto-2h-progress-20260321-031202.out.log
+    - btc-policy-auto-2h-progress-20260323-095936.err.log
+    - btc-policy-auto-2h-progress-20260323-095936.out.log
+    - btc-policy-auto-2h-server-20260319-110000.err.log
+    - btc-policy-auto-2h-server-20260319-110000.out.log
+    - btc-policy-auto-2h-server-20260319-125318.err.log
+    - btc-policy-auto-2h-server-20260319-125318.out.log
+    - btc-policy-auto-2h-server-20260320-101310.err.log
+    - btc-policy-auto-2h-server-20260320-101310.out.log
+    - btc-policy-auto-2h-server-20260321-031202.err.log
+    - btc-policy-auto-2h-server-20260321-031202.out.log
+    - btc-policy-auto-2h-server-20260323-095936.err.log
+    - btc-policy-auto-2h-server-20260323-095936.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260324-050213.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260324-050213.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260324-084022.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260324-084022.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260325-062027.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260325-062027.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260401-033218.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260401-033218.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260401-075104.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260401-075104.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260401-101356.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260401-101356.out.log
+    - btc-policy-auto-2h-signal-gated-progress-20260402-084951.err.log
+    - btc-policy-auto-2h-signal-gated-progress-20260402-084951.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260324-050213.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260324-050213.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260324-084022.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260324-084022.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260325-062027.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260325-062027.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260401-033218.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260401-033218.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260401-075104.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260401-075104.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260401-101356.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260401-101356.out.log
+    - btc-policy-auto-2h-signal-gated-server-20260402-084951.err.log
+    - btc-policy-auto-2h-signal-gated-server-20260402-084951.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260324-032425.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260324-032425.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260324-042023.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260324-042023.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260325-085434.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260325-085434.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260325-134231.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260325-134231.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-043732.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-043732.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-051137.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-051137.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-094750.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-094750.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-124731.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-124731.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-133440.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260326-133440.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-131654.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-131654.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-133103.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-133103.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-141304.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-141304.out.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-145151.err.log
+    - btc-policy-auto-30m-tight-exit-progress-20260331-145151.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260324-032425.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260324-032425.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260324-042023.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260324-042023.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260325-085434.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260325-085434.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260325-134231.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260325-134231.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-043732.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-043732.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-051137.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-051137.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-094750.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-094750.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-124731.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-124731.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-133440.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260326-133440.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-131654.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-131654.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-133103.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-133103.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-141304.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-141304.out.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-145151.err.log
+    - btc-policy-auto-30m-tight-exit-server-20260331-145151.out.log
+    - btc-policy-auto-fixcycle-10m-20260318-095410.err.log
+    - btc-policy-auto-fixcycle-10m-20260318-095410.out.log
+    - btc-policy-auto-fixcycle-5m-20260318-100720.err.log
+    - btc-policy-auto-fixcycle-5m-20260318-100720.out.log
+    - btc-policy-auto-postpatch-15m-20260318-101633.err.log
+    - btc-policy-auto-postpatch-15m-20260318-101633.out.log
+    - btc-policy-auto-postpatch-30m-20260318-103515.err.log
+    - btc-policy-auto-postpatch-30m-20260318-103515.out.log
+    - codex-mission-control-server.err.log
+    - codex-mission-control-server.log
     - context.e2e.json
     - local-terminal.err.log
     - local-terminal.out.log
@@ -1216,18 +1762,87 @@ Generated: 2026-02-26 08:19:26 UTC
     - m7-sol-soak-server.out.log
     - mc-server.err.log
     - mc-server.out.log
+    - mc-server-20260226-085129.err.log
+    - mc-server-20260226-085129.out.log
+    - mc-server-20260226-085137.err.log
+    - mc-server-20260226-085137.out.log
+    - mc-server-20260226-090432.err.log
+    - mc-server-20260226-090432.out.log
+    - mc-server-20260226-123708.err.log
+    - mc-server-20260226-123708.out.log
+    - mc-server-20260226-131626.err.log
+    - mc-server-20260226-131626.out.log
     - mission-alerts.jsonl
     - mission-control-server.err.log
     - mission-control-server.out.log
+    - mission-control-server-20260227-051244.log
+    - mission-control-server-20260227-055332.log
+    - mission-control-server-20260227-062750.log
+    - mission-control-server-20260227-080134.log
+    - mission-control-server-20260227-081700.log
+    - mission-control-server-20260227-081741.log
+    - mission-control-server-20260227-085841.log
+    - mission-control-server-20260318-095203.err.log
+    - mission-control-server-20260318-095203.out.log
+    - mission-control-server-20260318-100641.err.log
+    - mission-control-server-20260318-100641.out.log
+    - mission-control-server-20260318-111850.err.log
+    - mission-control-server-20260318-111850.out.log
+    - mission-control-server-20260318-114144.err.log
+    - mission-control-server-20260318-114144.out.log
+    - mission-control-server-20260318-123802.err.log
+    - mission-control-server-20260318-123802.out.log
+    - mission-control-server-20260318-125951.err.log
+    - mission-control-server-20260318-125951.out.log
+    - mission-control-server-20260318-131410.err.log
+    - mission-control-server-20260318-131410.out.log
+    - mission-control-server-20260318-132739.err.log
+    - mission-control-server-20260318-132739.out.log
+    - mission-control-server-20260318-133558.err.log
+    - mission-control-server-20260318-133558.out.log
+    - mission-control-server-20260318-134350.err.log
+    - mission-control-server-20260318-134350.out.log
+    - mission-control-server-20260319-051917.err.log
+    - mission-control-server-20260319-051917.out.log
+    - mission-control-server-live.err.log
+    - mission-control-server-live.out.log
+    - mission-control-server-live-20260317-114535.err.log
+    - mission-control-server-live-20260317-114535.out.log
+    - mission-control-server-live-20260317-115231.err.log
+    - mission-control-server-live-20260317-115231.out.log
+    - mission-control-server-live-20260317-133654.err.log
+    - mission-control-server-live-20260317-133654.out.log
+    - mission-control-server-live-20260317-140934.err.log
+    - mission-control-server-live-20260317-140934.out.log
+    - mission-control-server-live-20260317-142255.err.log
+    - mission-control-server-live-20260317-142255.out.log
+    - mission-control-server-live-20260317-143404.err.log
+    - mission-control-server-live-20260317-143404.out.log
+    - mission-control-server-live-20260317-144351.err.log
+    - mission-control-server-live-20260317-144351.out.log
+    - mission-control-server-live-20260318-084141.err.log
+    - mission-control-server-live-20260318-084141.out.log
     - mission-events.jsonl
     - mission-events.sqlite
+    - mission-events.sqlite.bak-20260226-085040
+    - mission-events.sqlite-shm
+    - mission-events.sqlite-wal
     - mission-ops.sqlite
+    - mission-ops.sqlite.bak-20260226-123702
+    - mission-ops.trace-copy.sqlite
+    - okx-open-orders-before-fixcycle.json
     - okx-snapshot.json
     - order-intents.jsonl
     - proposal.e2e.json
     - proposal-audit.jsonl
     - reconcile-report.json
+    - report-2026-02-25.md
+    - report-20260226-104615.json
+    - report-20260226-130844.json
+    - report-20260226-134819.json
+    - report-20260226-145831.json
     - tmp-test.js
+    - trading-point-20260226-142440.md
   - packages/
     - okx-demo-adapter/
       - src/
@@ -1245,6 +1860,7 @@ Generated: 2026-02-26 08:19:26 UTC
         - types.ts
       - package.json
   - scripts/
+    - auto-exit-decision-diagnostic.ts
     - install-index-hooks.ps1
     - m5-evidence-rollup.ts
     - m5-soak.ts
@@ -1258,27 +1874,66 @@ Generated: 2026-02-26 08:19:26 UTC
     - m7-sol-moderate-calibration.ts
     - m7-sol-reentry-stages.ts
     - m7-walk-forward.ts
+    - policy-auto-progress-run.ts
+    - start-btc-policy-auto-1h.ps1
+    - start-btc-policy-auto-2h.ps1
+    - start-btc-policy-auto-2h-signal-gated.ps1
+    - start-btc-policy-auto-30m-tight-exit.ps1
+    - strategy-economics-report.ts
     - update-project-index.ps1
   - skills/
+    - architecture/
+      - SKILL.md
+    - autonomy-rollout-governor/
+      - SKILL.md
+    - backend-ws-contracts/
+      - SKILL.md
+    - logging-audit-replay/
+      - SKILL.md
+    - market-intelligence-research/
+      - SKILL.md
+    - mission-control-ui-patterns/
+      - SKILL.md
+    - node-dashboard-patterns/
+      - SKILL.md
     - okx/
-      - okx-auth-signing.md
-      - okx-demo-vs-live.md
-      - okx-overview.md
-      - okx-rate-limits-errors.md
-    - architecture.md
-    - backend-ws-contracts.md
-    - logging-audit-replay.md
-    - mission-control-ui-patterns.md
-    - node-dashboard-patterns.md
-    - phase-delivery-playbook.md
-    - python-research-pipeline.md
+      - okx-auth-signing/
+        - SKILL.md
+      - okx-demo-vs-live/
+        - SKILL.md
+      - okx-overview/
+        - SKILL.md
+      - okx-rate-limits-errors/
+        - SKILL.md
+    - phase-delivery-playbook/
+      - SKILL.md
+    - python-research-pipeline/
+      - SKILL.md
+    - release-hardening/
+      - SKILL.md
+    - risk-gatekeeper/
+      - SKILL.md
+    - security-api-keys/
+      - SKILL.md
+    - skill-factory-governor/
+      - SKILL.md
+    - strategy-hypothesis-lab/
+      - SKILL.md
+    - trade-sizing-microstructure/
+      - SKILL.md
+    - trading-intelligence-loop/
+      - SKILL.md
+    - trading-oracle/
+      - SKILL.md
+    - trading-run-forensics/
+      - SKILL.md
+    - trading-safety-guardrails/
+      - SKILL.md
+    - trading-validation-evidence/
+      - SKILL.md
+    - validation-session-design/
+      - SKILL.md
     - README.md
-    - release-hardening.md
-    - risk-gatekeeper.md
-    - security-api-keys.md
-    - skill-factory-governor.md
-    - trading-oracle.md
-    - trading-safety-guardrails.md
   - tests/
     - fixtures/
       - context.auto.json
@@ -1288,7 +1943,10 @@ Generated: 2026-02-26 08:19:26 UTC
       - proposal.invalid.json
       - proposal.valid.json
     - approval-store.spec.ts
+    - auto-exit-stale-cancel.spec.ts
+    - autonomy-rollout.spec.ts
     - cli-validation.spec.ts
+    - entry-order-aging.spec.ts
     - execution-service.spec.ts
     - human-approval.spec.ts
     - m6-attribution-contract.spec.ts
@@ -1299,14 +1957,20 @@ Generated: 2026-02-26 08:19:26 UTC
     - milestone3-integration.spec.ts
     - mission-control-contract.spec.ts
     - mission-control-event-normalization.spec.ts
+    - mission-control-incident-policy.spec.ts
+    - mission-control-okx-error-detail.spec.ts
     - mission-control-policy.spec.ts
     - mission-control-runtime.spec.ts
+    - mission-control-submit-failure.spec.ts
     - okx-demo-adapter.spec.ts
+    - okx-price-band-hint.spec.ts
     - proposal-helper.spec.ts
     - reconciliation.spec.ts
     - risk-gatekeeper.property.spec.ts
     - risk-gatekeeper.spec.ts
+    - signal-intelligence.spec.ts
     - sqlite-event-store.spec.ts
+    - strategy-economics.spec.ts
     - TEST_PLAN.md
     - worker-manager.spec.ts
     - worker-symbol-quality-gate.spec.ts
@@ -1321,6 +1985,7 @@ Generated: 2026-02-26 08:19:26 UTC
   - package.json
   - package-lock.json
   - README.md
+  - Summary-Session.md
   - tsconfig.json
   - tsc-trace.log
   - vitest.config.ts
@@ -1329,7 +1994,7 @@ Generated: 2026-02-26 08:19:26 UTC
 ## File Catalog
 | Path | Size (bytes) | Last Modified (UTC) | SHA256 |
 |---|---:|---|---|
-| `.env` | 1219 | 2026-02-18 13:10:40 | `609bd71bae3e602ae4f49e5ec31793fd7739c588f914742647fe97a30e6e7484` |
+| `.env` | 1437 | 2026-02-26 12:04:02 | `316d5130e479e8b22da85bc08c257f507910c091d10b2335def19e44d1ead6e1` |
 | `.env.example` | 1259 | 2026-02-18 13:10:36 | `bd1b12931c3508ae9d8a4f4db5a9e2afd6b9ba7c82714ad4bfaad58a53623658` |
 | `.gitattributes` | 24 | 2026-02-16 07:43:43 | `6fda4653ef71808abc2eb5e88b7cf1ec9912e800d3bad13d3b4f46abc8d6f7ea` |
 | `.githooks/post-checkout` | 243 | 2026-02-16 07:41:58 | `81a66130ba52de51a55b1fcbb489cc44d186b51386d808a7774390d586e28680` |
@@ -1339,29 +2004,34 @@ Generated: 2026-02-26 08:19:26 UTC
 | `.gitignore` | 385 | 2026-02-15 08:24:52 | `b0e963bbe4731fbadd53f9fb4519b2dadc110279778dcfaecc695d528a052122` |
 | `.prettierignore` | 70 | 2026-02-20 08:07:47 | `5c33c4b244f0aa1ab177e9578ddc43a7984c22d396a7f8c5bf4a154c41b086ac` |
 | `.prettierrc.json` | 91 | 2026-02-20 08:07:44 | `739aa155790541c532c7d304adbbbab422ab3026ab6c9ac9f59d9cd4958293b8` |
-| `AGENTS.md` | 4669 | 2026-02-20 07:56:32 | `d7c74cd5943aa084333ad209ba1d44efff6133b513c754f939ee55519a99d69b` |
+| `AGENTS.md` | 11165 | 2026-04-03 15:06:17 | `b45f18168c58d3c878316922c53adf62b323e305aec68cbbb50606d9a44b3b87` |
 | `apps/dashboard/package.json` | 388 | 2026-02-16 17:34:55 | `279db4746ec4b34e0b80a6a470f706141dca3b820764d6ce38d18e98e1ee24c1` |
+| `apps/dashboard/src/autonomy-rollout.ts` | 2547 | 2026-03-25 11:54:06 | `a0703216a8cd8fab289f82a36539a6f750f2c389ba8ff2bd9537d7282451925b` |
 | `apps/dashboard/src/cli.ts` | 2739 | 2026-02-16 08:22:42 | `65b65600773088fa34d56c25abb0ee54c99647f1afdc11f148b009391a385b15` |
 | `apps/dashboard/src/cli-validation.ts` | 1532 | 2026-02-16 08:22:27 | `1d7bd77d440d0ac9d265c556515fe93879d76ac8b4e473074911b4e0da2dac27` |
 | `apps/dashboard/src/env-loader.ts` | 1576 | 2026-02-18 13:10:32 | `06a98ddf889b8648e26cddc5098e58a88f457ab6280d205aeec3fecc01756d8d` |
 | `apps/dashboard/src/execution-service.ts` | 10605 | 2026-02-17 08:11:53 | `e722a434d3470c41b11581df8658183f1e7c4fdcc8528653651179d919405275` |
 | `apps/dashboard/src/human-approval.ts` | 2802 | 2026-02-17 07:18:23 | `33af47ee9cf61e08a7652541b8a55ae28ce485c4ec68182d797ef9ef8d1da6d5` |
 | `apps/dashboard/src/learning/m7-research-pipeline.ts` | 13943 | 2026-02-23 09:51:34 | `b5484c9d335bc7a4d313ae8f93ef839412b875db6f9665e1f0e89a2b9efd89b4` |
+| `apps/dashboard/src/learning/strategy-economics.ts` | 12110 | 2026-04-03 15:30:17 | `8a4297007bb3f7a3653620d68bcc67538ceb326a7078b34029ed2bf6e66efff3` |
 | `apps/dashboard/src/lifecycle-store.ts` | 1135 | 2026-02-16 09:06:05 | `d836bad7d35bb5ba19d65b4a9625bb40838261f599332bae7bcfc80d30dda38d` |
-| `apps/dashboard/src/mission-control/approval-store.ts` | 4203 | 2026-02-17 14:26:17 | `75f20d521508f8339f975de05709817666af7148bcf228fde08c4195c42e5bee` |
+| `apps/dashboard/src/mission-control/approval-store.ts` | 4249 | 2026-03-17 14:11:45 | `4babb13e9b0718772994e07ccef8cdb1c1bcd0b1165b7df14ab80fc6ffedda80` |
 | `apps/dashboard/src/mission-control/auth.ts` | 3410 | 2026-02-17 08:23:16 | `67ed07c06224b04b7e6ff2fde2cff66e0da5f221f2d96cc7f4e8e80bed6d0229` |
 | `apps/dashboard/src/mission-control/event-bus.ts` | 437 | 2026-02-16 17:31:37 | `c3ecaad332d8fb3f15223daf611846d01487b2561d971072b9dc3593434b4354` |
 | `apps/dashboard/src/mission-control/event-factory.ts` | 512 | 2026-02-16 17:31:37 | `9e03c058e7a01ba7c791df03d6d4aae88470903d0987565949557824c8524553` |
-| `apps/dashboard/src/mission-control/jsonl-alert-store.ts` | 2941 | 2026-02-17 20:00:31 | `30b9cddee6c57e942d1d0f22970e5419917a22364bb46c3fba2405cd32c78da6` |
+| `apps/dashboard/src/mission-control/jsonl-alert-store.ts` | 3076 | 2026-03-17 14:11:49 | `76a87f4775c9a8fb0fe4c02166f03ad7c2a878abbed25d49f8cbdbcff67f708d` |
 | `apps/dashboard/src/mission-control/jsonl-event-store.ts` | 2000 | 2026-02-16 17:38:27 | `19326a5855984e101e777c1daa80644cf4110b988310b6ade897177c2c13a23c` |
+| `apps/dashboard/src/mission-control/market-intelligence.ts` | 9520 | 2026-03-31 16:15:46 | `37dc9a5fa221a7aaa1469b142ae6ecd5aad05172175b051325eccb1f090d879c` |
 | `apps/dashboard/src/mission-control/policy.ts` | 1232 | 2026-02-17 14:26:07 | `1b6a895a3a32f06647b8576d38fb91b680d69674b0e03564b2a5bb1601f544cb` |
 | `apps/dashboard/src/mission-control/rate-limit.ts` | 785 | 2026-02-16 17:31:55 | `0f947e591afbb854c2233d260a6734f7228125ff124baa5d24dc7cb336d6da06` |
 | `apps/dashboard/src/mission-control/runtime-events.ts` | 1463 | 2026-02-16 17:32:25 | `e5a3f33b7f5ef9570fff92188ff47b76643468c02e5122f095460dfc5bb78c3f` |
 | `apps/dashboard/src/mission-control/runtime-lifecycle-manager.ts` | 5209 | 2026-02-17 14:26:35 | `e8b4b0336af1856789874dce668ef4abae4bc79127c703500915efb11e1be9ba` |
+| `apps/dashboard/src/mission-control/signal-intelligence.ts` | 11281 | 2026-03-31 17:11:40 | `a7526843d34cfed9b7c2d8b15e3d65b9589edb806fd1038e82275fb102b505c2` |
 | `apps/dashboard/src/mission-control/sqlite-event-store.ts` | 4967 | 2026-02-18 16:51:12 | `639918252486f4000bd224c1567bbb2a5e2962d61371baa597d7a416cf896e6c` |
-| `apps/dashboard/src/mission-control/sqlite-ops-store.ts` | 24341 | 2026-02-23 10:53:46 | `d6310f60f36af9ad76a921d8f4e5967ac84fde434280bbce6f7672b5b422090c` |
-| `apps/dashboard/src/mission-control/worker-manager.ts` | 12877 | 2026-02-23 19:22:42 | `112485af8ed4ede1dad8d3f3abf12f4147347178324c41f41134ebca6d19386e` |
-| `apps/dashboard/src/mission-control-server.ts` | 211086 | 2026-02-25 09:59:24 | `018632427eb222074179fad72d107c6c28dc518d0defabe217c4f633e62701ae` |
+| `apps/dashboard/src/mission-control/sqlite-ops-store.ts` | 42386 | 2026-04-03 15:36:10 | `da896f0da65864e2093817a83d007a351ac8b9ecd5b6fa3560d4a17451a30bbc` |
+| `apps/dashboard/src/mission-control/trading-intelligence.ts` | 19620 | 2026-04-03 15:39:00 | `8fedb5a7118e63365b2fe4442f52421c6a6db537d95cec131ce462d5fd456acd` |
+| `apps/dashboard/src/mission-control/worker-manager.ts` | 43716 | 2026-04-03 15:32:43 | `1161ad2798c2de38044c8bccdb7c124b8e6de731689cf5d160229fdbfcab4236` |
+| `apps/dashboard/src/mission-control-server.ts` | 305830 | 2026-04-03 15:33:32 | `290aaee87142892cb3fd54fd78a4cd3477b0bed1a71924bee989de5ab1dca4f4` |
 | `apps/dashboard/src/okx-demo-auto-loop-cli.ts` | 10196 | 2026-02-17 14:03:52 | `1a99e46e1bfceb646ce6a5c56bbe5ecde6bf9e8ee6a1c55f1a9c610b0d683c01` |
 | `apps/dashboard/src/okx-demo-cancel-cli.ts` | 4304 | 2026-02-17 14:03:47 | `abf004a0c761c5feec4c7916124fb349256ff5a616acbc0dd708653107d72edf` |
 | `apps/dashboard/src/okx-demo-diagnostic-cli.ts` | 6491 | 2026-02-18 13:10:48 | `d3ed9b32a93474eef8fac634fa6c0a4bf2ed275a45fc333b0a3a46702afdd225` |
@@ -1370,7 +2040,7 @@ Generated: 2026-02-26 08:19:26 UTC
 | `apps/dashboard/src/okx-demo-orders-cli.ts` | 2276 | 2026-02-17 14:03:36 | `876b580a6b41b3f631281c5a0e69c6caf8b66efc5e9b5602227735e1258e213b` |
 | `apps/dashboard/src/okx-demo-reconcile-cli.ts` | 3554 | 2026-02-17 14:03:43 | `11a6aa74138ebf7deca28b4aa6ae1ede344bd6941829893fde646e4a66628bfa` |
 | `apps/dashboard/src/okx-proposal-helper-cli.ts` | 4804 | 2026-02-17 14:03:58 | `bb70a8b220e2055b4173685c597ca06d4c76b66a360cf57d86ebe6461b8021c6` |
-| `apps/dashboard/src/proposal-helper.ts` | 6727 | 2026-02-16 09:01:09 | `c7904f9d9d4031626eae07d84e2c13fde3aeee8e158eb86af36e45834033e306` |
+| `apps/dashboard/src/proposal-helper.ts` | 8891 | 2026-04-01 15:42:40 | `9adac9a2dae74198b80f37ff0e76ad2e60110d39760e2f6569ed0b05f54518c0` |
 | `apps/dashboard/src/reconciliation.ts` | 6040 | 2026-02-16 09:10:08 | `e5f55769e0e1138f12facf33e0575cf932b4237298f02e58439f36490e7e8ee4` |
 | `apps/mission-control/coverage/coverage-summary.json` | 2253 | 2026-02-20 08:11:47 | `80c9a184db23dfea6bb22877fe7295fd61abb53f4e2fc5be63c5845045d9c9ce` |
 | `apps/mission-control/dist/assets/index-aJ8WyXdC.css` | 18632 | 2026-02-25 12:04:24 | `dea97f399ef8550471b9b316032d260fab911dccb90057dac49e0127337e4a4a` |
@@ -1396,10 +2066,10 @@ Generated: 2026-02-26 08:19:26 UTC
 | `apps/mission-control/node_modules/.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json` | 471 | 2026-02-25 12:04:35 | `09c3b96571d972ac64f1896c88516e207ab44719229afc6a2f688ee0be8952ab` |
 | `apps/mission-control/package.json` | 669 | 2026-02-16 17:42:43 | `3024c620c459bc2e3913d4089b1595f968279f16f76d94c51d93ade2b841ce8e` |
 | `apps/mission-control/README.md` | 5011 | 2026-02-17 13:32:41 | `8a2923353fdf2206681aa99dde2fdb85ab98505b108c85766f90d9f3c9a11c14` |
-| `apps/mission-control/src/api/BotApiClient.ts` | 5965 | 2026-02-23 10:50:15 | `538549d7c745b2699e4bbcdadd2b620309cd676a3054f2dc9b2fd477d6eb8d69` |
-| `apps/mission-control/src/api/LiveBotApiClient.ts` | 32505 | 2026-02-23 10:52:05 | `dc505e5ce44c0ae84f7dd6505c51df48868cf3748a88d9049a016da49ded052e` |
-| `apps/mission-control/src/api/MockBotApiClient.ts` | 31720 | 2026-02-23 10:53:37 | `3be76fac5699b9f00c159e4dc947b94fa9b6c44c4406142357f666bec3cb5dec` |
-| `apps/mission-control/src/App.tsx` | 42076 | 2026-02-25 12:53:02 | `6fc3886abbcc28343d8dbdaa62d56d6127ef0af7e0a1a834ad96037d74650345` |
+| `apps/mission-control/src/api/BotApiClient.ts` | 6081 | 2026-03-17 13:14:44 | `33097997144f44db5fe5d226e910ae97d4bba9b91f2c28d52bc62c615b96675e` |
+| `apps/mission-control/src/api/LiveBotApiClient.ts` | 33145 | 2026-03-17 13:15:22 | `548b64b21724eeae2a3f1363007474a4a2c5f20666293e31e6734b8559b01eef` |
+| `apps/mission-control/src/api/MockBotApiClient.ts` | 32871 | 2026-03-17 13:15:35 | `23db12e1ebec9f7cef18092bde53929465274ad464b08ee8142ec6d09c6ee4e5` |
+| `apps/mission-control/src/App.tsx` | 42207 | 2026-03-17 13:16:55 | `b3d355400293d0ea04098ad8e16eb988fda5c680b687216cfedb0b7d1dbaaa65` |
 | `apps/mission-control/src/components/AlertsPanel.tsx` | 8775 | 2026-02-25 12:59:30 | `b679fd71ad40e555dd7b28b33840ad5df30a0e2cfc8c71148528b04f29fed743` |
 | `apps/mission-control/src/components/ApprovalsPanel.tsx` | 4447 | 2026-02-25 12:50:03 | `f97ccbffe116508a5ffa828bf65e64b65edaa5430dc6c2f39e7b4377164e8cd9` |
 | `apps/mission-control/src/components/ApprovalTechnicalDetails.tsx` | 2675 | 2026-02-25 12:39:06 | `37b3b4c69ff32ca1ac8b505ac5a5e0b94170a0c9f8118d07477855e66296cd80` |
@@ -1419,6 +2089,7 @@ Generated: 2026-02-26 08:19:26 UTC
 | `apps/mission-control/src/components/PortfolioPanel.tsx` | 8197 | 2026-02-24 11:28:03 | `f8098e605ad93be4fd3b7c4695cb1950c7210f59a51ea2513e0d8140ef75cd2b` |
 | `apps/mission-control/src/components/ReconciliationCard.tsx` | 1794 | 2026-02-17 07:58:23 | `3fe557ca91b9748b10b3804d932247b6badeaac6ca2c05efe61a2be4291f4a5a` |
 | `apps/mission-control/src/components/RiskPanel.tsx` | 2004 | 2026-02-24 11:27:51 | `b6bfe44059cccce197ec4d2afed1657fd457115e2a5461547fc0055c854158da` |
+| `apps/mission-control/src/components/RolloutStatusCard.tsx` | 1695 | 2026-03-17 13:16:51 | `af0f41a3365eb8d7b520b2d98433b0ba10f72827df5bbedbc5693774800d5459` |
 | `apps/mission-control/src/components/ThemeSwitcher.tsx` | 565 | 2026-02-16 17:04:22 | `861e77d8dd27e259d3347d23616f888b0e14f558086650b2eb5f667f3ca79a05` |
 | `apps/mission-control/src/format.ts` | 733 | 2026-02-17 17:13:58 | `40a94e946986d80831ce0527981df67a85c8fe3b41afbcab85dd7cbdb16df02c` |
 | `apps/mission-control/src/logic/alertIncidentPresentation.ts` | 5491 | 2026-02-25 12:58:40 | `7f57f77b447443399eb4c7bb19cb878e74444a5647c5dd9fe6d914e15ab865af` |
@@ -1427,8 +2098,8 @@ Generated: 2026-02-26 08:19:26 UTC
 | `apps/mission-control/src/logic/eventFilters.ts` | 1743 | 2026-02-16 17:34:21 | `82adc811a7d2838f41805609311bc10b8c5699f37658e9db5e923aca183a1776` |
 | `apps/mission-control/src/main.tsx` | 232 | 2026-02-16 17:06:38 | `adbc6a19142a0e6bfd6289063814cda1d9748df74d8f6dfc04d0d810f218a6ee` |
 | `apps/mission-control/src/mock/mockData.ts` | 6054 | 2026-02-16 17:43:47 | `0de386d7f19a8d5db8ad9e34d8c8c700f8fabbbb82e64e9cd177db2ef36a550a` |
-| `apps/mission-control/src/state/useDashboardData.ts` | 13783 | 2026-02-20 11:24:05 | `b84a2fbbd2262b3b8cf2ec9494bac2139004683e2bd3e51844301036bb7d5107` |
-| `apps/mission-control/src/styles.css` | 33014 | 2026-02-25 13:06:14 | `0febaabfe17c8ba21cdd74cb673ad65ac24aff8ed0d05abe2c95aebe9d4cb6a0` |
+| `apps/mission-control/src/state/useDashboardData.ts` | 14875 | 2026-03-17 13:15:00 | `679af74a69aab2fe2ad71651cf4f201a4be334b51f06773ad31c6ea70eb80834` |
+| `apps/mission-control/src/styles.css` | 33538 | 2026-03-17 13:17:07 | `eb53510cfb0802b26a59d83d667480fdb543013c0fb07acee606051edc1e6916` |
 | `apps/mission-control/src/test/control-availability.spec.ts` | 628 | 2026-02-16 17:06:56 | `f19d2b619f4bf956bb0e9763be060fa3c11f02de6f6e292d881fa53ef0d39560` |
 | `apps/mission-control/src/test/event-filters.spec.ts` | 1221 | 2026-02-16 17:06:56 | `e39b0758d48483a9fe3d35d7302cc60d33a48c46d1ed523f2d76534b88a3a8a5` |
 | `apps/mission-control/src/test/event-stream-virtualization.spec.ts` | 3099 | 2026-02-17 13:19:27 | `27a4d0b136cc8cf9078a26ff9bea052581d17865f0038d66e23bb3d3afc46ed5` |
@@ -1436,32 +2107,474 @@ Generated: 2026-02-26 08:19:26 UTC
 | `apps/mission-control/src/test/role-gating.spec.ts` | 535 | 2026-02-16 17:06:56 | `ca39f817f2980ceac531cd3d4fffd1a2fff448b8e5ea742ea406fa205fe025e4` |
 | `apps/mission-control/src/test/setup.ts` | 44 | 2026-02-16 17:06:56 | `60aa525f7ffa6bfd3045d22710d4eeef3a5ff2074ecc3dbcef99374badebad17` |
 | `apps/mission-control/src/theme.ts` | 692 | 2026-02-16 17:02:33 | `dc8c55efbfffe4573575285c142021e013f38c985a02cba371af5b785917c7a3` |
-| `apps/mission-control/src/types.ts` | 6405 | 2026-02-23 10:25:32 | `9b275af29339d660b2134ddf2db3f32d74bb692dbf5090729c416c2832c0e861` |
+| `apps/mission-control/src/types.ts` | 8606 | 2026-04-03 15:29:29 | `686fc43c6991f74bc079c7872c26ea7da97322b38e012a81e0db6314fd9018fe` |
 | `apps/mission-control/tsconfig.json` | 393 | 2026-02-16 17:43:04 | `11b5b470f0b39ee4262c5e0eded1137103c0bdd16970fcd1c353c403c2eb1b28` |
 | `apps/mission-control/vite.config.ts` | 136 | 2026-02-16 17:02:09 | `d2d053ba4043a83d1a93e2c22a7aeb72b67535791d5113e6bfe843335439e5ed` |
 | `apps/mission-control/vitest.config.ts` | 672 | 2026-02-20 08:07:58 | `014165672e00c033e5b61268b3a36f5d68b04e420603d80a88fdd98ed3b5a9a8` |
+| `docs/autonomy-master-plan.md` | 32258 | 2026-04-03 15:06:18 | `603fdccc6efdb4e61f475c25aeef2de5a0bade679a29c5bb7830895e6274774a` |
+| `docs/btc-entry-forensics-report-2026-03-24.md` | 7860 | 2026-04-03 12:33:59 | `efcbf3ff1b48af801a96202d4268457863ec2ba8493b9c18ca44b73d444dd8ac` |
+| `docs/btc-eth-trading-thesis-2026-04-03.md` | 10768 | 2026-04-03 12:40:34 | `ee16893541b8b3eea65027e6720dc323ae70c66df3e065ee0744a4c77328b54b` |
+| `docs/btc-strategy-research-report-2026-03-25.md` | 7306 | 2026-03-25 16:12:48 | `8962acfcf8b25be883d404e946dad8f99d654131107e98e7bd5d94bb0838ad5d` |
 | `docs/decisions.md` | 2088 | 2026-02-15 08:26:13 | `63d8d3c8c3c79b27d331690ed9bd27f4829e5a8a0614002e0614dae42ab17aa8` |
 | `docs/deep-research-report.md` | 33989 | 2026-02-13 07:01:58 | `c9fbd1c30c7797d84470c754e60895505aa69ae912d3539d4e36955ed1cd2540` |
 | `docs/incident-taxonomy-and-slo.md` | 999 | 2026-02-17 08:14:36 | `62ed677505f66b742d92d9697a651d6cc5c986b76ba56435fa4a7092e4285a73` |
 | `docs/learning-report.md` | 5173 | 2026-02-15 08:44:50 | `5382135f52b032164ea444c4a4f30ba2640ce59c991223577482d76612f62c10` |
-| `docs/m5-soak-plan.md` | 2634 | 2026-02-17 19:41:37 | `31fe93e4063a501f85805ae545fcc034c9d26c36b82cc5e82c6890ade9533340` |
-| `docs/m7-research-pipeline.md` | 3151 | 2026-02-23 12:02:15 | `13dede45dea62fba3bb26781a08eadf267e0f0164e28e25a27d647bf75c0aec7` |
+| `docs/m5-soak-plan.md` | 2816 | 2026-03-17 13:06:29 | `85a119488aa92315b1f1a4601ac3c1ed6130bb748f7d0248bb85a9969e297946` |
+| `docs/m7-research-pipeline.md` | 3323 | 2026-03-17 13:06:29 | `ce8ea0e1611af1f8c7c0706931d5bc5bc255247211d4220c8a0b27dc3d4ef32a` |
 | `docs/milestone-3-completion-report.md` | 2402 | 2026-02-17 07:19:51 | `5ea39346e2dcf983ee4e36d81321851c9400b014910c8a395372108d0442225e` |
 | `docs/milestone-3-invariants.md` | 2457 | 2026-02-17 07:18:59 | `30e964d5ca026aa78c43971b8c828f0f8a5549348b6e7139ce68cd6ac713d8ea` |
 | `docs/mission-control-layout-redesign.md` | 5585 | 2026-02-24 12:19:11 | `ab41f406069c3ad4a10906eeb4a15c835e3043e2b23eef3deaecc4a8703a7dba` |
-| `docs/okx/okx-docs-v5-en.html` | 4731242 | 2026-02-15 08:37:49 | `f46686a9f46827dc51b633b0dcb80331ada0a0a18e1dc44efe1ce3f6449c0459` |
+| `docs/okx/okx-docs-v5-en.html` | 4790906 | 2026-03-24 11:04:44 | `cd976ef7681eeb066949c77b04a73a8ba8d25a0a1f5b1d8d969ab3d9140e04d2` |
 | `docs/okx/source-verification.md` | 2779 | 2026-02-15 08:44:50 | `2ecd8ccbe303873fa80b753fd914f75c30a2cda753ad1ca7090d0aecc6c4facb` |
 | `docs/operator-playbook.md` | 3669 | 2026-02-24 11:19:11 | `c0474c0a28cabc00cfc60bd0d921f0877b4cb838fe8aab8c1b08f2cb6d80c4ab` |
-| `docs/roadmap.md` | 24414 | 2026-02-25 11:55:12 | `4b94b4332ee70faedc6f7ae94a30cab5606044e1c94723334f2a9e0a48f2df75` |
+| `docs/operator-quick-checklist.md` | 895 | 2026-02-26 12:04:16 | `9b8a6e33ff541989b124243e6c1a39ca47f1e0d569371ff1da19e77baf291003` |
+| `docs/project-charter.md` | 4450 | 2026-04-03 15:06:18 | `e712a350101384e83923d3a0d84a437089a0bd2055c3fb5e18f638bf8d7cc8be` |
+| `docs/roadmap.md` | 1314 | 2026-04-03 12:16:53 | `3ce5285c73a932a9826637589e30cbbdac0c5960b06314a0ebafec45195afe80` |
 | `docs/runbooks/approval-governance.md` | 511 | 2026-02-17 08:14:21 | `22173a75980107cd50ea20e20026edc797b638ddca01af77054dc59c4998e7a0` |
+| `docs/runbooks/auto-exit-decision-diagnostics.md` | 1412 | 2026-02-27 11:01:05 | `a2909a44faf8891692d4ebc495e4c580c389a5433659b781c549866166f1c0ad` |
 | `docs/runbooks/control-plane-incident.md` | 2732 | 2026-02-17 13:33:00 | `00a6a6aae859f6b82d31d5c44d6d823544d2aafdc5064d958f4aa99cc768f421` |
 | `docs/runbooks/exchange-reliability.md` | 508 | 2026-02-17 08:14:36 | `05b52676536a6fe45d01f85e54778cfe30239fb313f6e8fff7146f813b22e40e` |
 | `docs/runbooks/freshness-guard.md` | 612 | 2026-02-17 08:14:21 | `9b34580d9ee2080fe59c635ed4a4fe675401c29d8ed318d785957ca2efb0d8e4` |
 | `docs/runbooks/learning-evaluation-guard.md` | 1814 | 2026-02-20 10:54:42 | `1170205da16105b7171b98f71994c8ff4037700ae0603809ce855f8310cb7a59` |
+| `docs/runbooks/pause-and-research.md` | 1976 | 2026-02-26 12:04:11 | `f52e7a144440b96851bb5520abd91b31c3002fb4e7e4911820e9266a2f8b9353` |
 | `docs/runbooks/reconciliation-drift-circuit.md` | 660 | 2026-02-17 08:14:21 | `e1c20250b36afbd059c08da1dc10747313821972de49feae9febdb22f0ae6217` |
-| `docs/tomorrow-work.md` | 8299 | 2026-02-25 11:56:18 | `3955006873f315357ee249a199f729b1833ba8876826424939cbfa6175708246` |
+| `docs/strategy-economics-program-2026-03-25.md` | 5462 | 2026-03-25 16:13:04 | `e2cab1d0e6e75f88d357c26b38d3a9f9900a07722eb06bfa684f9afcf3bacbd9` |
+| `docs/strategy-reset-plan-2026-03-30.md` | 7614 | 2026-03-30 12:22:40 | `249ec986989f0d1333a6b4cdfe0fa4aab6f455290780e75839ed09a3af027c08` |
+| `docs/tomorrow-work.md` | 10995 | 2026-03-17 13:06:29 | `188e5390a473af3c33a905c6734bdd84c978f8c03cc98dd0f6c98aad48da9b82` |
+| `docs/trading-intelligence-research-2026-04-03.md` | 12023 | 2026-04-03 15:04:17 | `99c29afdbf90f0aa08c9ef4ed922b58b6af844b56b3b5c41c9a5a13e4a651813` |
+| `docs/trading-intelligence-upgrade-plan-2026-03-24.md` | 4902 | 2026-03-24 16:33:56 | `094683c131056cd4a340a48c1e98d2605bc596df90e18ab56d0c26a544d201ee` |
 | `docs/ui-prompts.md` | 16045 | 2026-02-16 17:00:33 | `de5e884a5d4fc1f5b340efe9bc28adfcb313ccee16d4e9136b1c73818e832c3c` |
 | `eslint.config.mjs` | 1975 | 2026-02-20 08:19:22 | `7bc26fbaf896e1ba9bbc8a9d658cd60fe4eac6c53878f21fdc6e0a6c268d7be3` |
+| `logs/archive/mission-ops-20260227-055326.sqlite` | 258048 | 2026-02-27 08:53:21 | `10f2137da85daf714afacd129881658fd90a167c7a9da0d82fcc18739593a908` |
+| `logs/archive/mission-ops-20260227-062744.sqlite` | 86016 | 2026-02-27 09:22:25 | `b3d26e231700f949cf4ecd3ff2b42afec4cec608af6b2c8882fb0056fc7b1458` |
+| `logs/archive/mission-ops-20260227-081728.sqlite` | 180224 | 2026-02-27 11:06:00 | `a81b2a6055cf9f9b8760acf78dcfcd514991a973688d1843853f88b95f0b9901` |
+| `logs/auto-exit-diag-2026-02-27T11-06-23-491Z/decision-trace.json` | 220752 | 2026-02-27 11:11:26 | `b6b9a334960c0673839d84de0635fc893aadea4b02702298763d1777ca56c493` |
+| `logs/auto-exit-diag-2026-02-27T11-06-23-491Z/report.json` | 2898 | 2026-02-27 11:11:26 | `be4da140535c93ff846fc3053ce6b1ebaed46f678911c80c468137fe9e9b9816` |
+| `logs/auto-exit-diag-2026-02-27T11-06-23-491Z/samples.json` | 9508 | 2026-02-27 11:11:26 | `23b58bd4cd5615b884cce57c46ef87bee885e1e6a06a82d6fcea8d7e4b066e84` |
+| `logs/auto-exit-diag-2026-02-27T11-06-23-491Z/summary.md` | 1484 | 2026-02-27 11:11:26 | `e136aa65ac997215306d9489f7e2c43de2b4ba9151936d4b62a2854507ec265f` |
+| `logs/auto-exit-diag-2026-03-17T13-47-14-369Z/decision-trace.json` | 2 | 2026-03-17 13:50:16 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-17T13-47-14-369Z/report.json` | 607 | 2026-03-17 13:50:16 | `cb1b1ac2599c95dd6c2349931a5c27616ec752aa38e9b306604cfc7741e71e26` |
+| `logs/auto-exit-diag-2026-03-17T13-47-14-369Z/samples.json` | 5906 | 2026-03-17 13:50:16 | `fd7c5788295fa4fe6b215afb54660e2a9127314e5f7ed8b9bc37d41839161b4f` |
+| `logs/auto-exit-diag-2026-03-17T13-47-14-369Z/summary.md` | 510 | 2026-03-17 13:50:16 | `53b374eedb872f485ea06f9ae2788b3a578db33fd6018418d7026e811a8a8d64` |
+| `logs/auto-exit-diag-2026-03-17T14-08-23-663Z/decision-trace.json` | 25446 | 2026-03-17 14:10:25 | `d55129c3c7991323ca2565d130b3dffdb37ed04dff305f82335fb2ccbdbb386c` |
+| `logs/auto-exit-diag-2026-03-17T14-08-23-663Z/report.json` | 10101 | 2026-03-17 14:10:25 | `beba2f6741257fe50e0b24deba7b83f3db7b5d78940a790f6c9999aed34466ab` |
+| `logs/auto-exit-diag-2026-03-17T14-08-23-663Z/samples.json` | 3938 | 2026-03-17 14:10:25 | `03a52397c8d69a20e5b92572d0f841fdf3b5f7b0c4227e12e63faad9bbdc631b` |
+| `logs/auto-exit-diag-2026-03-17T14-08-23-663Z/summary.md` | 3560 | 2026-03-17 14:10:25 | `41007399fd22a39ab78b57560b82d0b06071d9224f1022dc8a899d4c1383141b` |
+| `logs/auto-exit-diag-2026-03-17T14-20-33-930Z/decision-trace.json` | 2 | 2026-03-17 14:23:35 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-17T14-20-33-930Z/report.json` | 616 | 2026-03-17 14:23:35 | `f85e5d7c06c950fd4d3030825710392c16b60d75fe1de67ec9939f0a2436bb9a` |
+| `logs/auto-exit-diag-2026-03-17T14-20-33-930Z/samples.json` | 5906 | 2026-03-17 14:23:35 | `565a6621451cb9072aa59444ee9961efe919a99b09380317a07f938e1dfc19ac` |
+| `logs/auto-exit-diag-2026-03-17T14-20-33-930Z/summary.md` | 519 | 2026-03-17 14:23:35 | `d054533823d844cd3f20bb72bfbb434122da9910696335e431557fcd1d3d6dda` |
+| `logs/auto-exit-diag-2026-03-17T14-32-52-795Z/decision-trace.json` | 2 | 2026-03-17 14:37:54 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-17T14-32-52-795Z/report.json` | 617 | 2026-03-17 14:37:54 | `2c064459fda997d53a6b9cc9e42cf5bac16a6870c9e39a7936878ea041f25978` |
+| `logs/auto-exit-diag-2026-03-17T14-32-52-795Z/samples.json` | 9842 | 2026-03-17 14:37:54 | `b5c5989c285f7fde71a66993e811b64c2182fc1f77d33dc8859fe586b1382f89` |
+| `logs/auto-exit-diag-2026-03-17T14-32-52-795Z/summary.md` | 520 | 2026-03-17 14:37:54 | `6e5592239ab2f90b4c758a5208f2382917ccdd0d8d13645361d323117b96d3ac` |
+| `logs/auto-exit-diag-2026-03-17T14-47-34-935Z/decision-trace.json` | 2458 | 2026-03-17 14:51:36 | `4f59042e99a1632e0c53ed5f59b3fde6f9782cde1392913c205764e76e416949` |
+| `logs/auto-exit-diag-2026-03-17T14-47-34-935Z/report.json` | 2483 | 2026-03-17 14:51:36 | `7d919b39f0d67f27a76d5d0f2631bc0d27ce916fa4773ce48daafc6b2e1332ff` |
+| `logs/auto-exit-diag-2026-03-17T14-47-34-935Z/samples.json` | 7874 | 2026-03-17 14:51:36 | `7ea8ec7096ee4d80aaa27dcd13e506871a02980527001670938d309ac27edc15` |
+| `logs/auto-exit-diag-2026-03-17T14-47-34-935Z/summary.md` | 1192 | 2026-03-17 14:51:36 | `8337b402cf9c23b84770af2fad715b860eda8ea7166c5886818afecffc2063e9` |
+| `logs/auto-exit-diag-2026-03-17T14-53-18-828Z/decision-trace.json` | 2 | 2026-03-17 14:55:49 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-17T14-53-18-828Z/report.json` | 675 | 2026-03-17 14:55:49 | `d5a7b98d48c535b3e7568b532e6ed85a560d7fa801b5197a6fd6e24c103de7c4` |
+| `logs/auto-exit-diag-2026-03-17T14-53-18-828Z/samples.json` | 4922 | 2026-03-17 14:55:49 | `375ff266b606f39a27fb0608dcc5acda2d38238a62f05550ea1c20fbaba6a44c` |
+| `logs/auto-exit-diag-2026-03-17T14-53-18-828Z/summary.md` | 534 | 2026-03-17 14:55:49 | `7ffb33b56cb3c402719d9d9ee47148545bbed3fdaa1720c91f52e074f2645363` |
+| `logs/auto-exit-diag-2026-03-17T15-30-28-692Z/decision-trace.json` | 6554 | 2026-03-17 16:00:33 | `386cb3221eb72f34f8a50388b64bd610d825b4279bd7bd4fa26dc970b9787510` |
+| `logs/auto-exit-diag-2026-03-17T15-30-28-692Z/report.json` | 3399 | 2026-03-17 16:00:33 | `a143c8d42e646212e6a256e492fda0596593112505dbce851d8dd0a471ae3b36` |
+| `logs/auto-exit-diag-2026-03-17T15-30-28-692Z/samples.json` | 58878 | 2026-03-17 16:00:33 | `4eda8efaf734351954f1ccecfd352722f2ed8397e40eb9eb9638f2eff9bb3854` |
+| `logs/auto-exit-diag-2026-03-17T15-30-28-692Z/summary.md` | 1752 | 2026-03-17 16:00:33 | `be29add401094ebccb35c454e2ef6575b4fc59ae1a454621fba17fbfc79ae129` |
+| `logs/auto-exit-diag-2026-03-17T16-02-57-493Z/decision-trace.json` | 419846 | 2026-03-17 16:32:58 | `4df10a9a3479f458388c7686c7caeabbd6da29e10a0dafe5f78c40c66606270b` |
+| `logs/auto-exit-diag-2026-03-17T16-02-57-493Z/report.json` | 43231 | 2026-03-17 16:32:58 | `f097fc8eeed8d5415342619707f5bba6b93565e6f032e0567038b2729357e04a` |
+| `logs/auto-exit-diag-2026-03-17T16-02-57-493Z/samples.json` | 58714 | 2026-03-17 16:32:58 | `efdf152647074e046b52491545cd7958e5feffe3baa13adfd0498ddf2281d364` |
+| `logs/auto-exit-diag-2026-03-17T16-02-57-493Z/summary.md` | 3605 | 2026-03-17 16:32:58 | `16ee3754ffaa4c85c85dfff0b126907d49a8b28fd890a922885c2cd938fe0306` |
+| `logs/auto-exit-diag-2026-03-17T16-37-25-887Z/decision-trace.json` | 9822 | 2026-03-17 16:47:29 | `0b2e40ce289b71e025f9c25159630f2b9713674152615dda1f28391462c89791` |
+| `logs/auto-exit-diag-2026-03-17T16-37-25-887Z/report.json` | 4149 | 2026-03-17 16:47:29 | `e9d3d96b7aadcd04f4443daa1620f4701fd54ff7ff5036fcdd0c586095524fff` |
+| `logs/auto-exit-diag-2026-03-17T16-37-25-887Z/samples.json` | 19190 | 2026-03-17 16:47:29 | `549c58f44521a14852c0af3eccd961eae7ad68c19b1e14453b976b89a81554cf` |
+| `logs/auto-exit-diag-2026-03-17T16-37-25-887Z/summary.md` | 2082 | 2026-03-17 16:47:29 | `16aa2d70a97923f4052f8290d77da9922f8198c53dba1d9c6b3dc8cda8a57030` |
+| `logs/auto-exit-diag-2026-03-17T17-11-46-370Z/decision-trace.json` | 25072 | 2026-03-17 17:21:48 | `4ca738b43674fd462b50047c38d98baaecb4707402fe2807e858a9cf68bec511` |
+| `logs/auto-exit-diag-2026-03-17T17-11-46-370Z/report.json` | 9596 | 2026-03-17 17:21:48 | `0108b291ba452a26247ef83334932a3e458dcab6bae0d8c6287e873f852a1134` |
+| `logs/auto-exit-diag-2026-03-17T17-11-46-370Z/samples.json` | 19518 | 2026-03-17 17:21:48 | `94948f58357dbcef7f79ff19debc36202986e15b853c85776feab0e299a015fd` |
+| `logs/auto-exit-diag-2026-03-17T17-11-46-370Z/summary.md` | 3611 | 2026-03-17 17:21:48 | `a24ce9c16fe6e3c709678ab94e5a30fdbaece16fc1d1b43ea18fbfce9e749bbd` |
+| `logs/auto-exit-diag-2026-03-17T17-23-39-557Z/decision-trace.json` | 4102 | 2026-03-17 17:33:42 | `96457ba63ccd5d8ff2c5bd9e8f085fc7988c8be19351fa08a9e396f73f485842` |
+| `logs/auto-exit-diag-2026-03-17T17-23-39-557Z/report.json` | 2417 | 2026-03-17 17:33:42 | `4a4eed40847a558f33749381410dc0b7fc958af9b19231ae0bbf86d194bfa30c` |
+| `logs/auto-exit-diag-2026-03-17T17-23-39-557Z/samples.json` | 19682 | 2026-03-17 17:33:42 | `8fef6d8dc3bc5712f4f8fcd6d447e2522cfdf09b9bbd5de22cb459bd3ed31299` |
+| `logs/auto-exit-diag-2026-03-17T17-23-39-557Z/summary.md` | 1299 | 2026-03-17 17:33:42 | `f9f397eb5611828922356a4482a2693ad92722e6824e446305071ecf0f5fac6a` |
+| `logs/auto-exit-diag-2026-03-17T17-44-26-102Z/decision-trace.json` | 35253 | 2026-03-17 17:54:29 | `5b6c5bd18f609d1fdaf726e196ff594cb1517073f207ff52f9f626a0f03f208b` |
+| `logs/auto-exit-diag-2026-03-17T17-44-26-102Z/report.json` | 14018 | 2026-03-17 17:54:29 | `96d407fe68534ab76a6f15e282e417fd2069ced20799ec15044d15b4551ba78e` |
+| `logs/auto-exit-diag-2026-03-17T17-44-26-102Z/samples.json` | 19682 | 2026-03-17 17:54:29 | `a9d4fc785e5fbf78dbc6e07e380bee923dc4c80fba58d5fcac957fd57b97d70b` |
+| `logs/auto-exit-diag-2026-03-17T17-44-26-102Z/summary.md` | 3589 | 2026-03-17 17:54:29 | `e45c8d4f5c27dfb7cf5335f396ce4713af12b3d364b7d5e76c7e8c957ff390ff` |
+| `logs/auto-exit-diag-2026-03-18T12-54-10-843Z/decision-trace.json` | 9842 | 2026-03-18 13:04:12 | `1d198507b9fab7e2ce3816dc632c80b9c79a1936bbd880bf83a41097a64551cb` |
+| `logs/auto-exit-diag-2026-03-18T12-54-10-843Z/report.json` | 4577 | 2026-03-18 13:04:12 | `fdfcc3f8381a4b90ffe37c408de4c0964bf28dcb26650ffdb643a17c40853aee` |
+| `logs/auto-exit-diag-2026-03-18T12-54-10-843Z/samples.json` | 19554 | 2026-03-18 13:04:12 | `a9c62fc1a618d68f5f94f82210312a90343aa6d21ac139864b278265396b2a53` |
+| `logs/auto-exit-diag-2026-03-18T12-54-10-843Z/summary.md` | 1629 | 2026-03-18 13:04:12 | `45b5e0e518eb1ec3d7e772634ac585736b7316f70a5ff3d2e5e48450449a4126` |
+| `logs/auto-exit-diag-2026-03-18T13-07-20-874Z/decision-trace.json` | 2 | 2026-03-18 13:12:24 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-18T13-07-20-874Z/report.json` | 675 | 2026-03-18 13:12:24 | `31ba9aeba06bca72a7f6f17c301d53bdd7d465fbcb34f5a962a110bf9109a786` |
+| `logs/auto-exit-diag-2026-03-18T13-07-20-874Z/samples.json` | 9842 | 2026-03-18 13:12:24 | `7b429bf2e4d7a37a36eb7c91ace966768962e8cbd3f75bde1973c22936bfaea7` |
+| `logs/auto-exit-diag-2026-03-18T13-07-20-874Z/summary.md` | 534 | 2026-03-18 13:12:24 | `e5ff76c395ed771fc1771effdf9bc0654f806d6f705ef8d55c0e2caeefa06e2c` |
+| `logs/auto-exit-diag-2026-03-18T13-16-34-288Z/decision-trace.json` | 2462 | 2026-03-18 13:31:39 | `0d0dbf03c36a90f5b815f2aeccb315cfcb0507ed3eefd6ba90150bf19a0a9cd4` |
+| `logs/auto-exit-diag-2026-03-18T13-16-34-288Z/report.json` | 4574 | 2026-03-18 13:31:39 | `55ffb4a04aa9d1b12bb3fbc21a0435a4359f39f97f6f96dd7d4b4d8dc62f89bc` |
+| `logs/auto-exit-diag-2026-03-18T13-16-34-288Z/samples.json` | 29362 | 2026-03-18 13:31:39 | `8c145340464761a60200bbede3ad0eb501eabe831d201aac01ca981ec7788d01` |
+| `logs/auto-exit-diag-2026-03-18T13-16-34-288Z/summary.md` | 1626 | 2026-03-18 13:31:39 | `4e9f4ff0583cdce65dbf1b44ab22d6783b70d05f4d6c729aebd3d9613152a2c3` |
+| `logs/auto-exit-diag-2026-03-18T13-35-16-333Z/decision-trace.json` | 20373 | 2026-03-18 14:05:20 | `1573d8d4576d2e926c6cbce6bb559a7788992422dc3b4218e2606180bdfbe671` |
+| `logs/auto-exit-diag-2026-03-18T13-35-16-333Z/report.json` | 3120 | 2026-03-18 14:05:20 | `c1b2b17bebaa06a283a362d38e877903090fe566c679c6e3a524caac80f8c1e9` |
+| `logs/auto-exit-diag-2026-03-18T13-35-16-333Z/samples.json` | 51222 | 2026-03-18 14:05:20 | `c7e6508ca8bd3b813366ea72afbf6cd5b5c7ddf09dc52840d9739f80ecc10ce8` |
+| `logs/auto-exit-diag-2026-03-18T13-35-16-333Z/summary.md` | 1626 | 2026-03-18 14:05:20 | `436d4621210f7922c4c1d8749eaef86e5f4d735eebc3500c553c7b831598dfe4` |
+| `logs/auto-exit-diag-2026-03-18T14-22-37-580Z/decision-trace.json` | 21952 | 2026-03-18 14:37:42 | `6108357a735de5de56c3c58aa92f689a612bdd1a9e957dec77f1d95c8c9e73b3` |
+| `logs/auto-exit-diag-2026-03-18T14-22-37-580Z/report.json` | 2192 | 2026-03-18 14:37:42 | `4371de0a18245582ffcc44734f9aabe2a1a240530f9f1c8519f9bb269e5acc12` |
+| `logs/auto-exit-diag-2026-03-18T14-22-37-580Z/samples.json` | 26155 | 2026-03-18 14:37:42 | `888ee12336e62bc50a631d91bb78109930d79f6d3248bb880de3994532f768cb` |
+| `logs/auto-exit-diag-2026-03-18T14-22-37-580Z/summary.md` | 1189 | 2026-03-18 14:37:42 | `bbd03679a24d072c0f73e972249a27c2bf9f59df71c9cc3dcfeeebe80c0c8c33` |
+| `logs/auto-exit-diag-2026-03-18T14-42-09-892Z/decision-trace.json` | 241506 | 2026-03-18 14:52:12 | `b54c08c5cf731d2b497e14fe23f8e0f148ed1b6babccdcc406d83f27079e25b0` |
+| `logs/auto-exit-diag-2026-03-18T14-42-09-892Z/report.json` | 11201 | 2026-03-18 14:52:12 | `6bd965a2029c1a57597ec927a0b498c9cbc540c59bafc9634d0bcbe56fe3b8e5` |
+| `logs/auto-exit-diag-2026-03-18T14-42-09-892Z/samples.json` | 16742 | 2026-03-18 14:52:12 | `4021156e8bd4c4878c0854e50cbf9336110fc80cb11293050fdeef375532b561` |
+| `logs/auto-exit-diag-2026-03-18T14-42-09-892Z/summary.md` | 3710 | 2026-03-18 14:52:12 | `b46c6d8e7655523896331a8562f62e3893c7852f74f2b08fcbfc79d318dc5e45` |
+| `logs/auto-exit-diag-2026-03-18T15-41-31-081Z/decision-trace.json` | 2 | 2026-03-18 15:56:31 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-18T15-41-31-081Z/report.json` | 553 | 2026-03-18 15:56:31 | `c838e41878b73fb043af29d0fa5765fa0fd0943568782c691e55caab8d6f90f0` |
+| `logs/auto-exit-diag-2026-03-18T15-41-31-081Z/samples.json` | 26078 | 2026-03-18 15:56:31 | `7c98a1143288302b41b786b90ae1551e483150e60d9ef0cf31163b657d376769` |
+| `logs/auto-exit-diag-2026-03-18T15-41-31-081Z/summary.md` | 502 | 2026-03-18 15:56:31 | `c1afdf1280630ac710cf0743780401db8735213711937b155df38b5349761b9a` |
+| `logs/auto-exit-diag-2026-03-18T16-00-22-326Z/decision-trace.json` | 2 | 2026-03-18 16:10:26 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-18T16-00-22-326Z/report.json` | 554 | 2026-03-18 16:10:26 | `183fabba9b7333eb1477de8c912b2ff97b18e1ef87c17a927fda71ab9799f049` |
+| `logs/auto-exit-diag-2026-03-18T16-00-22-326Z/samples.json` | 18816 | 2026-03-18 16:10:26 | `1feb35ff3670b45695c82f1342f76fd88a536c6e741dc7e8da774774da9c4b8c` |
+| `logs/auto-exit-diag-2026-03-18T16-00-22-326Z/summary.md` | 503 | 2026-03-18 16:10:26 | `925708fe07c1319e24df1cb1d088e354d87e760bb6cf36618b60aad2ae89edb6` |
+| `logs/auto-exit-diag-2026-03-18T16-14-58-756Z/decision-trace.json` | 295473 | 2026-03-18 16:25:01 | `5fe38de1d64af321d408ae21182b218a3cd99cda6ae4523487cf3be8fcf7ef4b` |
+| `logs/auto-exit-diag-2026-03-18T16-14-58-756Z/report.json` | 13083 | 2026-03-18 16:25:01 | `48264a5c89253f89dd7b570f381ad1c91547bab5a4490a92f110c4db4aa8e1d7` |
+| `logs/auto-exit-diag-2026-03-18T16-14-58-756Z/samples.json` | 19301 | 2026-03-18 16:25:01 | `b1442c07b0245c4e14e68ed7b6fd964e6d983db41d1e2880f959747133a10e6c` |
+| `logs/auto-exit-diag-2026-03-18T16-14-58-756Z/summary.md` | 4115 | 2026-03-18 16:25:01 | `6017907b7a59fb336c3d2c24bc97d1f053e0b6a25c0c8babdd6188d8ff29a7ac` |
+| `logs/auto-exit-diag-2026-03-18T16-29-32-035Z/decision-trace.json` | 2 | 2026-03-18 16:34:34 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-18T16-29-32-035Z/report.json` | 551 | 2026-03-18 16:34:34 | `98f997f04a5f0c03f91215f9fbaf36bd539cdb9b31131a1e70c5952ca2ac6d3c` |
+| `logs/auto-exit-diag-2026-03-18T16-29-32-035Z/samples.json` | 9482 | 2026-03-18 16:34:34 | `bd594ddbe15bb5f7936ebaeaf89153b45ab4da35f554d36c864627f4840dabd7` |
+| `logs/auto-exit-diag-2026-03-18T16-29-32-035Z/summary.md` | 500 | 2026-03-18 16:34:34 | `306295172e81c58585026b7478466c2d37e4370f802a4b1f1406e64850b40174` |
+| `logs/auto-exit-diag-2026-03-18T16-37-14-069Z/decision-trace.json` | 26684 | 2026-03-18 16:39:15 | `347be0d020d17f38376a6924ad8862f1743cf4ec80e5f1d13a4a5d09ed8bf6bd` |
+| `logs/auto-exit-diag-2026-03-18T16-37-14-069Z/report.json` | 23434 | 2026-03-18 16:39:15 | `a79324137119dec82580b2d176962f70c1b97a9126e8b9b0892b106cc5cdd47f` |
+| `logs/auto-exit-diag-2026-03-18T16-37-14-069Z/samples.json` | 3961 | 2026-03-18 16:39:15 | `ca55c4b8b36cd922de39b2686b987ca6b4f0579be859f8af0292e95ac56fbd43` |
+| `logs/auto-exit-diag-2026-03-18T16-37-14-069Z/summary.md` | 6793 | 2026-03-18 16:39:15 | `6821e5f5d449ab46c824c9fca3a1f20a716be28e64981ad04547ec5508162428` |
+| `logs/auto-exit-diag-2026-03-18T16-44-24-114Z/decision-trace.json` | 7374 | 2026-03-18 16:46:25 | `3361e406b39c21ce0180f2172bb84841a76ec69dc7fd0de62b17c4cf8db30bb3` |
+| `logs/auto-exit-diag-2026-03-18T16-44-24-114Z/report.json` | 8860 | 2026-03-18 16:46:25 | `b0eedd93ce2505f0db5bde8a372e9b5257630cec1afc5f601d77acbb5d99efe4` |
+| `logs/auto-exit-diag-2026-03-18T16-44-24-114Z/samples.json` | 3961 | 2026-03-18 16:46:25 | `6fc1d952a5bc839186bd2012b50391a49390297840ed4a4d8a2b7089f3928508` |
+| `logs/auto-exit-diag-2026-03-18T16-44-24-114Z/summary.md` | 3141 | 2026-03-18 16:46:25 | `ddbd6b893ecd40767a3036ee5651ac57260a519d0be730d1bb2386be999314e5` |
+| `logs/auto-exit-diag-2026-03-19T08-19-54-405Z/decision-trace.json` | 2 | 2026-03-19 08:29:57 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-19T08-19-54-405Z/report.json` | 550 | 2026-03-19 08:29:57 | `62bf3e25815abe6051e8f9c5bcc56358ad7f61882d0ba036711ecad30191b68a` |
+| `logs/auto-exit-diag-2026-03-19T08-19-54-405Z/samples.json` | 19518 | 2026-03-19 08:29:57 | `961555469c767f158fd5485e41446c6c82ef4de212816a8f4b4b48851db86c67` |
+| `logs/auto-exit-diag-2026-03-19T08-19-54-405Z/summary.md` | 499 | 2026-03-19 08:29:57 | `bdffcba08c27f3faad4b17dafe29a518bd97862f47ba44c7c1d7f9cd4f34d8ba` |
+| `logs/auto-exit-diag-2026-03-19T11-19-41-791Z/decision-trace.json` | 253050 | 2026-03-19 11:29:45 | `c6fd4b28e14b8f4ce56206db03e2850e58e3ce56c43c81927ee5d020b16f2926` |
+| `logs/auto-exit-diag-2026-03-19T11-19-41-791Z/report.json` | 11561 | 2026-03-19 11:29:45 | `c1237e0dd80a26fde05a9b687f8103a9a0797a37f733456331a0e392ee5ed7e7` |
+| `logs/auto-exit-diag-2026-03-19T11-19-41-791Z/samples.json` | 19790 | 2026-03-19 11:29:45 | `24a5e10b50199ff920d33ee893a4eed805cc6b7c09321fe8afd7dee7f019f1d2` |
+| `logs/auto-exit-diag-2026-03-19T11-19-41-791Z/summary.md` | 3669 | 2026-03-19 11:29:45 | `aefa37ca0f6433929499ffdac55dce47e5340c5fc374541017a1aa23af143e94` |
+| `logs/auto-exit-diag-2026-03-19T11-36-32-581Z/decision-trace.json` | 674697 | 2026-03-19 11:46:35 | `0c1ee28f4fd4ab3cce8d4d14994d9e96009067643075cf9a2c3f7c15386b0833` |
+| `logs/auto-exit-diag-2026-03-19T11-36-32-581Z/report.json` | 27904 | 2026-03-19 11:46:35 | `df0dba71bebb134dda7502ea6c3c864a6baf6bda9e1fd80943f1cb2063aa7d7e` |
+| `logs/auto-exit-diag-2026-03-19T11-36-32-581Z/samples.json` | 19605 | 2026-03-19 11:46:35 | `9f86845c8592bd814dde33ef07665dad1f617e4fceba5eaf08e6b8194bffb726` |
+| `logs/auto-exit-diag-2026-03-19T11-36-32-581Z/summary.md` | 7792 | 2026-03-19 11:46:35 | `55cdcc5c1f60be29e6bfc4c913e80d5a001986f0cb13caae7b247020eb5e830d` |
+| `logs/auto-exit-diag-2026-03-19T11-49-35-125Z/decision-trace.json` | 24684 | 2026-03-19 11:59:38 | `4cf0a12899d13e7ff2ea005f3ab1adb5206cd89386dc905f434ad42fda5a53b7` |
+| `logs/auto-exit-diag-2026-03-19T11-49-35-125Z/report.json` | 7065 | 2026-03-19 11:59:38 | `274151f20f9c6fb9eaa4b8e22d9311c923e94f4273b1cf9c5364137be35b7ec8` |
+| `logs/auto-exit-diag-2026-03-19T11-49-35-125Z/samples.json` | 19560 | 2026-03-19 11:59:38 | `834b1cf5e888e3079762c895f917daddea7126515ce1915c5771329f20323865` |
+| `logs/auto-exit-diag-2026-03-19T11-49-35-125Z/summary.md` | 3280 | 2026-03-19 11:59:38 | `3fe44ae8b370161d0fbce6cdd95b5aad5eab4302af1d589792e3ac589107e149` |
+| `logs/auto-exit-diag-2026-03-19T12-03-48-050Z/decision-trace.json` | 740624 | 2026-03-19 12:33:50 | `87165895a86b4173f9b7a3a9ce8cbfba83dc5f01e98b12a52979eef27fe26d81` |
+| `logs/auto-exit-diag-2026-03-19T12-03-48-050Z/report.json` | 12685 | 2026-03-19 12:33:50 | `f649d48d1fb2d61a064f6eee0e8f2ba8d62a3273a32cfcb306b41b6c2717bac8` |
+| `logs/auto-exit-diag-2026-03-19T12-03-48-050Z/samples.json` | 58653 | 2026-03-19 12:33:50 | `3f67d1600e0089f429e33b46041d44b08179aa2bfc1d2a6ac793ba8416840e25` |
+| `logs/auto-exit-diag-2026-03-19T12-03-48-050Z/summary.md` | 3631 | 2026-03-19 12:33:50 | `52e4941622e426619fe1ba5692c44d1e2cd6b153020530afc955138bbee18b72` |
+| `logs/auto-exit-diag-2026-03-19T12-38-22-602Z/decision-trace.json` | 2 | 2026-03-19 12:48:27 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-19T12-38-22-602Z/report.json` | 550 | 2026-03-19 12:48:27 | `f7a050fc6bed5f180c1e318285c523e23388d72d955415f82bc65ae2110edfd3` |
+| `logs/auto-exit-diag-2026-03-19T12-38-22-602Z/samples.json` | 19682 | 2026-03-19 12:48:27 | `bbfe3bdebf9e261d1319313c57e18a69d1abe58be71a5fa7d2dabe708c0edfd6` |
+| `logs/auto-exit-diag-2026-03-19T12-38-22-602Z/summary.md` | 499 | 2026-03-19 12:48:27 | `b7f9c1436fcfbfc4706bb0d48465f2e4e1ee4d59d9f23dcfcea3f0c5d4f1dc81` |
+| `logs/auto-exit-diag-2026-03-19T12-50-00-235Z/decision-trace.json` | 50294 | 2026-03-19 13:05:02 | `ffa423c9d3f7d88e9d7dd1b21581bbcc9428061bb36e846bc6bad4a3417c9c60` |
+| `logs/auto-exit-diag-2026-03-19T12-50-00-235Z/report.json` | 12345 | 2026-03-19 13:05:02 | `1557a084317b7abb52619f77a158e48f3985ea10296b8c7cbecfd58f9882ad30` |
+| `logs/auto-exit-diag-2026-03-19T12-50-00-235Z/samples.json` | 29442 | 2026-03-19 13:05:02 | `c2c8129e245eacfeee1536adaeee606c1e93646e79f9905d1da6bf952a78f010` |
+| `logs/auto-exit-diag-2026-03-19T12-50-00-235Z/summary.md` | 3566 | 2026-03-19 13:05:02 | `7167181808478de404c9eb04c37de29b5ef0e87e52cbe26d348434c9f9f5c003` |
+| `logs/auto-exit-diag-2026-03-19T13-07-01-281Z/decision-trace.json` | 14424 | 2026-03-19 13:37:05 | `5716b0979e68ee032346b80097a914033a3da032075a7bad06b18477067b72b8` |
+| `logs/auto-exit-diag-2026-03-19T13-07-01-281Z/report.json` | 6667 | 2026-03-19 13:37:05 | `07034501f647280f6cfd1d963becf49e784160ef40dcc7b0971536189d6e24f6` |
+| `logs/auto-exit-diag-2026-03-19T13-07-01-281Z/samples.json` | 58752 | 2026-03-19 13:37:05 | `d121ce0a42fb92eef6c24ffa27c9d22710980f984257bd292db015d76ed05151` |
+| `logs/auto-exit-diag-2026-03-19T13-07-01-281Z/summary.md` | 3117 | 2026-03-19 13:37:05 | `9703ad4694c876d18696ae4621b360a2be8af050330a8d68ae2ed66f16e0ee5f` |
+| `logs/auto-exit-diag-2026-03-19T16-54-36-262Z/decision-trace.json` | 2 | 2026-03-19 17:24:38 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-19T16-54-36-262Z/report.json` | 15331 | 2026-03-19 17:24:38 | `2bc1e9067c10592ed42d1c6d5d000709fa5515494d4e67bf72f7e505253ce395` |
+| `logs/auto-exit-diag-2026-03-19T16-54-36-262Z/samples.json` | 58904 | 2026-03-19 17:24:38 | `388010d2f157aeb1ecfbf4dac986c3038899e31f030ac4f9825a33656e5eb317` |
+| `logs/auto-exit-diag-2026-03-19T16-54-36-262Z/summary.md` | 4442 | 2026-03-19 17:24:38 | `08e8a8f9400aab08ef239ac78118e17d111b3753728973e12dc4d6ff2159f09c` |
+| `logs/auto-exit-diag-2026-03-20T13-13-20-790Z/decision-trace.json` | 33326 | 2026-03-20 15:13:24 | `36b4b6db9ad8e490797c28836ae31fb71a7c130c2e37ed2ef04645308d7fcef0` |
+| `logs/auto-exit-diag-2026-03-20T13-13-20-790Z/report.json` | 13752 | 2026-03-20 15:13:24 | `b185e02b4c2329e6a3919cbe389322ea5c436d0616a3df74d56d114b6dc7c241` |
+| `logs/auto-exit-diag-2026-03-20T13-13-20-790Z/samples.json` | 234600 | 2026-03-20 15:13:24 | `122f02932f73fef6df6a9c3188a2b80c4c980d728afaebd96bae5596b6781481` |
+| `logs/auto-exit-diag-2026-03-20T13-13-20-790Z/summary.md` | 3578 | 2026-03-20 15:13:24 | `969fca6dcb8faf368da73c4a9f259961ba6f8d247a5f65c7db294e98d61cdc94` |
+| `logs/auto-exit-diag-2026-03-21T06-12-06-607Z/decision-trace.json` | 41564 | 2026-03-21 08:12:09 | `845ae163d4d5c15c2d33dea6ed11dd4e6808d28d26945cb8988aacc569203fb7` |
+| `logs/auto-exit-diag-2026-03-21T06-12-06-607Z/report.json` | 17531 | 2026-03-21 08:12:09 | `6e4d151b283961c25be79bc34cf6cc640fb79b2e920f735e2e40b028d4b999c5` |
+| `logs/auto-exit-diag-2026-03-21T06-12-06-607Z/samples.json` | 230350 | 2026-03-21 08:12:09 | `c32159e53868a06ae82ad9e58ffb5e48e472c8a8c5258d0728933dc2eda7376c` |
+| `logs/auto-exit-diag-2026-03-21T06-12-06-607Z/summary.md` | 3764 | 2026-03-21 08:12:09 | `39c3999b7145db75dfb35281683f7b13a3bd421b9ecaf46e855b57e17b89e250` |
+| `logs/auto-exit-diag-2026-03-23T12-59-41-932Z/decision-trace.json` | 2 | 2026-03-23 14:59:42 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-23T12-59-41-932Z/report.json` | 749 | 2026-03-23 14:59:42 | `7ea85db05cfcae1e3f009624310dccd554b246dba2a38dbee0681a4741eb2ab6` |
+| `logs/auto-exit-diag-2026-03-23T12-59-41-932Z/samples.json` | 233538 | 2026-03-23 14:59:42 | `b94c2bec33e9c3b826fcdae695f478fec38e9a2841ec69ff12d6fa30acb5cf67` |
+| `logs/auto-exit-diag-2026-03-23T12-59-41-932Z/summary.md` | 674 | 2026-03-23 14:59:42 | `26dda0b1798f486c911ce76afc2ac8c9c21f1933591a25ad1486b97488ea727c` |
+| `logs/auto-exit-diag-2026-03-23T15-59-44-713Z/decision-trace.json` | 3402 | 2026-03-23 16:59:48 | `39df23e6dd0d20bac1f015a6198b9b06b88433accae8f5ec802949fbbbc8a20b` |
+| `logs/auto-exit-diag-2026-03-23T15-59-44-713Z/report.json` | 6021 | 2026-03-23 16:59:48 | `c6b1e287c49cb40a38a9d4c2b0ed59467fd1cc665d6fe1cea422613ba4495877` |
+| `logs/auto-exit-diag-2026-03-23T15-59-44-713Z/samples.json` | 117303 | 2026-03-23 16:59:48 | `506c3aa7d39a6429d1c5ba6d9bda652e6b8aef4a94df35dafe02047bdfff0f72` |
+| `logs/auto-exit-diag-2026-03-23T15-59-44-713Z/summary.md` | 2336 | 2026-03-23 16:59:48 | `193bfa9c65ee061c042638ad4f549af9c5cae8e6b5a2fa67a23d91058058b9e1` |
+| `logs/auto-exit-diag-2026-03-23T16-00-40-893Z/decision-trace.json` | 3402 | 2026-03-23 17:00:43 | `39df23e6dd0d20bac1f015a6198b9b06b88433accae8f5ec802949fbbbc8a20b` |
+| `logs/auto-exit-diag-2026-03-23T16-00-40-893Z/report.json` | 6021 | 2026-03-23 17:00:43 | `02492fb64386440f5d1219c29dfc2ec3c8f484196c00cda3c0d5653e68331174` |
+| `logs/auto-exit-diag-2026-03-23T16-00-40-893Z/samples.json` | 117314 | 2026-03-23 17:00:43 | `db5ba17e02a945f31cb978d44daeed697dce59854f68287df3f4fe353ee00051` |
+| `logs/auto-exit-diag-2026-03-23T16-00-40-893Z/summary.md` | 2336 | 2026-03-23 17:00:43 | `a0f6751a6e1d874630299b1c7ae2cb4c11e1a4b72c00147f87368417574f4a57` |
+| `logs/auto-exit-diag-2026-03-24T06-24-39-085Z/decision-trace.json` | 16188 | 2026-03-24 06:54:40 | `77cbccd9a3821790f38da33895f91ef7136039fb36053f4ca5b46df3e98691d0` |
+| `logs/auto-exit-diag-2026-03-24T06-24-39-085Z/report.json` | 9850 | 2026-03-24 06:54:40 | `309a5f75459a5589544b74090db87b9bc4b31c3697f6c61a5c7a16462c880edb` |
+| `logs/auto-exit-diag-2026-03-24T06-24-39-085Z/samples.json` | 58552 | 2026-03-24 06:54:40 | `03ad5a3c608eebb1098dc56f429c7ca549ab3595bd795de13a7d7594acae8a7d` |
+| `logs/auto-exit-diag-2026-03-24T06-24-39-085Z/summary.md` | 4222 | 2026-03-24 06:54:40 | `33c71f6c31be7cd5af389edce4445abc2ee742ee09ee019688ceb24fd7484430` |
+| `logs/auto-exit-diag-2026-03-24T07-20-31-738Z/decision-trace.json` | 856 | 2026-03-24 07:50:32 | `f33de76f7748eda74d3e440991488e059eb83a93d207efb43623220d80b37268` |
+| `logs/auto-exit-diag-2026-03-24T07-20-31-738Z/report.json` | 2180 | 2026-03-24 07:50:32 | `05cfad5c3cf5145b1cfc434cd5090b32bc463737e96d614ec5ba946f1475439d` |
+| `logs/auto-exit-diag-2026-03-24T07-20-31-738Z/samples.json` | 55603 | 2026-03-24 07:50:31 | `1191e7e4c4796c04694380a73738bd6d5d0a6334484aa632f2119cfe9d3e36fc` |
+| `logs/auto-exit-diag-2026-03-24T07-20-31-738Z/summary.md` | 1114 | 2026-03-24 07:50:32 | `fa1b11f4d3f9d4a6abd02a446ea2800df590d6f9ef820f18d6ec35afebfc2921` |
+| `logs/auto-exit-diag-2026-03-24T08-02-21-238Z/decision-trace.json` | 224095 | 2026-03-24 10:02:25 | `19d2b6039f838e3235f6439bc805109ed39e7275323081d962ae6660caaaaf6b` |
+| `logs/auto-exit-diag-2026-03-24T08-02-21-238Z/report.json` | 6659 | 2026-03-24 10:02:25 | `67877ec24a682a2f05a3e9701c12af38cb06c2636e44246ed3e2828fdb124a68` |
+| `logs/auto-exit-diag-2026-03-24T08-02-21-238Z/samples.json` | 234617 | 2026-03-24 10:02:25 | `6241faa42d271e71288ce85771434e7ba11588dce6d33332f37636b99c35e224` |
+| `logs/auto-exit-diag-2026-03-24T08-02-21-238Z/summary.md` | 2674 | 2026-03-24 10:02:25 | `b535f23606d44f556941625cc0a0f8460e0785bffa2b49b1eb1a8fa1a2c761e4` |
+| `logs/auto-exit-diag-2026-03-24T11-40-28-206Z/decision-trace.json` | 5802 | 2026-03-24 13:40:31 | `f7f6d58b75149b97856700b1912f76657de8b05d0fb5ed9c1294941630730f88` |
+| `logs/auto-exit-diag-2026-03-24T11-40-28-206Z/report.json` | 1461 | 2026-03-24 13:40:31 | `16285bd7686a295906c35567e9065977a8f80f4d699ae2218499122d9ab36bba` |
+| `logs/auto-exit-diag-2026-03-24T11-40-28-206Z/samples.json` | 233884 | 2026-03-24 13:40:31 | `eca8061d61b0b3e08799ebe8e1694ae5470a5b6067cd1338f754209252da1a70` |
+| `logs/auto-exit-diag-2026-03-24T11-40-28-206Z/summary.md` | 1106 | 2026-03-24 13:40:31 | `e0fc7481cbb7221e2cf7a15973f33e0db9c01fb5266c8aac9644cf15f4cd2c0c` |
+| `logs/auto-exit-diag-2026-03-24T16-36-26-729Z/decision-trace.json` | 11224 | 2026-03-24 17:36:29 | `b50a6c5675d9bdecf6ba27c92fe4044d3f49819c8c045008f80f90a6ebb3b271` |
+| `logs/auto-exit-diag-2026-03-24T16-36-26-729Z/report.json` | 3310 | 2026-03-24 17:36:29 | `2652ed26b84592d106be4143dba4614ffddb1dc10a21097fd21fb2e6784881d6` |
+| `logs/auto-exit-diag-2026-03-24T16-36-26-729Z/samples.json` | 116974 | 2026-03-24 17:36:29 | `169c114503033319fafe6e1eeaa57acc892266860bf75821c6291e1b40e6f8ab` |
+| `logs/auto-exit-diag-2026-03-24T16-36-26-729Z/summary.md` | 1875 | 2026-03-24 17:36:29 | `94677c1fda2cadb3d0eb8ee8030ffac634ed18b6a3a9ee4de78d8daa8b8cb33d` |
+| `logs/auto-exit-diag-2026-03-25T07-59-52-979Z/decision-trace.json` | 2 | 2026-03-25 08:59:55 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-25T07-59-52-979Z/report.json` | 1005 | 2026-03-25 08:59:55 | `5a7bbd3b6b6669cb9966a51295b8c11e5364a6f05106c40e72d3b4e0ab8a77d0` |
+| `logs/auto-exit-diag-2026-03-25T07-59-52-979Z/samples.json` | 113654 | 2026-03-25 08:59:55 | `0812e93e3c742fdda76735bfb86d2f8699b26517ceb7286adf8208c2df20e201` |
+| `logs/auto-exit-diag-2026-03-25T07-59-52-979Z/summary.md` | 901 | 2026-03-25 08:59:55 | `ec90f1e864470b25e5720a463af4d7c6b759d5d445c76b422fcdf7bc9b64d7dd` |
+| `logs/auto-exit-diag-2026-03-25T11-54-41-405Z/decision-trace.json` | 3415 | 2026-03-25 12:24:43 | `7e7b98679bc353fc68bef302a33f6573f9da819b8dffd4ce9945ad5dc739c8b9` |
+| `logs/auto-exit-diag-2026-03-25T11-54-41-405Z/report.json` | 2187 | 2026-03-25 12:24:43 | `68c98b040f944f9eb340849dbc60714c335adc850c08b1891f4e59e2b63ab080` |
+| `logs/auto-exit-diag-2026-03-25T11-54-41-405Z/samples.json` | 54466 | 2026-03-25 12:24:43 | `9531c7bfe36b52a8986ca4ffb5a242b9179967a5a13697f5ad00c80b1ed56e93` |
+| `logs/auto-exit-diag-2026-03-25T11-54-41-405Z/summary.md` | 1411 | 2026-03-25 12:24:43 | `6ece3313dfcfc3703a67fd87f5d298d84d285c7b4070be9296e63ec3c522103d` |
+| `logs/auto-exit-diag-2026-03-25T16-42-39-877Z/decision-trace.json` | 8578 | 2026-03-25 17:12:43 | `2ee923fd0347c080f1d464880bc09a5c0380bcdd8a06865de9c67808435d7c22` |
+| `logs/auto-exit-diag-2026-03-25T16-42-39-877Z/report.json` | 3386 | 2026-03-25 17:12:43 | `e76339eb93830a6c325766f26a61546986915dd1af62cc2362063490e1acee36` |
+| `logs/auto-exit-diag-2026-03-25T16-42-39-877Z/samples.json` | 58236 | 2026-03-25 17:12:43 | `48a4d696d631422144a7f21204bb18d7cfea272647e04b711e807a8be06c0fff` |
+| `logs/auto-exit-diag-2026-03-25T16-42-39-877Z/summary.md` | 1902 | 2026-03-25 17:12:43 | `dfc44f1b99d05316f577a8e1f1bd0c6b9c392cd444772a5df8c8fa0d40d7a438` |
+| `logs/auto-exit-diag-2026-03-26T07-37-39-224Z/decision-trace.json` | 2 | 2026-03-26 08:07:41 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-26T07-37-39-224Z/report.json` | 1004 | 2026-03-26 08:07:41 | `c54b945e61926e69f448a1f16fa3bea372df39c9cec3a543a8faa87e9d3d1972` |
+| `logs/auto-exit-diag-2026-03-26T07-37-39-224Z/samples.json` | 58386 | 2026-03-26 08:07:41 | `72b690899203aea065b9896bb1b23dc2e324293501f358327bba441f30e3ebab` |
+| `logs/auto-exit-diag-2026-03-26T07-37-39-224Z/summary.md` | 900 | 2026-03-26 08:07:41 | `052601f8356069a6b57c1a361d87f15eb05bff31dcab160c3896f2eae4c45570` |
+| `logs/auto-exit-diag-2026-03-26T08-11-44-960Z/decision-trace.json` | 1813 | 2026-03-26 08:41:49 | `6b627eda4bb0ef2f8bfc821a6aadf88bc96bf551baf40a3762e54ab6326b339e` |
+| `logs/auto-exit-diag-2026-03-26T08-11-44-960Z/report.json` | 1871 | 2026-03-26 08:41:50 | `86977e70295ebb812fc8ce1a3afbae3deec85dfed9bbc559785d57a99c5af5fb` |
+| `logs/auto-exit-diag-2026-03-26T08-11-44-960Z/samples.json` | 57241 | 2026-03-26 08:41:49 | `be2465085c816d2ced47916d12bf38352e0f845672a6d2bf40fcfd40a73c1994` |
+| `logs/auto-exit-diag-2026-03-26T08-11-44-960Z/summary.md` | 1271 | 2026-03-26 08:41:50 | `ed73c205e074d69480c8c8149fae32f29a19520507470c5bed7d6f0589aaec7e` |
+| `logs/auto-exit-diag-2026-03-26T12-47-57-292Z/decision-trace.json` | 9403 | 2026-03-26 13:18:00 | `4b4f5e098bf0f939f1579d0ad09ecf3c2a980aaeb16c6efcb062e0de473e45e7` |
+| `logs/auto-exit-diag-2026-03-26T12-47-57-292Z/report.json` | 2171 | 2026-03-26 13:18:00 | `241d90e5a54a575a53ab10c89b9e3be233b9c80774ef99ce8bc7d7774c4486f6` |
+| `logs/auto-exit-diag-2026-03-26T12-47-57-292Z/samples.json` | 58574 | 2026-03-26 13:18:00 | `63218b8ea51b40517893691fdafa347670c0445ac4480f60c0e76e2d53c38505` |
+| `logs/auto-exit-diag-2026-03-26T12-47-57-292Z/summary.md` | 1409 | 2026-03-26 13:18:00 | `38c29f8e77811203468795eb2a363e1a7b77e443fb9feb231002735e2647e732` |
+| `logs/auto-exit-diag-2026-03-26T15-47-37-967Z/decision-trace.json` | 8534 | 2026-03-26 16:17:40 | `1c4ff82cee7c79e2dc600d52f4adfcb6b10d2c76d5acab5a8fe9c36464c9ad99` |
+| `logs/auto-exit-diag-2026-03-26T15-47-37-967Z/report.json` | 4721 | 2026-03-26 16:17:40 | `6c08127cccb881f7deaae238b06a6a1a9ff072ab97b808a7518e90f02d523d12` |
+| `logs/auto-exit-diag-2026-03-26T15-47-37-967Z/samples.json` | 58236 | 2026-03-26 16:17:40 | `47c3b5756f20a7d755ed897d665f4e54e4cf307690d59c0f09b17835c85b2204` |
+| `logs/auto-exit-diag-2026-03-26T15-47-37-967Z/summary.md` | 2498 | 2026-03-26 16:17:40 | `91298928ae3650b3a7b946a4d287603959dbcba5c9add4854e8cbd2c4e097212` |
+| `logs/auto-exit-diag-2026-03-26T16-34-47-349Z/decision-trace.json` | 2 | 2026-03-26 17:04:49 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-26T16-34-47-349Z/report.json` | 1005 | 2026-03-26 17:04:49 | `bdae9bf99538e8a2029cfbd6a8f382d31984a3ac42e03af87baefd28010deeab` |
+| `logs/auto-exit-diag-2026-03-26T16-34-47-349Z/samples.json` | 58222 | 2026-03-26 17:04:49 | `7bb09b32fae324b5da1470c3349e4ca1c5694efde5d1703fd839d4b8206ec33e` |
+| `logs/auto-exit-diag-2026-03-26T16-34-47-349Z/summary.md` | 901 | 2026-03-26 17:04:49 | `5b6ea79040cbb6d570f10034bd72076f5f5c67b46458f468a86661b45fdaa7e9` |
+| `logs/auto-exit-diag-2026-03-30T12-32-35-723Z/decision-trace.json` | 3402 | 2026-03-30 13:32:36 | `e5432c9742de190bfeca77338a302fa77e6b47346df595179db18879ea03a3df` |
+| `logs/auto-exit-diag-2026-03-30T12-32-35-723Z/report.json` | 2653 | 2026-03-30 13:32:36 | `836d9410754ec64aa0d65c2c34e22c4cc7e7a660436b4a7762598e6957118f70` |
+| `logs/auto-exit-diag-2026-03-30T12-32-35-723Z/samples.json` | 116653 | 2026-03-30 13:32:36 | `2275e87a0663341c6db430fb501b3bbc10a3994e388d7f12d4faae1dd64410c5` |
+| `logs/auto-exit-diag-2026-03-30T12-32-35-723Z/summary.md` | 1601 | 2026-03-30 13:32:36 | `17b27e58f40cf00b97e94f8f26aed912b693b243291fec94ade1f3eb0426f388` |
+| `logs/auto-exit-diag-2026-03-30T14-31-09-935Z/decision-trace.json` | 2 | 2026-03-30 15:31:12 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-30T14-31-09-935Z/report.json` | 1005 | 2026-03-30 15:31:12 | `85e54903fcb56f8d57dee26e6b650b88b679bf2e1639350509aeafd037a81026` |
+| `logs/auto-exit-diag-2026-03-30T14-31-09-935Z/samples.json` | 116114 | 2026-03-30 15:31:12 | `feb2875da10329ceb07775c652a788942e983a816e7cb50e6b0d1e40ba3ddb6b` |
+| `logs/auto-exit-diag-2026-03-30T14-31-09-935Z/summary.md` | 901 | 2026-03-30 15:31:12 | `4f36b01cea6ff325fee5418f926e5a85176f222101bfa9593249455735dab7fc` |
+| `logs/auto-exit-diag-2026-03-31T11-55-52-255Z/decision-trace.json` | 2 | 2026-03-31 12:55:53 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-31T11-55-52-255Z/report.json` | 1005 | 2026-03-31 12:55:53 | `f435e37bce75f74b51ad3a27566e3c89a59890b9d0361d60d5bef9382c967233` |
+| `logs/auto-exit-diag-2026-03-31T11-55-52-255Z/samples.json` | 116934 | 2026-03-31 12:55:53 | `73d21886360dca214ea8844c3a17467404388acb29ad7edc4afac526857860ab` |
+| `logs/auto-exit-diag-2026-03-31T11-55-52-255Z/summary.md` | 901 | 2026-03-31 12:55:53 | `fe74a24575efd65f35a1fd44391ac3c873681f3ea29e21d5c5e188428f9c7b7e` |
+| `logs/auto-exit-diag-2026-03-31T13-23-33-689Z/decision-trace.json` | 2 | 2026-03-31 14:23:34 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-31T13-23-33-689Z/report.json` | 1065 | 2026-03-31 14:23:34 | `5f46fe6074ef758d1c8675b2dd4630177f25c97040b504f876153dd0e15fd47f` |
+| `logs/auto-exit-diag-2026-03-31T13-23-33-689Z/samples.json` | 116278 | 2026-03-31 14:23:34 | `c0ad4c1f9d8bd6fb03d0bc81011b70a533699a9e924ab84050aa5a143f5e3fdb` |
+| `logs/auto-exit-diag-2026-03-31T13-23-33-689Z/summary.md` | 915 | 2026-03-31 14:23:34 | `c4769a3963f99a8477eb84153a06a6a83bbfac289baadb83657627b48aac4d3b` |
+| `logs/auto-exit-diag-2026-03-31T16-31-09-295Z/decision-trace.json` | 2 | 2026-03-31 17:01:12 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-31T16-31-09-295Z/report.json` | 1005 | 2026-03-31 17:01:12 | `3efdf798a8188fa8cd1697206b694f125f96163f61f386d697b0c6892944c84f` |
+| `logs/auto-exit-diag-2026-03-31T16-31-09-295Z/samples.json` | 53794 | 2026-03-31 17:01:12 | `41f095d5d07e60c665277669ea03371b821a980ec6d45010f3d24aec0fba1d7e` |
+| `logs/auto-exit-diag-2026-03-31T16-31-09-295Z/summary.md` | 901 | 2026-03-31 17:01:12 | `00f720a358d8205f4edca2fd095aeee9ae3ecfcddab0be7e431c6194ad0a6fba` |
+| `logs/auto-exit-diag-2026-03-31T17-13-13-137Z/decision-trace.json` | 2 | 2026-03-31 17:43:16 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-31T17-13-13-137Z/report.json` | 1005 | 2026-03-31 17:43:16 | `222edfe5932ce6a731e0c22395570a96cf4dd99f171ba9fd74502dffdffc22fe` |
+| `logs/auto-exit-diag-2026-03-31T17-13-13-137Z/samples.json` | 58386 | 2026-03-31 17:43:16 | `f16fdb4846015b7b35fdf5eeeb76f09d563bb9b9bceb34914d83495c35006a96` |
+| `logs/auto-exit-diag-2026-03-31T17-13-13-137Z/summary.md` | 901 | 2026-03-31 17:43:16 | `a6457c2d5cdbc6c2663051a45cfedc69e62b68a5b715d2fa73abdc7769a83a43` |
+| `logs/auto-exit-diag-2026-03-31T17-51-58-035Z/decision-trace.json` | 2 | 2026-03-31 18:22:00 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-03-31T17-51-58-035Z/report.json` | 1005 | 2026-03-31 18:22:00 | `24e2f48f820ca581a421acb45f1cce7987247cbda1d7b4b79fc6c04f76481d24` |
+| `logs/auto-exit-diag-2026-03-31T17-51-58-035Z/samples.json` | 58550 | 2026-03-31 18:22:00 | `17f2e0dc54ade91e4b20b710b87020b59d1f98401330cdf2a68df39eb4990253` |
+| `logs/auto-exit-diag-2026-03-31T17-51-58-035Z/summary.md` | 901 | 2026-03-31 18:22:00 | `e996a184a740c91f3c495e4ce41193df2400f7ec73a5deeefbff3eb9b9618127` |
+| `logs/auto-exit-diag-2026-04-01T06-32-24-280Z/decision-trace.json` | 852 | 2026-04-01 08:32:27 | `fb7b077fd9b48eaf936671f33d63d48272453cbed1e41f83dabf8de9ff2df86f` |
+| `logs/auto-exit-diag-2026-04-01T06-32-24-280Z/report.json` | 1462 | 2026-04-01 08:32:27 | `3e46263f30d4031c1e07f8af3e242025a64403403ea7b4fae30f640312226306` |
+| `logs/auto-exit-diag-2026-04-01T06-32-24-280Z/samples.json` | 233377 | 2026-04-01 08:32:27 | `99be34b17f61b2a19cc9b5ce4e21a4abb51e1d2b0cf9896faec9599a8dffce0f` |
+| `logs/auto-exit-diag-2026-04-01T06-32-24-280Z/summary.md` | 1107 | 2026-04-01 08:32:27 | `d8fea303b796654cda644cce67ea655179a6cb936d8a23b4537461d43c01172d` |
+| `logs/auto-exit-diag-2026-04-01T10-51-13-713Z/decision-trace.json` | 2 | 2026-04-01 12:51:17 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-04-01T10-51-13-713Z/report.json` | 1006 | 2026-04-01 12:51:17 | `5fa3815259933b331c27947c0c4b6fcb987c8bc954bb2a95c761db319deb7a51` |
+| `logs/auto-exit-diag-2026-04-01T10-51-13-713Z/samples.json` | 211562 | 2026-04-01 12:51:17 | `e8ac5649dd86902c3c53c7e24da78ced69c7a643786b986b62b559281c6c51b6` |
+| `logs/auto-exit-diag-2026-04-01T10-51-13-713Z/summary.md` | 902 | 2026-04-01 12:51:17 | `b78f8e2e228cd45ebd4baf3295a9c8c1f1a88d72b08a94e9a18efe5a0131a4ab` |
+| `logs/auto-exit-diag-2026-04-01T13-14-21-586Z/decision-trace.json` | 1702 | 2026-04-01 15:14:23 | `c3ed8ddf1202fdd0cb99c51708a09e0355125b5268c93b6be4b2456523ced753` |
+| `logs/auto-exit-diag-2026-04-01T13-14-21-586Z/report.json` | 1862 | 2026-04-01 15:14:23 | `5fd76bbff49dcf0608b70273efad4a2a8d5fcf9c7f691b6648f61faa1cf9ca76` |
+| `logs/auto-exit-diag-2026-04-01T13-14-21-586Z/samples.json` | 195821 | 2026-04-01 15:14:23 | `488cdaf5a4942cad15d1a2a143eda7e56597f04199ec8368693d40dfffc1f3e3` |
+| `logs/auto-exit-diag-2026-04-01T13-14-21-586Z/summary.md` | 1263 | 2026-04-01 15:14:23 | `cccd7af7ee7e6e9c2d43c214b34e2c84f1c1692a21c373fb9c624473175a38f0` |
+| `logs/auto-exit-diag-2026-04-02T11-50-04-414Z/decision-trace.json` | 2 | 2026-04-02 13:50:06 | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
+| `logs/auto-exit-diag-2026-04-02T11-50-04-414Z/report.json` | 1006 | 2026-04-02 13:50:06 | `f18e9b4fa154855212f4e35464d7fe709fb84fdc439f0d31bb08033d6f6a719b` |
+| `logs/auto-exit-diag-2026-04-02T11-50-04-414Z/samples.json` | 217466 | 2026-04-02 13:50:06 | `007ba21bd57c63da1ff949b3ecd9dea95013beb2265a2f706f7e1ced20fffac8` |
+| `logs/auto-exit-diag-2026-04-02T11-50-04-414Z/summary.md` | 902 | 2026-04-02 13:50:06 | `0fbf680c8239b317c0171eb5db497eb3c9a506f9aaaef84ef1b5047c0dbd272f` |
+| `logs/autonomy-demo-20260227-051319/baseline-entry-autonomy.json` | 1266 | 2026-02-27 08:13:19 | `d67e7276cc26f763239958b92e7de755d1f4d837699bf252a426bbb72e5e7a6f` |
+| `logs/autonomy-demo-20260227-051319/baseline-health.json` | 148 | 2026-02-27 08:13:19 | `9a2ca0d5c6c15812a30189900a0705c2dbfc0d860ddaa9b2e353ce91dedc0ce9` |
+| `logs/autonomy-demo-20260227-051319/baseline-learning-alert-config.json` | 378 | 2026-02-27 08:13:19 | `8ab85067e9d199a6b1767b1fdeca6aaadcb49c3a790f5baf325fd44a069772ad` |
+| `logs/autonomy-demo-20260227-051319/baseline-open-alerts.json` | 1358 | 2026-02-27 08:13:19 | `6e20568a769e77bf0e0c7b53abef74f20cb62e9692aed29db597062800716210` |
+| `logs/autonomy-demo-20260227-051319/learning-alert-monitor.json` | 749 | 2026-02-27 08:15:26 | `bbca5f79976371acd7ca708b9b34b9ed9e8efedf22532ee515b6c1321624467e` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-2/alerts-after.json` | 42367 | 2026-02-27 09:24:19 | `6a4ef18bd079f37dd5f2e93713652ba7997f5cc75db5a57cd0deb6031baeffb3` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-2/report.json` | 386 | 2026-02-27 09:24:19 | `7889bb59b5609e24b84a86ac6a67a26469da12f19970774cba25e58da7e92154` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-2/samples.json` | 41993 | 2026-02-27 09:24:19 | `24c627cd49469436f0444d389ea40a75cce3cac61ef3065ea6e5d455900a716e` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-3/alerts-after.json` | 44147 | 2026-02-27 09:58:46 | `c9f92ec34ca53e12a7634ed2edf788cfa824cf2ba77948d4eb4be73c0e63575d` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-3/report.json` | 1113 | 2026-02-27 09:58:46 | `4dabdfd6932664cc01669bab11a45cbecf400d8b3deb59810408f266d8a89e36` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-3/samples.json` | 47750 | 2026-02-27 09:58:46 | `36308434883a0f70e159634decdd4d488072b9857b4f19c1b17ec13b53718570` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-after-guardrail-patch/alerts-after.json` | 55219 | 2026-02-27 12:29:22 | `68575d042f46f7de4380a61ff1ecfa908f52d418d0463e1e8a0a6e3e8a55136e` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-after-guardrail-patch/report.json` | 1091 | 2026-02-27 12:29:22 | `3beacddab1476002a921ad7202a69041c5b3c6e4b31832501919867774237b46` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-after-guardrail-patch/samples.json` | 48191 | 2026-02-27 12:29:22 | `ff9e32339c82bf7e8ec59f02c210b46a8745b4b37dcd4dabafa8d9b4209bdb06` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-after-stale-patch/alerts-after.json` | 49642 | 2026-02-27 11:48:31 | `2a7a299947054145a96e748e8a56086f54fae187179ad03c4cc70105061da897` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-after-stale-patch/report.json` | 1089 | 2026-02-27 11:48:31 | `759d2130887dc6aeb2475c11c00fcbf907e920f2f6b0547ae590c8d27e82e5b1` |
+| `logs/autonomy-demo-20260227-051319/policy-auto-run-after-stale-patch/samples.json` | 47737 | 2026-02-27 11:48:31 | `c9c8bcb968ad4b64f9ba300a929a314a65f4cf3d0a41f7f1d5029dc4e5179824` |
+| `logs/autonomy-demo-20260227-051319/post-run-checks.json` | 607 | 2026-02-27 08:52:18 | `f52b06ba04d4fd3992eab9f04cfb08e98172b218445a5992436a460c4e07d2c5` |
+| `logs/autonomy-demo-20260227-051319/readiness-note-2026-02-27.md` | 1565 | 2026-02-27 09:59:16 | `22a89605bd121cb0d4d8231873e88b70b697becde5af370fb35374ef758e6320` |
+| `logs/autonomy-demo-20260227-051319/soak-run/report.json` | 1136 | 2026-02-27 08:51:57 | `459db8b66c405ef2b036b6c104e40635a0fcfc0e97c9e687fcddcd93e83a5562` |
+| `logs/autonomy-demo-20260227-051319/soak-run/summary.md` | 791 | 2026-02-27 08:51:57 | `4a406115c546a51268e463a11cd377e15ebf92c505b908dd7dc1538e1b362da5` |
+| `logs/btc-policy-auto-1h-progress-20260323-125941.err.log` | 0 | 2026-03-23 15:59:43 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260323-125941.out.log` | 24476 | 2026-03-23 16:59:48 | `28e22143476a8cfbf37f949e099f83335f52f16994c25be132b4c1c961ac9997` |
+| `logs/btc-policy-auto-1h-progress-20260323-130037.err.log` | 0 | 2026-03-23 16:00:39 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260323-130037.out.log` | 24476 | 2026-03-23 17:00:43 | `e21df719124d7aae87f4888ebf1daf6e1d64bbabb951f0485386a0f17ada46f8` |
+| `logs/btc-policy-auto-1h-progress-20260324-133619.err.log` | 0 | 2026-03-24 16:36:25 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260324-133619.out.log` | 13177 | 2026-03-24 17:36:29 | `7ef194a58e69609c844f8ba01b205e40e2a77f180dd7a3d07761853d2aee7385` |
+| `logs/btc-policy-auto-1h-progress-20260325-045945.err.log` | 0 | 2026-03-25 07:59:51 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260325-045945.out.log` | 13177 | 2026-03-25 08:59:55 | `240365fcebfada6b25eaeffabe6ee7d3b60b2358d7332dd7e7a1cd30f4189617` |
+| `logs/btc-policy-auto-1h-progress-20260325-081909.err.log` | 907 | 2026-03-25 11:54:37 | `1b91e86f13f58f845a3eb989e136fc5993255d4dbd356de4adf779e362caf87e` |
+| `logs/btc-policy-auto-1h-progress-20260325-081909.out.log` | 7656 | 2026-03-25 11:54:14 | `e315cb791e845ff8e25a3ac2546bc2570b50b0f48a8b92dc2d572a5fd0121db0` |
+| `logs/btc-policy-auto-1h-progress-20260330-093229.err.log` | 0 | 2026-03-30 12:32:34 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260330-093229.out.log` | 13186 | 2026-03-30 13:32:36 | `e9152f8e6ce499d73dd22323fb915174ac90fc673ecc189d590008a0c6c30adb` |
+| `logs/btc-policy-auto-1h-progress-20260330-113059.err.log` | 0 | 2026-03-30 14:31:08 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260330-113059.out.log` | 13177 | 2026-03-30 15:31:12 | `8d13fe1cbee6ee09df42abd226602f3877f4f81d449622aba9f8d9bcdf794ac5` |
+| `logs/btc-policy-auto-1h-progress-20260331-085546.err.log` | 0 | 2026-03-31 11:55:50 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260331-085546.out.log` | 13177 | 2026-03-31 12:55:53 | `a647b33a14314cf414e6d4171a166028303b15fec151285b757a6560234e2dec` |
+| `logs/btc-policy-auto-1h-progress-20260331-102326.err.log` | 0 | 2026-03-31 13:23:32 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-1h-progress-20260331-102326.out.log` | 13177 | 2026-03-31 14:23:34 | `6733417963e970a92f5e206b031222cca59c3b5529ca5084dfce567193b3c5b7` |
+| `logs/btc-policy-auto-1h-server-20260323-125941.err.log` | 1066 | 2026-03-23 15:59:42 | `60042f354dccb5d401308f68100ba4c9511bde8071dedda10b7fed6b5e978c7b` |
+| `logs/btc-policy-auto-1h-server-20260323-125941.out.log` | 78 | 2026-03-23 15:59:41 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
+| `logs/btc-policy-auto-1h-server-20260323-130037.err.log` | 173 | 2026-03-23 17:05:52 | `67e92064aa4b53a26a42f617de4cc6183deec9c0bd53f49b8df40440d846bc76` |
+| `logs/btc-policy-auto-1h-server-20260323-130037.out.log` | 778036 | 2026-03-23 17:00:43 | `5306596daa92ca1651dee80337def99e7fb17d3bd97f2c7c8e8b70ca31c80c12` |
+| `logs/btc-policy-auto-1h-server-20260324-133619.err.log` | 171 | 2026-03-24 17:52:08 | `58a238ca69458962938846b11686c215658d2137e0d3be9a547d5bea0fcd0bb3` |
+| `logs/btc-policy-auto-1h-server-20260324-133619.out.log` | 372409 | 2026-03-24 17:36:29 | `e1ed1973c5b73ec616c4e20b33bda56e3cf72fe174e130c01eab1e3b774f95eb` |
+| `logs/btc-policy-auto-1h-server-20260325-045945.err.log` | 169 | 2026-03-25 07:59:48 | `c379bc7580f317a0a0aaa8621ba99ceff2c4a65b9b40fd0fe3bf1271ccd844a4` |
+| `logs/btc-policy-auto-1h-server-20260325-045945.out.log` | 362945 | 2026-03-25 09:09:30 | `d2688ff27f83464d64e5446346dabcc06b9fa9cdd7521f1f768d153a98a8fef9` |
+| `logs/btc-policy-auto-1h-server-20260325-081909.err.log` | 167 | 2026-03-25 11:19:11 | `4394353b1adf026107fe0a56def611ee484f8cbf5a21172daec4bc546407d717` |
+| `logs/btc-policy-auto-1h-server-20260325-081909.out.log` | 220679 | 2026-03-25 11:54:32 | `0eb3c25b973f055f42d7894b606b9495a4337ed4fa6be0634ec6384d4c760912` |
+| `logs/btc-policy-auto-1h-server-20260330-093229.err.log` | 169 | 2026-03-30 12:32:32 | `6c380baaf3c8670f96b51913d7496e93c666a48df9b5c2524e1e65f45c725b6a` |
+| `logs/btc-policy-auto-1h-server-20260330-093229.out.log` | 371182 | 2026-03-30 13:32:36 | `3851bce92d751a453b91610f82ed6749643a1859feacf7d01a221f28b7f3aeff` |
+| `logs/btc-policy-auto-1h-server-20260330-113059.err.log` | 169 | 2026-03-30 14:31:05 | `0351b64e7268a84fddaeb18db084db29d1a64601caec61da8a759d9ede5766eb` |
+| `logs/btc-policy-auto-1h-server-20260330-113059.out.log` | 369712 | 2026-03-30 15:31:12 | `3f65f1dd5813f6ae5445c3bc1606e9a613ea0b8523a9b20c3b933e5dcbfcdd92` |
+| `logs/btc-policy-auto-1h-server-20260331-085546.err.log` | 169 | 2026-03-31 11:55:48 | `09c0a2e5916d895409a447583aa31bc5eed468e898548415acd0c0645db92f1a` |
+| `logs/btc-policy-auto-1h-server-20260331-085546.out.log` | 372845 | 2026-03-31 13:17:01 | `91d35b3d61d997f5983d5b4d8a0e8bbaa3dd4fd8da1e4678bffcf3a87d9bd859` |
+| `logs/btc-policy-auto-1h-server-20260331-102326.err.log` | 169 | 2026-03-31 13:23:30 | `75285c3af312616d8d3c8753890adde6789ad4b4ef6c4dab1cf4dd79ed3a21e7` |
+| `logs/btc-policy-auto-1h-server-20260331-102326.out.log` | 370550 | 2026-03-31 16:05:11 | `01331ffca3edd981aecab073d9b11da7dcb37b0220ebf2149e37c2f9fe4cc89c` |
+| `logs/btc-policy-auto-2h-20260318-085207.err.log` | 0 | 2026-03-18 11:52:07 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-20260318-085207.out.log` | 169 | 2026-03-18 12:41:53 | `4090cd74280f8377e808f29d8bb161fb271593fff35647655c4abff1f411adcd` |
+| `logs/btc-policy-auto-2h-progress-20260318-090036.err.log` | 0 | 2026-03-18 12:00:36 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-progress-20260318-090036.out.log` | 16979 | 2026-03-18 12:41:53 | `59d90a9d9265636e24be547e3d4ec194f35907bd7956d9283bc5ad38f011509d` |
+| `logs/btc-policy-auto-2h-progress-20260319-110000.err.log` | 0 | 2026-03-19 14:00:03 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-progress-20260319-110000.out.log` | 46137 | 2026-03-19 15:53:05 | `a7a16d4da6bf16c904c341c9d14eca29549c0b37140ae551ede33ed048176274` |
+| `logs/btc-policy-auto-2h-progress-20260319-125318.err.log` | 0 | 2026-03-19 15:53:20 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-progress-20260319-125318.out.log` | 22761 | 2026-03-19 16:48:51 | `08f7e4562468d3fc405f0610453a94c73d7b743f493b973d7c8b285fb3445f88` |
+| `logs/btc-policy-auto-2h-progress-20260320-101310.err.log` | 0 | 2026-03-20 13:13:19 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-progress-20260320-101310.out.log` | 49082 | 2026-03-20 15:13:24 | `b91ebc87bdb92dd8606b8a362d885c50af527ab16bdad8bba0d3743f072cbab3` |
+| `logs/btc-policy-auto-2h-progress-20260321-031202.err.log` | 0 | 2026-03-21 06:12:05 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-progress-20260321-031202.out.log` | 49076 | 2026-03-21 08:12:10 | `97fed0d881fb80bc6160127b6d6e844fb7ab47f74aa3175e5c3950ed5dfc99d7` |
+| `logs/btc-policy-auto-2h-progress-20260323-095936.err.log` | 0 | 2026-03-23 12:59:40 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-progress-20260323-095936.out.log` | 48701 | 2026-03-23 14:59:42 | `fd2d37afd7a1f3e7b19331920851f5988325a29ac4b791e44dcf5a9eb85e9bc7` |
+| `logs/btc-policy-auto-2h-server-20260319-110000.err.log` | 169 | 2026-03-19 14:00:01 | `54c0791fdb715fd32ffc0b69c58456c2c529db0efdf6c93221215d3932017db5` |
+| `logs/btc-policy-auto-2h-server-20260319-110000.out.log` | 1294004 | 2026-03-19 17:24:38 | `cb94517423b40a7410bea3812032b80d3444ffc668f714adfc37d832312beafa` |
+| `logs/btc-policy-auto-2h-server-20260319-125318.err.log` | 1066 | 2026-03-19 15:53:20 | `be802fe7242ff72d2a0f860ecb4346814304b311c17911fb5e80b6ee0ccf0169` |
+| `logs/btc-policy-auto-2h-server-20260319-125318.out.log` | 78 | 2026-03-19 15:53:18 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
+| `logs/btc-policy-auto-2h-server-20260320-101310.err.log` | 169 | 2026-03-20 13:13:12 | `af57077f39c46f6c2e8fa4a81cb7ae1b24cb13e4b77aeb177b200298c0555eb0` |
+| `logs/btc-policy-auto-2h-server-20260320-101310.out.log` | 785870 | 2026-03-20 15:34:58 | `f5d068e72fc811879b9297ed584b98434d3783529270c685e18cbee026100ceb` |
+| `logs/btc-policy-auto-2h-server-20260321-031202.err.log` | 171 | 2026-03-21 08:20:04 | `a4ca10bb51ab30a9e438d96a99b17f32a48269dbb692faa1bb4eb98a45e09611` |
+| `logs/btc-policy-auto-2h-server-20260321-031202.out.log` | 773018 | 2026-03-21 08:14:36 | `0be695723ba78bdfe01d56ba6c5e7e551977513e316118d3a4179b130895aec4` |
+| `logs/btc-policy-auto-2h-server-20260323-095936.err.log` | 168 | 2026-03-23 12:59:38 | `2a38af1f863196ccffc0fc5d43a6b8a4aea05850a0b443bb174c2b67277cf927` |
+| `logs/btc-policy-auto-2h-server-20260323-095936.out.log` | 791846 | 2026-03-23 16:00:35 | `68b513f00e26a38f6a9a9407512388eef856ad7b5aebde93446250cd95eac661` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260324-050213.err.log` | 0 | 2026-03-24 08:02:20 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260324-050213.out.log` | 26062 | 2026-03-24 10:02:25 | `e079f8197bdcf2235f408a62048adf107c60f9d8402e587658bf060be3e076af` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260324-084022.err.log` | 0 | 2026-03-24 11:40:27 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260324-084022.out.log` | 26077 | 2026-03-24 13:40:31 | `c7c6a3842515d2e4edd266df61b361a58057f6fbbf9ec5aee3dbb37442ce2930` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260325-062027.err.log` | 824 | 2026-03-25 11:14:21 | `5560df4181edeb63a82812684b12486d1366459dd689dfb0f17c2df080773b5a` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260325-062027.out.log` | 24426 | 2026-03-25 11:13:34 | `6e9d049fe6145a8fb4c7737fc12a504b1d6cef58b669ecca05527bf9f8cbd4f4` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260401-033218.err.log` | 0 | 2026-04-01 06:32:22 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260401-033218.out.log` | 26077 | 2026-04-01 08:32:28 | `722e81f801ef3eee5f33cfb4146a48b26cccc3e3d8df7f07999e8694f35f2d01` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260401-075104.err.log` | 0 | 2026-04-01 10:51:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260401-075104.out.log` | 26077 | 2026-04-01 12:51:18 | `40cbfb05780aff7680c53db23af8ea357901abcae951cdd145fb1a695e97c623` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260401-101356.err.log` | 0 | 2026-04-01 13:14:19 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260401-101356.out.log` | 26163 | 2026-04-01 15:14:23 | `f1bb8f9b8341bb7a57f5b5e1cd18b2b82e3e35bf4f811b6a7397ff61d393acbc` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260402-084951.err.log` | 0 | 2026-04-02 11:50:01 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-2h-signal-gated-progress-20260402-084951.out.log` | 26077 | 2026-04-02 13:50:07 | `b8ae62fe45cf9ec81a7a4d6084cd14f0b1e5b3cf3d9bf22adfc5797b57cdb949` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260324-050213.err.log` | 173 | 2026-03-24 11:06:30 | `a1b376db25e224b43f33746a82a59feb65970fd6c1301fbb639ce6c7b65d31bf` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260324-050213.out.log` | 744498 | 2026-03-24 10:58:10 | `19dea01db3715714aa09dc009f896bcf75dd1ae16c167438dd7721210a138bb9` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260324-084022.err.log` | 169 | 2026-03-24 11:40:24 | `cfb026365bb0923aa9f03923b9039aa736a4fad1c4330bac1979a165916be2cf` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260324-084022.out.log` | 743263 | 2026-03-24 16:29:09 | `d2708729205d85a47ef581da35d71df1f113e04f0d195bc84c2d3e84a37c6562` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260325-062027.err.log` | 168 | 2026-03-25 09:20:31 | `d69de9f907b9fe62e53fe6036e97daba07d9a670040bf0a55162ee60f13b6ee6` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260325-062027.out.log` | 707591 | 2026-03-25 11:14:16 | `9a3782a74cc0ccd8cbbcb13684166ae749364e214eacc7b0bdd103155c57168f` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260401-033218.err.log` | 169 | 2026-04-01 06:32:20 | `a9cd3794f808d3f822f11599399779ea0fbd466b7f51b367c2e0fe70cc173f69` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260401-033218.out.log` | 741798 | 2026-04-01 08:32:27 | `0ec0c1674826752c9f617ce1e212807cede9be06680d47ece8d96b3ccf4047ba` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260401-075104.err.log` | 169 | 2026-04-01 10:51:08 | `cb7669856a250ff942b63c54f54fc6022b7ad4300052045183f4f45136c970d6` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260401-075104.out.log` | 676848 | 2026-04-01 13:09:47 | `1304eb77e505b1bb56cb5f0878a64a34b84ef26d91232e02bcc3b7849d67f2d1` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260401-101356.err.log` | 173 | 2026-04-01 16:42:10 | `dbaf143934b536a7d044a96ff2f8a50776df13079208c624c978335b61a47fe2` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260401-101356.out.log` | 629697 | 2026-04-01 15:28:35 | `4056ede33fc67bddb37161afad208d3dc5b5268ecfccbed14e410bf6c1113970` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260402-084951.err.log` | 171 | 2026-04-02 16:07:53 | `9538c71e5bf1bb3eaf11603eaa278f727558406e53ad56326a48c926e98d938c` |
+| `logs/btc-policy-auto-2h-signal-gated-server-20260402-084951.out.log` | 694252 | 2026-04-02 15:52:02 | `0470d3b253109c1839f07e072b69261fe394b9fff58f1698934b073ca9101647` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260324-032425.err.log` | 0 | 2026-03-24 06:24:35 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260324-032425.out.log` | 13125 | 2026-03-24 06:54:40 | `29291a7fe1ecaa87780454ff3933693f0ca97ea3fa66a4ec259d79ee60511420` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260324-042023.err.log` | 0 | 2026-03-24 07:20:29 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260324-042023.out.log` | 13100 | 2026-03-24 07:50:32 | `2fdd703c15292aa4217e701704323437bfd8fea5a00edc1aef07c39fff4e1777` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260325-085434.err.log` | 0 | 2026-03-25 11:54:39 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260325-085434.out.log` | 13115 | 2026-03-25 12:24:43 | `827dbd186c9beb71b2729f0bccc2a44f76ff6b659c7463d7ee0ccf5153d4cc4e` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260325-134231.err.log` | 0 | 2026-03-25 16:42:38 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260325-134231.out.log` | 13150 | 2026-03-25 17:12:43 | `202169ed815db71d8f643ea4674f4e665657b7bfe7631cb2a3f275aeb083f56b` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-043732.err.log` | 0 | 2026-03-26 07:37:37 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-043732.out.log` | 13115 | 2026-03-26 08:07:41 | `d4e246bc300f633a3a2c1d715f990d4b7aa8171207ad1e7908609b5246714472` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-051137.err.log` | 0 | 2026-03-26 08:11:42 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-051137.out.log` | 13149 | 2026-03-26 08:41:50 | `6992e54b9c3c4b4ff31b938e9c83f4d7a2803efed5d1fd4532397f11cee469ac` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-094750.err.log` | 0 | 2026-03-26 12:47:55 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-094750.out.log` | 13115 | 2026-03-26 13:18:00 | `187b9c23212dead59d7fbfc85b0808dda4d8b061991592d85656089857c4681b` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-124731.err.log` | 0 | 2026-03-26 15:47:36 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-124731.out.log` | 13137 | 2026-03-26 16:17:40 | `a5cb1226fcbfc0b7bbcb4d07cd7ba49a2b2b323eb9aac94a7e3b8e9181a36df5` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-133440.err.log` | 0 | 2026-03-26 16:34:45 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260326-133440.out.log` | 13115 | 2026-03-26 17:04:49 | `ba0c9eef93f7d81c7aaff9d99a46a52b3a157726f5ccdd3f0d4849a7e51949aa` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-131654.err.log` | 2 | 2026-03-31 16:23:33 | `8c14fdf5c613f56ef1755248a9d0c3a739ed5f3ba13746aa8315ee569cabec17` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-131654.out.log` | 2698 | 2026-03-31 16:23:05 | `19dbb732efd472c7107a6957746a8c2b37dd3d8304b656850c5089ea141c8caf` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-133103.err.log` | 0 | 2026-03-31 16:31:07 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-133103.out.log` | 13115 | 2026-03-31 17:01:12 | `3247e24480d6407f2ae9209a288821d3f7f420aa18239ad0780053adf1a94c4b` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-141304.err.log` | 0 | 2026-03-31 17:13:11 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-141304.out.log` | 13115 | 2026-03-31 17:43:16 | `a08d21dfd94b2a48ed9477e10a5973742ece2c57c5be3c8ad5b584e1231d68ab` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-145151.err.log` | 0 | 2026-03-31 17:51:56 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-30m-tight-exit-progress-20260331-145151.out.log` | 13115 | 2026-03-31 18:22:00 | `90998ea146ae750d614207826c82e1aaa149ec12e996d409379ae4f8d6975467` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260324-032425.err.log` | 169 | 2026-03-24 06:24:29 | `053690e2689caa5141ccd46e39ef2d8b22feed895f11aa8a447317ff6b8e88a4` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260324-032425.out.log` | 197008 | 2026-03-24 07:20:05 | `00d1dc938417af88ac6c5aeb054299658aad9c11579d8cff7d384466ab306fe5` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260324-042023.err.log` | 169 | 2026-03-24 07:20:27 | `17b3841be5e5606cd33434a51f6f1178371491bef5117715e29b5e9b12ae6616` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260324-042023.out.log` | 188798 | 2026-03-24 07:50:31 | `1bbe425dbff2d280ce65cee859f2ceedc2009ac2bccc7f8ed77cebd9f532d91c` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260325-085434.err.log` | 169 | 2026-03-25 11:54:38 | `0c815f2488276a196e41a87515e0a6b9ce5769d6a19af993bc568804e3038a0f` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260325-085434.out.log` | 186173 | 2026-03-25 15:55:20 | `8207970c8df9011dae4d15fcc8c64cb6932926e7cd665db0daefed3d71cee0c0` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260325-134231.err.log` | 171 | 2026-03-25 17:17:18 | `af00a7a7db9f7048b7d485f3b989d480805484cbc6abf71f25f8680805cc1256` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260325-134231.out.log` | 197102 | 2026-03-25 17:12:43 | `759728be1ff77b56ea80b3a615d3b7bfae36f9089f411e69ba781b33dc0712f0` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-043732.err.log` | 169 | 2026-03-26 07:37:35 | `03686f9a5981d60aa5ce0a0f742f50cb47b26b04e280326222f5b031963045ed` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-043732.out.log` | 197344 | 2026-03-26 08:08:43 | `8a2f3b45564f2bc570a27a395a3e173bb192924d21fc3526760681dc3aafc623` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-051137.err.log` | 169 | 2026-03-26 08:11:41 | `23572ca2bd5ab3f697f592c5e31b92b43971f35419c7bb9d3d8eda2df418774d` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-051137.out.log` | 193802 | 2026-03-26 08:41:49 | `f727abc4a6d903fec008d693c49268d267ee747f2e161377c51c353d31c24d9d` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-094750.err.log` | 169 | 2026-03-26 12:47:53 | `0f1b3f294664395d45a70a63e6e703f0d140b36c1328eeb8be1a03c123e95e47` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-094750.out.log` | 197722 | 2026-03-26 13:18:00 | `e3834539002502bec1c8e6083d3bbc44406b2b45c61ffe0a51bd9153a41af8d2` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-124731.err.log` | 169 | 2026-03-26 15:47:35 | `bfa4d09af22a5938581c60c7394dc339aa430378e0489e4110960252110adf2e` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-124731.out.log` | 196742 | 2026-03-26 16:17:40 | `0318b980aa66044756540e961ace7ffc81e7a6c9ac304eb322982eaed29d5e94` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-133440.err.log` | 169 | 2026-03-26 16:34:43 | `7bb8941539e4a848747d8f6d7a65a7859e47ac0b581a1347064480f21d5f8f67` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260326-133440.out.log` | 196742 | 2026-03-26 17:04:49 | `99d3fb16400aa89dd4c1deb26215555f7a516ecf01f5418eae6b0f348ee11063` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-131654.err.log` | 171 | 2026-03-31 16:23:33 | `ef1225eec33985e77dd5377830580c0d10c2865c59d1a0c966606da2118929d9` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-131654.out.log` | 43212 | 2026-03-31 16:23:30 | `c8665027a736bd8aedb94584ae9d93883233b32bc7eca12e0e456ee06f848fd7` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-133103.err.log` | 169 | 2026-03-31 16:31:05 | `959bd4646017d998989c5d45c67bdb224699d6c4a3223e57c1d4e9e73209a170` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-133103.out.log` | 183753 | 2026-03-31 17:09:11 | `438c928ffe676c47d0d8fbc232e2702b4bb6ee61809873b03e605579b34a14b9` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-141304.err.log` | 169 | 2026-03-31 17:13:09 | `ba74c8f78bd8bb3a0b6c740597b5cad555268744bf647e4fa371aee9ce87b15d` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-141304.out.log` | 197585 | 2026-03-31 17:48:49 | `db73e15863c230816dccccde71e1d1a5ecea9c40d1533b761ae27bc69187957d` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-145151.err.log` | 171 | 2026-03-31 21:40:36 | `36101adc76de89ffaae57c1fda4462a02fa7abb4bf16780ba6d2e1ba99f0d169` |
+| `logs/btc-policy-auto-30m-tight-exit-server-20260331-145151.out.log` | 197963 | 2026-03-31 19:36:55 | `78f545eb7c66f70f56410e865be0435674ac9b42094ac319b43f9a2664760e59` |
+| `logs/btc-policy-auto-fixcycle-10m-20260318-095410.err.log` | 0 | 2026-03-18 12:54:10 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-fixcycle-10m-20260318-095410.out.log` | 210 | 2026-03-18 13:04:12 | `8a17da9478c6ea14684bfa3c5c39662238d5eccb22fe830b6b2ef31e614b9340` |
+| `logs/btc-policy-auto-fixcycle-5m-20260318-100720.err.log` | 0 | 2026-03-18 13:07:20 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-fixcycle-5m-20260318-100720.out.log` | 210 | 2026-03-18 13:12:24 | `fe7d17d870ac3aad4a57c3e66d582e167fbe37c5787199643f6b5ecfcecbbf7d` |
+| `logs/btc-policy-auto-postpatch-15m-20260318-101633.err.log` | 0 | 2026-03-18 13:16:33 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-postpatch-15m-20260318-101633.out.log` | 210 | 2026-03-18 13:31:39 | `50b6d375db668a5aab0b875a83b7991e34f405b08df9921c342eff6e74af61cb` |
+| `logs/btc-policy-auto-postpatch-30m-20260318-103515.err.log` | 0 | 2026-03-18 13:35:15 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/btc-policy-auto-postpatch-30m-20260318-103515.out.log` | 211 | 2026-03-18 14:05:20 | `d1dbd1510659cfa0fe5455e263a14017191bafb9c5d3475724d7183e390e095d` |
+| `logs/btc-policy-auto-smoke/decision-trace.json` | 7382 | 2026-03-18 12:00:21 | `9f22f3c650a3bacdbb38e210b032101fb5062cf1cda148022060988047551de8` |
+| `logs/btc-policy-auto-smoke/report.json` | 2017 | 2026-03-18 12:00:21 | `7e882ac04595e060c15fe21f619b0050665c5e7e688f2dc7ecfcda5800c489a1` |
+| `logs/btc-policy-auto-smoke/samples.json` | 992 | 2026-03-18 12:00:21 | `f31d1917becf41d54a015e06f8ffaa06ca5f3d6c887c1f015b12feb967c851c3` |
+| `logs/btc-policy-auto-smoke/summary.md` | 910 | 2026-03-18 12:00:21 | `d0d3cdead304c9df4a3867f6eb86cd63abe41434ddd6700aec91b6361058af61` |
+| `logs/codex-mission-control-server.err.log` | 169 | 2026-03-17 14:12:58 | `93f2464a034f6c31f293919fc50de28ed5a499485e00a0f2a1284fa40b48cba8` |
+| `logs/codex-mission-control-server.log` | 20754 | 2026-03-17 14:31:28 | `ed8f92f230822a2724455ee39eb01f16709a7bbeab98f336eb4a96f8955efe53` |
 | `logs/context.e2e.json` | 295 | 2026-02-17 13:49:59 | `30cbda451beabc5dd7ac3a11ba4e4c148bf6785692c71239c36148fb9b16205e` |
 | `logs/local-terminal.err.log` | 173 | 2026-02-17 20:04:53 | `d052ca9bf1d9124f21bb6832673ce32c6cbd451ab287e65d2af85805b9a71a31` |
 | `logs/local-terminal.out.log` | 6005 | 2026-02-17 20:04:50 | `3b2f9d873d6e051f27daf6cd854bae9aaf3459630737ead18dadb62228b4ceea` |
@@ -1659,6 +2772,8 @@ Generated: 2026-02-26 08:19:26 UTC
 | `logs/m5-soak-2026-02-25T08-08-40-134Z/summary.md` | 783 | 2026-02-25 08:26:43 | `788e580b99fb1b431dafe75dabdd3b12e0c3d63e11cef0f915869736242c1e49` |
 | `logs/m5-soak-2026-02-25T11-46-23-283Z/report.json` | 1127 | 2026-02-25 11:53:24 | `0070c564554b1e1571a8c1a20279329fa84fe71bb26c5954f185e21ba16dbac6` |
 | `logs/m5-soak-2026-02-25T11-46-23-283Z/summary.md` | 783 | 2026-02-25 11:53:24 | `afd241e0c456ee3d6556a7d4d345c0639b2cd7830f3199707b53a2d95d9932ed` |
+| `logs/m5-soak-2026-03-17T13-54-30-771Z/report.json` | 1175 | 2026-03-17 14:07:33 | `4cf8d6f4c23f1473b540844b90a02441ad6fbe119f5564df48237796a2aee21b` |
+| `logs/m5-soak-2026-03-17T13-54-30-771Z/summary.md` | 825 | 2026-03-17 14:07:33 | `d762ca50f34a360abfe4764945ea3bffd47f3604013c7c08865619376e914fe9` |
 | `logs/m5-soak-run.err.log` | 375 | 2026-02-19 06:53:40 | `0c12ad4352b5f4110bf7ee1302283b76662f15eff4629b197a10de2b01ebeb6f` |
 | `logs/m5-soak-run.out.log` | 823 | 2026-02-19 08:18:27 | `4acc3d9aef736926027fb38a4653d1ec0071da0e9c8bcb5c4d5ba86070de2352` |
 | `logs/m5-soak-server.err.log` | 169 | 2026-02-19 06:53:56 | `6d6432eae09ebe038866b6ffd2cb85d11f85d43761728834388996d6693e0b33` |
@@ -2207,32 +3322,112 @@ Generated: 2026-02-26 08:19:26 UTC
 | `logs/m7-walk-forward-validation-2026-02-23T08-07-31-532-03-00/walk-forward-report.json` | 1537 | 2026-02-23 11:07:36 | `c2424b81fc51660e4b8c5427ed6f422db4235bf7893712823a959d5f37ae8494` |
 | `logs/mc-server.err.log` | 40 | 2026-02-20 12:10:45 | `21454502b8590e3481d031ac1176aa84bd425c84897855c33042a8c5d234b827` |
 | `logs/mc-server.out.log` | 0 | 2026-02-20 12:10:37 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
-| `logs/mission-alerts.jsonl` | 23040 | 2026-02-25 13:28:11 | `21bd67e9e9e9c9ca6d05742e5bb66575c8aac29eb4e01b34ec6abe291127248d` |
+| `logs/mc-server-20260226-085129.err.log` | 0 | 2026-02-26 11:51:30 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/mc-server-20260226-085129.out.log` | 0 | 2026-02-26 11:51:30 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/mc-server-20260226-085137.err.log` | 169 | 2026-02-26 11:51:38 | `0551d0e3225c7978be8d1a486a60502d09e008b04c45e4afa8f53f6ba163002f` |
+| `logs/mc-server-20260226-085137.out.log` | 838 | 2026-02-26 11:55:10 | `b883f2f5e212003db46b929bed1c2cb717a135fab49c023d90650e74de36a10a` |
+| `logs/mc-server-20260226-090432.err.log` | 1705 | 2026-02-26 14:51:01 | `f0c25c18ba7e7ff8732231257ea91dd853ff8bdaf3b53f5fee616958df45353a` |
+| `logs/mc-server-20260226-090432.out.log` | 9014 | 2026-02-26 15:36:38 | `9e3f775c5c09b7d2bad6499e0d64c9b7c3430f4b2d46cfcb36119ebb143f6375` |
+| `logs/mc-server-20260226-123708.err.log` | 169 | 2026-02-26 15:37:09 | `343e43a6634a2a74099fe98644969d10890f76f37766c8940b6dfc25841652d2` |
+| `logs/mc-server-20260226-123708.out.log` | 1391 | 2026-02-26 16:08:43 | `619ef46895a6de43fcd003d703685eb8bf5295c3ab77fe6810128c8d27d101c6` |
+| `logs/mc-server-20260226-131626.err.log` | 169 | 2026-02-26 16:16:26 | `fbce99a227c8f12d3bb633606d11ee47bc7876bee2e94f7f95e421c9a22dec25` |
+| `logs/mc-server-20260226-131626.out.log` | 2987 | 2026-02-26 18:01:49 | `1185ab95dfada27ba1881601f381e9466cf9711bac218b81b2af40e3a3bb255d` |
+| `logs/mission-alerts.jsonl` | 3858 | 2026-04-03 15:39:40 | `c8a040c1bbb9247dd8544878d1ac79e9a1604c3a93d630eb17113e1beaeb5656` |
 | `logs/mission-control-server.err.log` | 1018 | 2026-02-18 16:48:58 | `d8612be586905cbd5e63c8d3fb277b383bb1d95ded1ab09b1d0bc81d1d41426f` |
 | `logs/mission-control-server.out.log` | 0 | 2026-02-18 16:48:12 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `logs/mission-control-server-20260227-051244.log` | 535144 | 2026-02-27 08:53:04 | `3e0e05428d4dc874b4033c140cc7f623395def55f483b299299b844b9a71d61b` |
+| `logs/mission-control-server-20260227-055332.log` | 134322 | 2026-02-27 09:26:55 | `97c0379cb6584d27a9f554e924b98bd8ca07e4c244c39e182ffc7b67e91cccdf` |
+| `logs/mission-control-server-20260227-062750.log` | 177624 | 2026-02-27 09:58:46 | `5cc50bb39f713e4a9454777d51d96decbc43f1651e48ceff50bea7080660c36b` |
+| `logs/mission-control-server-20260227-080134.log` | 88238 | 2026-02-27 11:11:34 | `40d1c076a7c0db3dbee98d9655d9b7123e347b364b69bd80c96b3b8b43487773` |
+| `logs/mission-control-server-20260227-081700.log` | 4520 | 2026-02-27 11:17:20 | `dc4a9e8546f737b4d566bcc77bdf896ae091165d8a1abe585d92053a918e3848` |
+| `logs/mission-control-server-20260227-081741.log` | 176248 | 2026-02-27 11:48:44 | `5c7fa19543028ec8d2414b49577f76791896d7ab26e0987bfefb2c5abfd23d1f` |
+| `logs/mission-control-server-20260227-085841.log` | 175432 | 2026-02-27 12:29:22 | `3f9508d4e6ac6f0bdf815c98690e6639aaf585595b0ee4b49df2829791a4e631` |
+| `logs/mission-control-server-20260318-095203.err.log` | 169 | 2026-03-18 12:52:04 | `dc91a5d2d8e8ef0ecf12dda59231da0c82b353d67395d115b1f45dadfd6646ab` |
+| `logs/mission-control-server-20260318-095203.out.log` | 60509 | 2026-03-18 13:04:53 | `7f9a72e5448aa2e016e9b42b7f095a5a1910be6b32097fc2478b1cf0cde1c8c2` |
+| `logs/mission-control-server-20260318-100641.err.log` | 169 | 2026-03-18 13:06:42 | `d76ed8beaa93abfbda65d141e2738929704822f1ccd849bb3478060dc5efae3a` |
+| `logs/mission-control-server-20260318-100641.out.log` | 274043 | 2026-03-18 14:12:46 | `82f8c93e23e5c23e98060672115a82e0189594d9a2c34631ce69c74d2c00ce92` |
+| `logs/mission-control-server-20260318-111850.err.log` | 169 | 2026-03-18 14:18:52 | `11d559ee547e63e3442f4c9fa81909f9dfde53c10b83ce26c05189f791c897a3` |
+| `logs/mission-control-server-20260318-111850.out.log` | 80086 | 2026-03-18 14:37:52 | `e520d41e9a5ef55849404773afc26e6ad7fa581a7f81ac9b70c09a5b69983bff` |
+| `logs/mission-control-server-20260318-114144.err.log` | 169 | 2026-03-18 14:41:45 | `668cf43ae7e9662dea767f8168515bdd8c698f350a3f5729530c60322f5e00db` |
+| `logs/mission-control-server-20260318-114144.out.log` | 50952 | 2026-03-18 15:37:48 | `c846137c66a3a8aab7101abf99cc81bd259c88889ed4894bedadd56ea878b2e9` |
+| `logs/mission-control-server-20260318-123802.err.log` | 169 | 2026-03-18 15:38:05 | `6ce69d62075367010a61c50a82ae62b7939e7ca0f8f90aeb463e933642d9e65b` |
+| `logs/mission-control-server-20260318-123802.out.log` | 85101 | 2026-03-18 15:56:44 | `85e2dc2cce7c50bf85797bcca87dff932d2a5f6890483b209582574c7f8e66fd` |
+| `logs/mission-control-server-20260318-125951.err.log` | 169 | 2026-03-18 15:59:52 | `ee88c1fb053c416e7eb01c0a3e197ae08f0b048f9edae4729a2e80831d5c6173` |
+| `logs/mission-control-server-20260318-125951.out.log` | 120405 | 2026-03-18 16:25:21 | `fd275106b0fa487adcb7e277d7a41151ce4afe9583073d01d78c776bbade9086` |
+| `logs/mission-control-server-20260318-131410.err.log` | 1066 | 2026-03-18 16:14:12 | `dd25dd68407f5bdb565c78c0b41e4bcea013eba6738cc8a4d7e0ea889f4d72c4` |
+| `logs/mission-control-server-20260318-131410.out.log` | 78 | 2026-03-18 16:14:10 | `c9941beb3fdaaf4309daa7b585123015786f0d5bee593f25c8eba3475a40ae63` |
+| `logs/mission-control-server-20260318-132739.err.log` | 169 | 2026-03-18 16:27:40 | `f2cf0f7b667fa2f4e94799166ec8020e2ed2d86e2fae1734b130be32ec49b2ec` |
+| `logs/mission-control-server-20260318-132739.out.log` | 31596 | 2026-03-18 16:34:49 | `059071bf9927b144fce70c43964aec203625f7ec52eaa49d625cbd0b0f101b7d` |
+| `logs/mission-control-server-20260318-133558.err.log` | 169 | 2026-03-18 16:35:59 | `5c7291fc6bf4afe249b9505b15749c0a0a6c4af0019e6bca07162e7f932569e3` |
+| `logs/mission-control-server-20260318-133558.out.log` | 13376 | 2026-03-18 16:39:22 | `c25529e90594ac4c9924f069b22a23eeb79d32a3a0c115ef892056c1b3c02096` |
+| `logs/mission-control-server-20260318-134350.err.log` | 173 | 2026-03-18 17:09:01 | `e0401c9436eeb8fb81a0201937f28d41fb56fd5a2399c4349eb4a33250b02098` |
+| `logs/mission-control-server-20260318-134350.out.log` | 13249 | 2026-03-18 16:46:32 | `61073d536a03433a38a8aa7b72e367d8101be783735491008b7bc832070d80ce` |
+| `logs/mission-control-server-20260319-051917.err.log` | 169 | 2026-03-19 08:19:19 | `3449c220481cd3a46de0c55b32f2a07c2ffc27f1bbda8b55c77d41261a5fc340` |
+| `logs/mission-control-server-20260319-051917.out.log` | 60152 | 2026-03-19 08:30:34 | `36e1135fbdb3adf740f10b1dfd65fdd036fc0cf5ab5e4faae95d520e1e06f7a7` |
+| `logs/mission-control-server-live.err.log` | 169 | 2026-03-17 14:31:40 | `e4161754c04c2050959b8de7fc174964196b58f3fcd5949c96c64667c9a13614` |
+| `logs/mission-control-server-live.out.log` | 30863 | 2026-03-17 14:45:10 | `e1e035522e507a7ce89af7e20f00a00eb8fdd76ca055ef65925229cb8307681e` |
+| `logs/mission-control-server-live-20260317-114535.err.log` | 169 | 2026-03-17 14:45:35 | `b097b338fb79647e32d3043e0d8167986ba5da2fbedde0eb62e2da49d19a902f` |
+| `logs/mission-control-server-live-20260317-114535.out.log` | 24969 | 2026-03-17 14:52:31 | `be205c0750e664956f3f6442da15e6a25ed840e9935da9f1d3970598a8937963` |
+| `logs/mission-control-server-live-20260317-115231.err.log` | 169 | 2026-03-17 14:52:31 | `c3847573029a4a4b9f57a03e046fae09299dcd61675f4acbaf559bca3e047b8e` |
+| `logs/mission-control-server-live-20260317-115231.out.log` | 370351 | 2026-03-17 16:36:54 | `4582f6c47fe5593aa4e08097831cc98b463cbae92c478be00c64027bb501e4a7` |
+| `logs/mission-control-server-live-20260317-133654.err.log` | 169 | 2026-03-17 16:36:54 | `56985216a858aa846ffea602bdcabdd731d41fd1311b06943b188e5c23ea460d` |
+| `logs/mission-control-server-live-20260317-133654.out.log` | 58546 | 2026-03-17 17:09:34 | `54ec56919440cbed707fc404204f2885ab537c0b26a1f840ddb34d36c369cacd` |
+| `logs/mission-control-server-live-20260317-140934.err.log` | 169 | 2026-03-17 17:09:35 | `aabbeecc0db920c88bcace53dbd9a55f22d8e61b108229e778b3e1d2b0e3d911` |
+| `logs/mission-control-server-live-20260317-140934.out.log` | 59902 | 2026-03-17 17:22:56 | `0229ef79e3e2a062ae13b3528ec9599b14ba1c68a13064e8505a32c3524cc1db` |
+| `logs/mission-control-server-live-20260317-142255.err.log` | 169 | 2026-03-17 17:22:58 | `5b8746470d09763d4ea8e8be2a5b9a66a99d426a158f86167ebaf8fe0061dbb5` |
+| `logs/mission-control-server-live-20260317-142255.out.log` | 59778 | 2026-03-17 17:34:04 | `72124f811cd6f3577c3bab337edba02230323d041a3b00bd746fe260ee5f8283` |
+| `logs/mission-control-server-live-20260317-143404.err.log` | 169 | 2026-03-17 17:34:07 | `a22ccd7a37620f39f02596b1979e71a6faa0914a2aad717477c97eb75d089fe3` |
+| `logs/mission-control-server-live-20260317-143404.out.log` | 504 | 2026-03-17 17:43:52 | `bc81ad37a2129c3b9a23875bd5683d8ef949ef9d493e5ef06f1f8c5297c928d6` |
+| `logs/mission-control-server-live-20260317-144351.err.log` | 169 | 2026-03-17 17:43:54 | `87cd7b2132ac67810fc68bde37965a601df74414e7ac252e60361d1ffb5bf75f` |
+| `logs/mission-control-server-live-20260317-144351.out.log` | 59898 | 2026-03-17 18:56:24 | `55f7394b3fd462b9bd27ddfd2cee53d37fd7a83b9cfd8cabd8d2bf40ef943546` |
+| `logs/mission-control-server-live-20260318-084141.err.log` | 169 | 2026-03-18 11:41:42 | `e7d16dd1318c97560ac21cd5ad915d98a50ea3a730e18847ecd90862e7e1c13e` |
+| `logs/mission-control-server-live-20260318-084141.out.log` | 569064 | 2026-03-18 12:52:03 | `9edc9e69487d63dd2863bfbcbc375dfa557e408c26bd34b49f194f8d5dc259f8` |
 | `logs/mission-events.jsonl` | 208 | 2026-02-16 17:35:42 | `53aca00c56fcb146948c23e537e0c20c4c98ed17c5c575bdf37ce8ff226f081d` |
-| `logs/mission-events.sqlite` | 6004736 | 2026-02-26 08:07:34 | `faffaccb149aa1668dd9a9fde957d4bd339d5d947b7f0a1e55af5411c41e7c88` |
-| `logs/mission-ops.sqlite` | 909312 | 2026-02-26 08:07:51 | `318327898907129c29d51e42ebe269c8f0c39e0e41a3e4df8f2f77768c939a3e` |
+| `logs/mission-events.sqlite` | 757760 | 2026-04-02 15:38:52 | `aa187e8f0bbfb2522078e1525295bad587fa45e6c5287f84144bc75009b9c663` |
+| `logs/mission-events.sqlite.bak-20260226-085040` | 6004736 | 2026-02-26 08:07:34 | `faffaccb149aa1668dd9a9fde957d4bd339d5d947b7f0a1e55af5411c41e7c88` |
+| `logs/mission-events.sqlite-shm` | 32768 | 2026-04-02 11:49:58 | `a0f396bf185cd521f0b8424ddc709560dfaab9dbd843d3afb31ba35d21a4284f` |
+| `logs/mission-events.sqlite-wal` | 4165352 | 2026-04-02 16:07:53 | `c11ab9f207c7de7866e1c7fa85432fd33c67b26c4596d4ceab12c7fcf5ed7d5d` |
+| `logs/mission-ops.sqlite` | 397312 | 2026-04-03 12:38:17 | `9994e77ad29804fcc90b65d66c3fdbc74f90056dd328d738fb76b75185ab8bcd` |
+| `logs/mission-ops.sqlite.bak-20260226-123702` | 909312 | 2026-02-26 15:36:12 | `f32ac109bec820a8e3d2edac8d7aaf4daff23ec1d2e1e1b2f734702702e451dc` |
+| `logs/mission-ops.trace-copy.sqlite` | 397312 | 2026-03-23 17:05:27 | `7434267b417349765754b1816faec77327fd1dedfaef357141874d14756fea4b` |
+| `logs/okx-open-orders-before-fixcycle.json` | 131264 | 2026-03-18 12:53:00 | `a7e50ca93f42d25458afe15312cbfb18a88a91b29aa0a6a58e59ef282c37b14a` |
 | `logs/okx-snapshot.json` | 2771 | 2026-02-16 09:09:36 | `398fbb03afe9ee8d650bcffac9819fe5e00c00813dbbcd5345a7c5cf8086b16d` |
 | `logs/order-intents.jsonl` | 1054 | 2026-02-17 14:06:49 | `5affbbeccef6f6dbf1a30e205218d368085c5ec6a63f0d2874c7807add0f45ad` |
 | `logs/proposal.e2e.json` | 223 | 2026-02-17 13:49:59 | `0ac6472f8abac22d422519d12c7d2bc01d0929317571d5b99e02d7ec3f058241` |
 | `logs/proposal-audit.jsonl` | 2206 | 2026-02-17 14:05:57 | `a01a41c415f3e3b70dac46612d748be485bfc9499be003736becd3dfbc0fab18` |
 | `logs/reconcile-report.json` | 901 | 2026-02-16 09:09:42 | `f986871f719c9b77a42714dc634af4bb8a17baf0f95d0be58d08f9505c0a53df` |
+| `logs/report-2026-02-25.md` | 29801 | 2026-02-26 08:21:40 | `f3f5fc0579c25c61f7febc5efbf13ad092ed20f6cd480581acb144fa28487ae1` |
+| `logs/report-20260226-104615.json` | 237628 | 2026-02-26 13:46:15 | `4122b61f1acefee0bce6bcf8415ac64ff1da14344c9525d6fb810ca8411ed345` |
+| `logs/report-20260226-130844.json` | 141980 | 2026-02-26 16:08:44 | `c296ae004c19b62e8e71a7ad084344feb79c22a46d658a7d55c246b51691e7cc` |
+| `logs/report-20260226-134819.json` | 141989 | 2026-02-26 16:48:19 | `a1b35398f02736eb61b0144b2492264b45f9be36b7fb5743535e40e633b4dfdb` |
+| `logs/report-20260226-145831.json` | 226945 | 2026-02-26 17:58:31 | `984c26fab10ac00da3ef3291cb6c75aa6879babd254d8f9a6f51f8d1f3d281c4` |
 | `logs/session/mission-control-server.err.log` | 173 | 2026-02-22 12:50:05 | `a5139eb019dbef21adde1e569aa3c919bb1c0d5000af155b64295421c0338c2c` |
 | `logs/session/mission-control-server.out.log` | 131788 | 2026-02-22 09:51:00 | `fcbff757182fc9190fbf8edd10f27ec189b9995b2b58b237e9998d2dce611df0` |
+| `logs/strategy-economics-2026-03-25T07-23-33-410Z/report.json` | 2754 | 2026-03-25 07:23:33 | `78bf369240bfa0f1fafd9ba984e5a0e6c965924cfdf7cd4a115841bac169532e` |
+| `logs/strategy-economics-2026-03-25T07-23-33-410Z/summary.md` | 1884 | 2026-03-25 07:23:33 | `46fced478b04de421e4b9092c4728680c5fa6a56b58bd2373cbcce7d14db5914` |
+| `logs/strategy-economics-2026-03-25T07-51-45-178Z/report.json` | 5233 | 2026-03-25 07:51:45 | `0b66fdcfd524084925babd226b3a74c96da9a86c633ed6926f8879a1d60a6cd0` |
+| `logs/strategy-economics-2026-03-25T07-51-45-178Z/summary.md` | 2769 | 2026-03-25 07:51:45 | `bf483d4a686ce144a7a3185859c0e2efcd95ebb7e8eb2762d62c216a7eea66b2` |
+| `logs/strategy-economics-2026-03-25T16-07-01-577Z/report.json` | 5839 | 2026-03-25 16:07:01 | `7e95d4abe9a764b69d2d3f8bb19e384364ace7ba28e3eee5fb0a21414f9e4e3c` |
+| `logs/strategy-economics-2026-03-25T16-07-01-577Z/summary.md` | 3129 | 2026-03-25 16:07:01 | `6c336b22c2d17296b34279e93515a53db0d79e125f24e04889483a9174900a13` |
+| `logs/strategy-economics-2026-03-30T12-30-17-223Z/report.json` | 947 | 2026-03-30 12:30:17 | `b9cd0c691621274b8e5c38bc6771b17e85724e166d7f5fbbada8b31bfd7b7d3f` |
+| `logs/strategy-economics-2026-03-30T12-30-17-223Z/summary.md` | 950 | 2026-03-30 12:30:17 | `7c346ca481bd28c48886e48b18d8e5a8de22df3a8253ad03b0016d1cf27b4d58` |
+| `logs/strategy-economics-btc-postrun-2026-03-30/report.json` | 5876 | 2026-03-30 14:23:40 | `3d8281d09d0b0b1d2582190580213188e71a02bc92aedf53ff3d3be22f33bfbf` |
+| `logs/strategy-economics-btc-postrun-2026-03-30/summary.md` | 2866 | 2026-03-30 14:23:40 | `bbad5e13c9582d8ac2b84492a105e36a19c1fc015dc1879ab56f6431d1d41641` |
 | `logs/tmp-test.js` | 22 | 2026-02-21 20:04:15 | `3e1c0b5275702e456d8206c48f042935af0962e9812061d756fb92ff9a35d1d7` |
-| `package.json` | 3248 | 2026-02-23 18:32:32 | `1826a324e8c5ca9d29979acceff82758e9455c7c48bbb6b3e3019d08feb4cfa2` |
+| `logs/trading-point-20260226-142440.md` | 126 | 2026-02-26 17:24:40 | `440780563e9eb9b73f99d47945380e19080f562d512f89158d63374eb83fc5bd` |
+| `package.json` | 3772 | 2026-03-25 07:22:53 | `f3007f7745271e96b3f99d4f2e47ace75ee6158641faaf4c97ceb452c9671264` |
 | `package-lock.json` | 277570 | 2026-02-20 08:09:15 | `7db3b60a5eac8e05c32923b7661aee1644e77b7a40d94210599cf56c02215bd4` |
 | `packages/okx-demo-adapter/package.json` | 183 | 2026-02-16 08:25:46 | `e52f527393c9a8a8bfda9431c02394f745fc500f298979ee4b7e00f5564fd2df` |
-| `packages/okx-demo-adapter/src/index.ts` | 12346 | 2026-02-19 14:09:10 | `5a929ea129261fc85bf61d0351149712fe34d13130f7122060213cc0f679fc35` |
+| `packages/okx-demo-adapter/src/index.ts` | 18428 | 2026-03-24 11:07:38 | `062be9e30229ab9de8ad1fd6eb95c7bdb664eb3c46726ad46cd1e5c069fa5b40` |
 | `packages/risk-gatekeeper/package.json` | 182 | 2026-02-16 08:17:52 | `2b47fc52824541ff54e151d3bea9a0c2798ca5e47bcd1ab3f280b0b053610936` |
 | `packages/risk-gatekeeper/src/index.ts` | 6696 | 2026-02-17 07:14:56 | `4e573bb98a29c93489025eb5e4c84cf988ffb74bcf46a9dea4854f10e78f3bef` |
 | `packages/shared/package.json` | 163 | 2026-02-16 08:22:05 | `2f30f4e4845845ba9f2a7a29ee88fdacf2380b2bf02cbf47c7bc8e4499a85ab3` |
 | `packages/shared/src/index.ts` | 96 | 2026-02-16 17:31:00 | `ec4236dd133b7a1ead687ecf23f68c9303b9d4ccf8952eeafeeb6729b6867613` |
-| `packages/shared/src/mission-control.ts` | 8026 | 2026-02-20 09:14:40 | `1e3fb9ff684f1389942b9c8e3ee03d8e8e20673b4d5fe588c9db9bb06ccba0d0` |
+| `packages/shared/src/mission-control.ts` | 8988 | 2026-04-03 15:28:59 | `24bacab865b6ded3e3b800cdb85f8e804054dfed984d553a89e9fdc6a4fc656a` |
 | `packages/shared/src/schemas.ts` | 2193 | 2026-02-17 07:55:34 | `8a19fa162e37fb64c8fc51253c51d6f3af91901e54aab90f8f48aac7a17a4464` |
-| `packages/shared/src/types.ts` | 1781 | 2026-02-17 07:55:30 | `083f186e533824813b24e7b71380c8ff0f0ee5dc8e891e88b5e84e9622b28d51` |
-| `README.md` | 12938 | 2026-02-20 09:55:27 | `59a0d2b10fea3adeccaab10a1f03a79ff391d74543ef83d45abb44d8b3de1ee1` |
+| `packages/shared/src/types.ts` | 1821 | 2026-03-19 11:48:36 | `8a1c0a72f250c93f3be2ddbf0d4fa8329f0ea07acbe83a1b4f7f311e71bc7f09` |
+| `README.md` | 13802 | 2026-04-03 15:06:18 | `b499c109022b8d23f2690162304decb4c02be04d3c777e122a03f14145ac7390` |
+| `scripts/auto-exit-decision-diagnostic.ts` | 15177 | 2026-03-24 11:26:21 | `77dcc4066fe8d1bd1d492bd1b117881e523d83afd755ca6f26e08d99acd1bf35` |
 | `scripts/install-index-hooks.ps1` | 239 | 2026-02-16 07:42:01 | `2420afd0c3aca0b6bbf968754a814003dab3ee40f81410ea97137236162633ae` |
 | `scripts/m5-evidence-rollup.ts` | 4031 | 2026-02-18 17:04:29 | `5bc20e5f33f17f442c1f7750082b8e6414d53bb72945c9e22ef3e301db15fcc5` |
 | `scripts/m5-soak.ts` | 17551 | 2026-02-22 08:56:15 | `69dc4c0c8239003a8bd1646650dc0463392447947d82188f4aecef6b11923720` |
@@ -2246,27 +3441,45 @@ Generated: 2026-02-26 08:19:26 UTC
 | `scripts/m7-sol-moderate-calibration.ts` | 10972 | 2026-02-24 09:49:50 | `f8d4525d0c7c853a145ef48a87de457d2749c939d417b8a774624a9597dd8184` |
 | `scripts/m7-sol-reentry-stages.ts` | 11777 | 2026-02-23 12:02:08 | `5a32c728aa65a88683cfff2e082f3750d7510dba9239541955133e026a2636db` |
 | `scripts/m7-walk-forward.ts` | 4888 | 2026-02-23 09:53:12 | `a482b241afb7ec6e764776adf1fe83406ec70a8226323695516830408feec962` |
+| `scripts/policy-auto-progress-run.ts` | 6579 | 2026-03-24 11:17:26 | `fe30045ec696562a21bd8db8fc93ba078efa53cdbc706fcc2355abb86529198b` |
+| `scripts/start-btc-policy-auto-1h.ps1` | 5174 | 2026-03-31 17:12:04 | `652212a8e7dfc0c9b897b0c7c92c5f6460d0c61532c1fd58aecd59bbe354793d` |
+| `scripts/start-btc-policy-auto-2h.ps1` | 4784 | 2026-04-01 06:32:13 | `0a883aa7a3af98be8c81e4c3510071307f794f3d53c72fb7aaec1fc6730b6760` |
+| `scripts/start-btc-policy-auto-2h-signal-gated.ps1` | 5230 | 2026-04-01 06:31:50 | `beff8e2e7ee09a24e3ace6ee29c4b6cbde54d6855064ad817114004b36800e34` |
+| `scripts/start-btc-policy-auto-30m-tight-exit.ps1` | 5299 | 2026-03-31 17:51:44 | `8fd9e2efef7acbc8c2615ed2e74309a45eacc621bd22d35e9d55dc04d153a997` |
+| `scripts/strategy-economics-report.ts` | 10072 | 2026-04-03 13:33:22 | `3a2ad0f9beea184e9ce50d11ed79de99e702c2e870db59372dea94fb233a4455` |
 | `scripts/update-project-index.ps1` | 4280 | 2026-02-16 07:43:03 | `cfad26a7179677daccc8e102a741b3baa933bc3031ff7b523d4598079552e7f7` |
-| `skills/architecture.md` | 957 | 2026-02-15 08:25:39 | `4cf99efbe8c8773c23996f9c38763fb7a40c0b9e9414fe1b802d99d129ecaba6` |
-| `skills/backend-ws-contracts.md` | 1570 | 2026-02-16 17:27:45 | `467435c016b7605138a3f2dab7d08dbfffae2c74a6998bd1a690783f983f94a5` |
-| `skills/logging-audit-replay.md` | 1063 | 2026-02-15 08:25:39 | `b43827ddfa91b28ed2af3798e776c71501b00c8c10aad6f0d62189a260b8aacc` |
-| `skills/mission-control-ui-patterns.md` | 1748 | 2026-02-16 17:27:45 | `cb3afae190fc43c31aa70e38f4d12017a8fc825076392b1dbade365fc2313bb8` |
-| `skills/node-dashboard-patterns.md` | 1160 | 2026-02-15 08:25:39 | `224457b49f502d7b8add9b0f825910c9a1f2d51462386d7af6b0c4ed9996f25d` |
-| `skills/okx/okx-auth-signing.md` | 1383 | 2026-02-15 08:39:17 | `4d881d94c373d2ff0128c4f204511359a78f941af2ab393ba75c3a8592519817` |
-| `skills/okx/okx-demo-vs-live.md` | 1025 | 2026-02-15 08:39:17 | `3d7175597fb49e3c7e12a174ee8e5316e19e10ff8bd9e6fc1aa6719ab19e3a0e` |
-| `skills/okx/okx-overview.md` | 1279 | 2026-02-15 08:39:17 | `c88b73a17f16a9d725fc6985e75bc2cdd03d19aacadd7364d626529fb83878ae` |
-| `skills/okx/okx-rate-limits-errors.md` | 1589 | 2026-02-15 08:39:17 | `65c77852d8187c1dbff0f3d31ff9f54dfa3e04bee27e98a791f931c1b175872a` |
-| `skills/phase-delivery-playbook.md` | 1568 | 2026-02-16 17:27:45 | `20b4daa66eeeac9177ff3391067715c66cf11c6b2b8b6aeb54a6bac84b060b4e` |
-| `skills/python-research-pipeline.md` | 1107 | 2026-02-15 08:25:39 | `84d4b710a9be689148a79dcf362fe2a3e9683132676744174d8b11c16907d044` |
-| `skills/README.md` | 1733 | 2026-02-16 17:28:17 | `9b1b83838362590e0986b74c880b86ad74d6615a921f45b0bcd53bd26b625e38` |
-| `skills/release-hardening.md` | 1580 | 2026-02-16 17:28:13 | `863813148acf4f2a749a16e0badcc9798a8fc4787b2ff0064f5c710c41a94f0a` |
-| `skills/risk-gatekeeper.md` | 1202 | 2026-02-15 08:33:09 | `6462052a76b16f85ab789fda220cf54aedc08ffb6c5a2fa88a20e228bbef7026` |
-| `skills/security-api-keys.md` | 1391 | 2026-02-15 08:39:17 | `f8aeac08d67b6e2c1c20105f36a6bf53c116fe37f4931201d3d2767d8fbd1019` |
-| `skills/skill-factory-governor.md` | 1931 | 2026-02-20 07:58:28 | `6b0fa634aee381b6a67182e5ae4388e4bf9be0ca373fd875b5085837850d4b7e` |
-| `skills/trading-oracle.md` | 6802 | 2026-02-17 17:34:57 | `68c2255d9cbe1c0e80c029e67681c443f534d48d4afa1a17fd48f0250f7f5aa8` |
-| `skills/trading-safety-guardrails.md` | 1791 | 2026-02-16 17:28:13 | `ed67b0f044a073217bb74bb29af8e95b6f0335b9133529a77243dead127b2602` |
+| `skills/architecture/SKILL.md` | 3772 | 2026-03-23 13:04:28 | `4456d24fef2405b02e66698c4accb1025df19ab0a1f482689cd6a3b31efbadaa` |
+| `skills/autonomy-rollout-governor/SKILL.md` | 2370 | 2026-03-23 13:12:43 | `0792953036aee4b1c6541556843f82ef5f26d4629855ad7a6455d306da2591f2` |
+| `skills/backend-ws-contracts/SKILL.md` | 1771 | 2026-03-23 13:12:43 | `144a0cc7d46f695006a4fc458a2d986ea28375718dc43987f56045fd79782ef0` |
+| `skills/logging-audit-replay/SKILL.md` | 1296 | 2026-03-23 13:12:43 | `c6e1528fd06e84ae84199bad75ca377ac6207b3958b9581a38ed06bf1fc2f31f` |
+| `skills/market-intelligence-research/SKILL.md` | 3162 | 2026-04-03 12:16:45 | `fbe59f6d5f5aa6210a3125e7dc60d75ffd1eebeb78dacedf21ef5fce6901ee5e` |
+| `skills/mission-control-ui-patterns/SKILL.md` | 2564 | 2026-03-23 13:03:03 | `5ba46bbfd59c1f917974215b6850c5957eaaa912d726f7a1fdac6ff691f3a1cc` |
+| `skills/node-dashboard-patterns/SKILL.md` | 2033 | 2026-03-23 13:03:03 | `58f26b8c2a6e2abe4f278ede9557184311c2ed641537c974265cba3082720ade` |
+| `skills/okx/okx-auth-signing/SKILL.md` | 1584 | 2026-03-23 13:12:43 | `c7f781c5f60934cba54ddb7f95277da8f915df41f5ec9dd217151d369944f10f` |
+| `skills/okx/okx-demo-vs-live/SKILL.md` | 1238 | 2026-03-23 13:12:43 | `1409d8b2961259b6bc4ef32766a08acb6056df9b91ff7f1adfdc32c2d37defe0` |
+| `skills/okx/okx-overview/SKILL.md` | 3028 | 2026-04-03 12:33:59 | `9ebefe45c5afaeff7b6e501f7b9e3c941d31e2ee5522aff3486e688008d2cdc2` |
+| `skills/okx/okx-rate-limits-errors/SKILL.md` | 1781 | 2026-03-23 13:12:43 | `e89050fd7c4f4154536942c579813c77bd9be5eb2099cdadd9abbde7c5b527a8` |
+| `skills/phase-delivery-playbook/SKILL.md` | 2192 | 2026-03-23 13:03:03 | `b7900ba25e5a6975081282ca2889371e40d7f9c133a4fde90be1b67c6ba4a11d` |
+| `skills/python-research-pipeline/SKILL.md` | 1331 | 2026-03-23 13:12:43 | `cbb5c59dedf81351aec34b30dbbcb10cd89f11779fa3d5fc02f3ae20f45ee853` |
+| `skills/README.md` | 3278 | 2026-04-03 15:06:18 | `c7f2a28d681371dc3066c76aa8b5e4d3f54b30c9fb110e0f09d7e4887995da6c` |
+| `skills/release-hardening/SKILL.md` | 2297 | 2026-03-23 13:03:03 | `2a9438fafaa8f3041d6a2eede3e306fbe7bc863f86d1d6f42f3077fdb1215512` |
+| `skills/risk-gatekeeper/SKILL.md` | 2613 | 2026-03-23 13:03:03 | `93ea1283b9fd18fcaad1176b84042c0bf579afc67106650dc64069232760aa07` |
+| `skills/security-api-keys/SKILL.md` | 1593 | 2026-03-23 13:12:43 | `ff368211438446969acf49b87cf9dec1df3298a1cfe1e534c8a2af02184ac205` |
+| `skills/skill-factory-governor/SKILL.md` | 4193 | 2026-04-03 12:16:45 | `5ae0a8ec3de364bd6e13a2ddd8ceeb5e2a84605312bd90b7627c1919e65ca680` |
+| `skills/strategy-hypothesis-lab/SKILL.md` | 2867 | 2026-04-03 12:33:59 | `62f6d567ebe3d8487f8681c4c23e34555ef866092af3cca82e63df705f6cf260` |
+| `skills/trade-sizing-microstructure/SKILL.md` | 2678 | 2026-04-03 12:33:59 | `effd1825d8f3570dcfc4c0cd091a5fecc5957b5797970d5ec9e845c4c3c87f9f` |
+| `skills/trading-intelligence-loop/SKILL.md` | 4080 | 2026-04-03 15:06:17 | `4478427730495b23125d64753af88af0cda5304784f43db82deaba143c384498` |
+| `skills/trading-oracle/SKILL.md` | 11224 | 2026-04-03 15:06:22 | `8ef0e2334774e4a3a870c1904711b6ffc73d0bcfba2fdf7adea43653ce5e6385` |
+| `skills/trading-run-forensics/SKILL.md` | 4572 | 2026-04-03 12:33:59 | `142823af9662c01be962390dac2e55c0654839c54e3eeda5e86a2e16a440ba2c` |
+| `skills/trading-safety-guardrails/SKILL.md` | 2712 | 2026-04-03 12:33:59 | `e024974cccc3d71d568891ae2b98e9192cc203f18cc4a8a5c490caae013c9ee5` |
+| `skills/trading-validation-evidence/SKILL.md` | 2457 | 2026-03-30 12:22:50 | `a3c9a000e5963ad678031b62169bdc04ef386cacf879baebfb69af42e86541ab` |
+| `skills/validation-session-design/SKILL.md` | 3015 | 2026-04-03 12:33:59 | `d8b556708137f15c19dccfdb3809bc099c492654397d80311c5870bffd14cc6a` |
+| `Summary-Session.md` | 12972 | 2026-03-19 18:20:02 | `f2cf13ba6f92069704c431c0d24e88fb1f7a79060d3bbd33394dfc8eecd35ef5` |
 | `tests/approval-store.spec.ts` | 3377 | 2026-02-17 14:30:35 | `ca3e4b843582a91223fa49d4d4444ee21f2334203c708118b96f3b9ee3cf8447` |
+| `tests/auto-exit-stale-cancel.spec.ts` | 3755 | 2026-04-01 09:22:21 | `b9512e6afb8e95fdbb2582f9e046be1555ed7c37e98b8df79745aabbf06abc82` |
+| `tests/autonomy-rollout.spec.ts` | 4301 | 2026-03-25 11:54:20 | `88aae8c4c1e0160c700f9db7e1d364ff6593cddbb45686e3a820699afbdbe23b` |
 | `tests/cli-validation.spec.ts` | 2761 | 2026-02-16 08:22:57 | `f469e8e4909db02465e4936662d21d60666afd70b11d9090860b0073edc7070c` |
+| `tests/entry-order-aging.spec.ts` | 2489 | 2026-04-01 15:46:44 | `91e8da008b45d29506b84ace704dae6e71c9a7fba279c4405d200e8e04504233` |
 | `tests/execution-service.spec.ts` | 9936 | 2026-02-17 07:59:05 | `2bf6a01146cf870afbdb8e2fa0f3d3cd71c5f7c038f49562d7155263b6a0c048` |
 | `tests/fixtures/context.auto.json` | 295 | 2026-02-16 09:09:53 | `cb8a7e955df9d846f6dceafcb24a2d9e814fd28d5834d393c8554a383707ac2c` |
 | `tests/fixtures/context.valid.json` | 295 | 2026-02-16 08:18:18 | `a9ebc8ee93233576c66d541f820ac5cfff2738fa155ea678a0ba23d609707c94` |
@@ -2275,25 +3488,31 @@ Generated: 2026-02-26 08:19:26 UTC
 | `tests/fixtures/proposal.invalid.json` | 90 | 2026-02-16 08:23:00 | `20d3fb277c8e22dacf26ff109c0ea4fcdf0a2b751d2b20d1f57db9908c9a7739` |
 | `tests/fixtures/proposal.valid.json` | 190 | 2026-02-16 08:18:13 | `732ac716730242de204e9e643b81f475ffd12befce0f99e805c9c5b37d3ab1ef` |
 | `tests/human-approval.spec.ts` | 3281 | 2026-02-17 07:18:28 | `d93369b43d786b129f86a60d613e449b6a4e3ec1625fc7275bfcde00f035c11f` |
-| `tests/m6-attribution-contract.spec.ts` | 8283 | 2026-02-19 08:02:25 | `7a5a95835fb228f1f1ae03cafde4b4105c1e2a67a6795f3f22f6c3885e8c6e15` |
-| `tests/m7-learning-contract.spec.ts` | 12789 | 2026-02-23 11:01:49 | `7291190a95287fa044a9afbcc2873568f3cdf9068cfe91939059561c1e353bbf` |
+| `tests/m6-attribution-contract.spec.ts` | 9742 | 2026-04-03 14:42:10 | `e5460e2286a9fdf09839b8c52b1ba79326fb44e4535e86de285e9d06084f4bda` |
+| `tests/m7-learning-contract.spec.ts` | 13154 | 2026-04-03 15:37:47 | `ed55aa63d2afad4611f6d4508bd20f483522e29d5bda3f2322d79db0bbe6b7cf` |
 | `tests/m7-promotion-gate.spec.ts` | 4207 | 2026-02-23 09:54:37 | `04ad4bdc53335a3de646f3d4ac635750f719667f62f17e8d1720833491bad273` |
 | `tests/m7-research-pipeline.spec.ts` | 3604 | 2026-02-20 09:21:45 | `fe5a4fe02c8eb833c890732c9b7160bfa66b126281e8d1774b5a524ee35fe11f` |
 | `tests/m7-walk-forward.spec.ts` | 2852 | 2026-02-23 09:55:00 | `cbb2eea3a8348fe112c5ed048135231532c6c1057c82f9e5c97f7d73adc224ee` |
 | `tests/milestone3-integration.spec.ts` | 4772 | 2026-02-17 07:59:12 | `d5700ebca30526054e04606fe40fc092c9e23a2381bad3f41bbdd829f45dd02e` |
-| `tests/mission-control-contract.spec.ts` | 61322 | 2026-02-25 09:59:40 | `b78c4eb109bf191312d69bf9930de656bf966ab4668a24b8bccabd570dc236e6` |
+| `tests/mission-control-contract.spec.ts` | 69376 | 2026-04-03 14:40:22 | `19943cbfe95eff55a3c8743a91adf85d17607ec33840d5f4fd6fd82e73be805e` |
 | `tests/mission-control-event-normalization.spec.ts` | 1145 | 2026-02-17 16:25:11 | `aa42516419d9d46030fbd74a0536920361c9d105ea9a2858b21e29cc4607c3e5` |
+| `tests/mission-control-incident-policy.spec.ts` | 863 | 2026-03-18 15:37:26 | `7d75832d7c9810b7438d91e8aa42dde364a6d012fad1aaf6e0245b46d8e04048` |
+| `tests/mission-control-okx-error-detail.spec.ts` | 939 | 2026-03-18 14:40:44 | `890650340422fa75f00c9be62a9bec50e63359a32293630afe2670ccf86f0e8e` |
 | `tests/mission-control-policy.spec.ts` | 895 | 2026-02-17 14:30:49 | `24e2f4cd0044527c2fea8c2fec8bb16f2c83fa46d3cf2afecb906f6a3aba47cf` |
 | `tests/mission-control-runtime.spec.ts` | 695 | 2026-02-16 17:33:52 | `aefbdd2825497fc8d9411989202274238d06235796b100a6c62bb682d9975219` |
-| `tests/okx-demo-adapter.spec.ts` | 8264 | 2026-02-19 14:09:19 | `d48c3a732c7233d46a1564470ebd42949bcfe43bb63b5fbf820f9cc6709bb79d` |
-| `tests/proposal-helper.spec.ts` | 2442 | 2026-02-16 09:02:04 | `4a3010d8af6acac630ff69c2f7bd75227d2f5ddb42b377ca49735cd9bf59a8c6` |
+| `tests/mission-control-submit-failure.spec.ts` | 4008 | 2026-03-19 12:37:38 | `ed33394f6691937dc86c444a3396584cef3ce3a1195750ad4f96f3a563d584dc` |
+| `tests/okx-demo-adapter.spec.ts` | 16022 | 2026-03-24 11:08:47 | `1730fe884d2629b730d892c5bfacbaabc10dafb5a14051a66d6f883b828435f6` |
+| `tests/okx-price-band-hint.spec.ts` | 579 | 2026-03-17 16:36:13 | `ee67c4da6ed2a3d573242016a334a2e89dc3c4fb1ad46239336f8b91123d9d40` |
+| `tests/proposal-helper.spec.ts` | 4833 | 2026-03-31 16:16:31 | `e716dbc17c63d84bb7525bef4e612087f2b265fcf3e5774a212e1a6da41f256b` |
 | `tests/reconciliation.spec.ts` | 7172 | 2026-02-25 08:49:34 | `79b9ad89d81ce85593c57639f6d3e13e3bd61d37b9d309d31aeb8be7de0613dd` |
 | `tests/risk-gatekeeper.property.spec.ts` | 3603 | 2026-02-17 07:13:03 | `513d72fca85d8371bca0a4954b70b43848d787abca00f18bf15af993bb4c9bfd` |
 | `tests/risk-gatekeeper.spec.ts` | 6690 | 2026-02-17 07:13:17 | `3c88b946823f43129f0a472b38972600afbec9cf67574bbd97cd00c75cf7d126` |
+| `tests/signal-intelligence.spec.ts` | 8975 | 2026-03-31 17:12:21 | `56fcbb02c24180dcc6514222bf04aa5d313420c9e2ee0983810015ec3a7448f8` |
 | `tests/sqlite-event-store.spec.ts` | 1351 | 2026-02-25 08:49:43 | `807a48d699e9e7554a215c3936b6700bb721abec12d714f417758d9ff85aa383` |
+| `tests/strategy-economics.spec.ts` | 6202 | 2026-04-03 15:30:29 | `f861093c533efcaaa7df3c758eb6634b41fd9379c6d985053b868954e2ae8b30` |
 | `tests/TEST_PLAN.md` | 2553 | 2026-02-16 08:16:15 | `8cc0e2a87f4e729d9d83167f38dfac40fc08c469d21234055ea01c01f25d3834` |
-| `tests/worker-manager.spec.ts` | 6022 | 2026-02-23 12:43:39 | `f001e03dd4eeda28aea83097b81924caa3bba803dfab15e245c0419c8f8f0760` |
-| `tests/worker-symbol-quality-gate.spec.ts` | 3284 | 2026-02-23 11:53:52 | `d2018d4df82e2de7363305dc3782e9e9bc4d0f2fe6f60d019c0007a92a00ad35` |
+| `tests/worker-manager.spec.ts` | 36128 | 2026-04-03 15:39:06 | `474738abdbacd09077b052fad97789f3665cbac225123367ff710bea8eae7bac` |
+| `tests/worker-symbol-quality-gate.spec.ts` | 4454 | 2026-03-24 11:26:53 | `e7a4042f76acc24a8bd0dff0722f6722a534e190af84fe531b53f1da2c890e84` |
 | `tsconfig.json` | 452 | 2026-02-16 17:07:09 | `d6331a640070d8c030998b7ac27dfd1348069048489d62376e14e587e0674822` |
 | `tsc-trace.log` | 1563480 | 2026-02-16 08:27:36 | `5854404d1a9ff8ebe0daf5c754056ec0343820a4b5c60aa36b81c6f8706c1dac` |
 | `vitest.config.ts` | 593 | 2026-02-20 08:11:10 | `ada31733d4abca90f4a3a8bd871814f4f84d84f7194b63c9b588e4226dd0f19e` |

@@ -54,10 +54,17 @@ describe("m7 learning contracts", () => {
       const item = payload.items.find((entry) => entry.tradeId === "m7-t-1");
       expect(item).toBeDefined();
       expect(item?.status).toBe("closed");
-      expect(item?.featureSchemaVersion).toBe("m7-closed-trade-v1");
+      expect(item?.featureSchemaVersion).toBe("m7-closed-trade-v4");
       expect(item?.policyVersion).toBe("m6-policy-v1");
-      expect(item?.strategyVersion).toBe("champion-v1");
+      expect(item?.strategyVersion).toBe("btc-trend-pullback-v2");
       expect(item?.modelVersion).toBe("m7-baseline-v1");
+      expect(item?.requestedQty).toBe(0.001);
+      expect(item?.requestedNotionalUsd).toBe(50);
+      expect(item?.stopPrice).toBe(49000);
+      expect(item?.takeProfitPrice).toBe(50200);
+      expect(item?.maxHoldSecConfigured).toBe(600);
+      expect(item?.riskDistanceBps).toBeGreaterThan(0);
+      expect(item?.targetDistanceBps).toBeGreaterThan(0);
     } finally {
       await handle.close();
       await rm(tempDir, { recursive: true, force: true });

@@ -1,6 +1,12 @@
 # Tourab Crypto AI
 
-Tourab Crypto AI is a local trading operator moving toward bounded autonomy.
+Tourab Crypto AI is a local-first, AI-assisted trading operator moving toward bounded autonomy.
+
+Primary objective:
+- produce positive net expectancy after fees and slippage on OKX demo first, then on tiny live size
+
+Project charter:
+- `docs/project-charter.md`
 
 Safety model (current default):
 1. Propose: the system can suggest a trading action.
@@ -46,6 +52,12 @@ If `rg` is still not found after install, restart the terminal (or sign out/in) 
 - `skills/`: living operational knowledge in Markdown
 - `docs/`: reports, decisions, roadmap
 - `tests/`: test workspace
+
+## Source of truth
+- Project objective and AI definition: `docs/project-charter.md`
+- Autonomy rollout, demo validation, and live promotion policy now live in `docs/autonomy-master-plan.md`.
+- Current BTC/ETH strategy thesis: `docs/btc-eth-trading-thesis-2026-04-03.md`
+- Trading-intelligence architecture reset: `docs/trading-intelligence-research-2026-04-03.md`
 
 ## Local-first constraints
 - Runs only when started locally by the operator.

@@ -90,6 +90,28 @@ vi.mock("../apps/dashboard/src/proposal-helper.js", async () => {
   };
 });
 
+vi.mock("../apps/dashboard/src/mission-control/market-intelligence.js", () => {
+  return {
+    fetchMarketIntelligenceSnapshot: vi.fn(async (symbol: string) => ({
+      symbol,
+      generatedAt: new Date().toISOString(),
+      regime: "trend_up",
+      recommendedSide: "buy",
+      confidenceScore: 82,
+      trendAlignmentScore: 30,
+      recommendedEntryOffsetBps: 6,
+      move1mBps: 3,
+      move5mBps: 7,
+      move15mBps: 14,
+      realizedVolatilityBps: 5,
+      spreadBps: 1,
+      orderBookImbalancePct: 12,
+      continuationOverextended: false,
+      projectedMoveBudgetBps: 24
+    }))
+  };
+});
+
 import { startMissionControlServer } from "../apps/dashboard/src/mission-control-server.js";
 
 async function waitForDemoSubmitApproval(baseHttpUrl: string, timeoutMs = 12_000): Promise<string> {
@@ -115,9 +137,13 @@ describe("m6 attribution contract", () => {
     const prevMode = process.env.OKX_TRADING_MODE;
     const prevExecMode = process.env.TOURAB_EXECUTION_MODE;
     const prevWorkerInterval = process.env.TOURAB_WORKER_INTERVAL_MS;
+    const prevRequireSignalSymbols = process.env.TOURAB_WORKER_REQUIRE_SIGNAL_EVALUATION_SYMBOLS;
+    const prevRequireMiSymbols = process.env.TOURAB_WORKER_REQUIRE_MARKET_INTELLIGENCE_SYMBOLS;
     process.env.OKX_TRADING_MODE = "demo";
     process.env.TOURAB_EXECUTION_MODE = "demo_execution_enabled";
     process.env.TOURAB_WORKER_INTERVAL_MS = "250";
+    process.env.TOURAB_WORKER_REQUIRE_SIGNAL_EVALUATION_SYMBOLS = "SOL-USDT";
+    process.env.TOURAB_WORKER_REQUIRE_MARKET_INTELLIGENCE_SYMBOLS = "SOL-USDT";
 
     const tempDir = await mkdtemp(join(tmpdir(), "tourab-m6-attribution-"));
     const eventStorePath = join(tempDir, "events.jsonl");
@@ -260,6 +286,16 @@ describe("m6 attribution contract", () => {
       } else {
         process.env.TOURAB_WORKER_INTERVAL_MS = prevWorkerInterval;
       }
+      if (prevRequireSignalSymbols === undefined) {
+        delete process.env.TOURAB_WORKER_REQUIRE_SIGNAL_EVALUATION_SYMBOLS;
+      } else {
+        process.env.TOURAB_WORKER_REQUIRE_SIGNAL_EVALUATION_SYMBOLS = prevRequireSignalSymbols;
+      }
+      if (prevRequireMiSymbols === undefined) {
+        delete process.env.TOURAB_WORKER_REQUIRE_MARKET_INTELLIGENCE_SYMBOLS;
+      } else {
+        process.env.TOURAB_WORKER_REQUIRE_MARKET_INTELLIGENCE_SYMBOLS = prevRequireMiSymbols;
+      }
     }
-  });
+  }, 15_000);
 });

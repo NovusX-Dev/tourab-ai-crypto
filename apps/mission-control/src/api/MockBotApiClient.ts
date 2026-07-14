@@ -18,6 +18,7 @@ import type {
   LearningEvaluationTrendSummary,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
+  RolloutStatusSummary,
   StrategyDegradationConfig,
   StrategyPromotionStage,
   StrategyPromotionState,
@@ -725,6 +726,36 @@ export class MockBotApiClient implements BotApiClient {
         tradeErrors: 0
       },
       days: []
+    };
+  }
+
+  async getRolloutStatus(): Promise<RolloutStatusSummary> {
+    const evidence = await this.getMilestone5Evidence();
+    return {
+      generatedAt: new Date().toISOString(),
+      posture: "blocked",
+      currentStage: {
+        id: "phase0_reset_and_stabilize",
+        label: "Phase 0: Reset and Stabilize",
+        objective: "Restore deterministic closure and reset promotion confidence."
+      },
+      confidenceReset: {
+        active: true,
+        reasons: ["No fresh demo evidence yet.", "Mock mode cannot be used for promotion decisions."],
+        priorReadinessInformationalOnly: true
+      },
+      evidence: {
+        rawQualifiedDays: evidence.qualifiedDays,
+        effectiveQualifiedDays: 0,
+        requiredDays: evidence.requiredDays,
+        streakDays: evidence.streakDays,
+        fresh: false
+      },
+      nextGate: {
+        label: "Phase 0 exit gate",
+        blockers: ["Switch to live backend mode and rebuild fresh post-regression demo evidence."]
+      },
+      nextRecommendedAction: "Use the live Mission Control backend, reproduce the closure path, and collect fresh evidence."
     };
   }
 

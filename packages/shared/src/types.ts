@@ -72,6 +72,7 @@ export interface ExecutionIntent {
   side: TradeSide;
   qtyBase: number;
   limitPrice: number;
+  ordType?: "limit" | "ioc" | "market";
 }
 
 export interface RiskDecision {

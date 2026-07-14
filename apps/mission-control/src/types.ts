@@ -45,6 +45,7 @@ export interface EntryAutonomyConfig {
   lossStreakCooldownCount: number;
   cooldownMinutes: number;
   strategyVersion: string;
+  strategyVersionBySymbol?: Record<string, string>;
   policyVersion: string;
 }
 
@@ -89,6 +90,10 @@ export interface StrategyPromotionState {
   championVersion: string;
   challengerVersion?: string;
   previousStableVersion?: string;
+  activeVersionBySymbol?: Record<string, string>;
+  championVersionBySymbol?: Record<string, string>;
+  challengerVersionBySymbol?: Record<string, string>;
+  previousStableVersionBySymbol?: Record<string, string>;
   versions: StrategyVersionRecord[];
   history: StrategyPromotionHistoryItem[];
 }
@@ -128,6 +133,30 @@ export interface ManagedTradeItem {
   exitSubmittedAt?: string;
   exitRepriceCount?: number;
   forcedFlattenEscalated?: boolean;
+  requestedNotionalUsd?: number;
+  approvalModeAtDecision?: "manual" | "policy_auto";
+  policyVersionAtDecision?: string;
+  strategyVersionAtDecision?: string;
+  modelVersionAtDecision?: string;
+  intelligenceVersionAtDecision?: string;
+  playbookIdAtDecision?: string;
+  entryStyleAtDecision?: string;
+  thesisSummaryAtDecision?: string;
+  invalidationSummaryAtDecision?: string;
+  thesisConfidenceScoreAtDecision?: number;
+  tradeabilityScoreAtDecision?: number;
+  entryOffsetBps?: number;
+  stopDistanceBps?: number;
+  takeProfitRMultiple?: number;
+  marketRegimeAtDecision?: string;
+  signalConfidenceScoreAtDecision?: number;
+  trendAlignmentScoreAtDecision?: number;
+  move1mBpsAtDecision?: number;
+  move5mBpsAtDecision?: number;
+  move15mBpsAtDecision?: number;
+  realizedVolatilityBpsAtDecision?: number;
+  spreadBpsAtDecision?: number;
+  orderBookImbalancePctAtDecision?: number;
 }
 
 export interface Milestone5EvidenceDay {
@@ -162,6 +191,48 @@ export interface Milestone5EvidenceSummary {
     tradeErrors: number;
   };
   days: Milestone5EvidenceDay[];
+}
+
+export type RolloutStageId =
+  | "phase0_reset_and_stabilize"
+  | "phase1_demo_execution_hardening"
+  | "phase2_strategy_validation"
+  | "phase3_supervised_demo_autonomy"
+  | "phase4_bounded_demo_auto_approval"
+  | "phase5_live_shadow"
+  | "phase6_live_manual_tiny_notional"
+  | "phase7_live_bounded_auto_btc"
+  | "phase8_live_expansion"
+  | "phase9_governed_learning_promotion";
+
+export interface RolloutStatusSummary {
+  generatedAt: string;
+  posture: "blocked" | "demo_only" | "advancing";
+  currentStage: {
+    id: RolloutStageId;
+    label: string;
+    objective: string;
+  };
+  confidenceReset: {
+    active: boolean;
+    reasons: string[];
+    priorReadinessInformationalOnly: boolean;
+  };
+  evidence: {
+    rawQualifiedDays: number;
+    effectiveQualifiedDays: number;
+    requiredDays: number;
+    streakDays: number;
+    fresh: boolean;
+    latestEvidenceDay?: string;
+    latestPassingEvidenceDay?: string;
+    ageDays?: number;
+  };
+  nextGate: {
+    label: string;
+    blockers: string[];
+  };
+  nextRecommendedAction: string;
 }
 
 export interface LearningEvaluationBucket {

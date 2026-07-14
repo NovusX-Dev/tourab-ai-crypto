@@ -46,10 +46,18 @@ import { controlRateLimiter } from "./mission-control/rate-limit.js";
 import { RuntimeLifecycleManager } from "./mission-control/runtime-lifecycle-manager.js";
 import { SqliteEventStore } from "./mission-control/sqlite-event-store.js";
 import { SqliteOpsStore, type ManagedTradeRecord } from "./mission-control/sqlite-ops-store.js";
-import { RuntimeWorkerManager, type WorkerSidePreference, type WorkerSymbolOverride } from "./mission-control/worker-manager.js";
+import {
+  RuntimeWorkerManager,
+  type WorkerMarketIntelligenceSnapshot,
+  type WorkerSidePreference,
+  type WorkerSymbolOverride
+} from "./mission-control/worker-manager.js";
+import { monitorTradeThesis, type TradingTradePlan } from "./mission-control/trading-intelligence.js";
 import { createSignedAccessToken, verifySignedAccessToken } from "./mission-control/auth.js";
+import { evaluateDemoPolicyAutoReadiness } from "./autonomy-rollout.js";
 import { loadEnvFromProjectRoot } from "./env-loader.js";
-import { fetchSpotMarketInputs } from "./proposal-helper.js";
+import { fetchMarketIntelligenceSnapshot } from "./mission-control/market-intelligence.js";
+import { computeSpotEntryPrice, fetchSpotMarketInputs } from "./proposal-helper.js";
 
 // Load local .env defaults for standalone `mission-control:server` runs.
 loadEnvFromProjectRoot(process.cwd(), { override: true });
@@ -68,16 +76,21 @@ const WORKER_STALL_ALERT_CODE = "WORKER_STALLED_NO_PROPOSAL";
 const DEFAULT_AUTO_EXIT_MAX_HOLD_SEC = 30 * 60;
 const DEFAULT_AUTO_EXIT_TP_R_MULTIPLE = 1.5;
 const DEFAULT_AUTO_EXIT_EXIT_OFFSET_BPS = 5;
-const DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC = 20;
-const DEFAULT_AUTO_EXIT_MAX_REPRICES = 3;
+const DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC = 45;
+const DEFAULT_ENTRY_STALE_TIMEOUT_SEC = 60;
+const DEFAULT_AUTO_EXIT_MAX_REPRICES = 8;
 const DEFAULT_AUTO_EXIT_FORCE_FLATTEN_BPS = 30;
 const DEFAULT_ENTRY_AUTONOMY_POLICY_VERSION = "m6-policy-v1";
-const DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION = "champion-v1";
+const DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION = "btc-trend-pullback-v2";
+const DEFAULT_BTC_STRATEGY_VERSION = "btc-trend-pullback-v2";
+const DEFAULT_ETH_STRATEGY_VERSION = "eth-beta-confirm-v1";
 const DEFAULT_STRATEGY_MAX_DAILY_LOSS_USD = 5;
 const DEFAULT_STRATEGY_MAX_DRAWDOWN_PCT = -5;
 const DEFAULT_STRATEGY_MAX_CONSEC_LOSSES = 4;
 const DEFAULT_LEARNING_MODEL_VERSION = "m7-baseline-v1";
-const DEFAULT_LEARNING_FEATURE_SCHEMA_VERSION = "m7-closed-trade-v1";
+const DEFAULT_LEARNING_FEATURE_SCHEMA_VERSION = "m7-closed-trade-v4";
+const DEFAULT_ENTRY_MAX_REPRICE_COUNT = 1;
+const DEFAULT_ENTRY_REPRICE_MIN_CONFIDENCE = 85;
 const DEFAULT_LEARNING_ALERT_LOOKBACK_DAYS = 30;
 const DEFAULT_LEARNING_ALERT_LIMIT = 2000;
 const DEFAULT_LEARNING_ALERT_MIN_TRADES = 15;
@@ -86,11 +99,41 @@ const DEFAULT_LEARNING_ALERT_MAX_DRAWDOWN_PCT = 5;
 const DEFAULT_LEARNING_ALERT_MAX_SLIPPAGE_BPS = 15;
 const DEFAULT_LEARNING_ALERT_MAX_CONTROL_VIOLATION_RATE_PCT = 20;
 const DEFAULT_LEARNING_ALERT_CHECK_INTERVAL_MS = 60_000;
+const DEFAULT_AUTO_PAUSE_MAX_MINUTES = 180;
+const DEFAULT_AUTO_PAUSE_CHECK_INTERVAL_MS = 15_000;
 const DEFAULT_WORKER_SYMBOL_QUALITY_LOOKBACK_TRADES = 120;
 const DEFAULT_WORKER_SYMBOL_QUALITY_MIN_TRADES = 20;
-const DEFAULT_WORKER_SYMBOL_MIN_EXPECTANCY_USD = -0.01;
+const DEFAULT_WORKER_SYMBOL_MIN_EXPECTANCY_USD = 0;
 const DEFAULT_WORKER_SYMBOL_MAX_CONSECUTIVE_LOSSES = 12;
 const DEFAULT_WORKER_SYMBOL_COOLDOWN_MINUTES = 120;
+const DEFAULT_WORKER_SIGNAL_LOOKBACK_SEC = 180;
+const DEFAULT_WORKER_SIGNAL_SHORT_LOOKBACK_SEC = 45;
+const DEFAULT_WORKER_SIGNAL_MIN_MOVE_BPS = 0;
+const DEFAULT_WORKER_SIGNAL_MIN_VOLATILITY_BPS = 3;
+const DEFAULT_WORKER_SIGNAL_ROUND_TRIP_FEE_BPS = 16;
+const DEFAULT_WORKER_QUIET_REGIME_TREND_EFFICIENCY_MIN = 8;
+const DEFAULT_WORKER_QUIET_REGIME_MOVE_THRESHOLD_MULTIPLIER = 1;
+const DEFAULT_WORKER_BUY_TREND_STRENGTH_MULTIPLIER = 1;
+const DEFAULT_WORKER_SELL_TREND_STRENGTH_MULTIPLIER = 1;
+const DEFAULT_WORKER_BUY_SHORT_MOVE_CONFIRMATION_BPS = 0;
+const DEFAULT_WORKER_SELL_SHORT_MOVE_CONFIRMATION_BPS = 0;
+const DEFAULT_WORKER_BUY_ENTRY_OFFSET_MULTIPLIER = 1;
+const DEFAULT_WORKER_SELL_ENTRY_OFFSET_MULTIPLIER = 1;
+const DEFAULT_WORKER_EXPECTED_MOVE_HURDLE_ENABLED = false;
+const DEFAULT_WORKER_EXPECTED_MOVE_TP_R_MULTIPLE = 1;
+const DEFAULT_WORKER_EXPECTED_MOVE_FEE_COVERAGE_MULTIPLE = 1;
+const DEFAULT_WORKER_EXPECTED_MOVE_MIN_NET_EDGE_BPS = 0;
+const DEFAULT_WORKER_MARKET_INTELLIGENCE_MIN_CONFIDENCE = 0;
+const DEFAULT_WORKER_MARKET_INTELLIGENCE_MAX_SPREAD_BPS = 10;
+const DEFAULT_WORKER_REQUIRE_MARKET_INTELLIGENCE_ALIGNMENT = false;
+const DEFAULT_WORKER_BLOCK_CHOP_REGIMES = false;
+const DEFAULT_WORKER_MAX_MOVE_BUDGET_USAGE_PCT = 100;
+const DEFAULT_POLICY_AUTO_MAX_OPEN_TRADES_PER_SYMBOL = 1;
+const DEFAULT_WORKER_TRADE_SIDE_LOOKBACK_TRADES = 30;
+const DEFAULT_WORKER_TRADE_SIDE_MIN_TRADES = 8;
+const DEFAULT_WORKER_TRADE_SIDE_MIN_EXPECTANCY_USD = 0;
+const DEFAULT_WORKER_TRADE_SIDE_MAX_TIME_STOP_RATE_PCT = 85;
+const NON_RESTING_EXIT_MISS_GRACE_MS = 2_000;
 const DEFAULT_WORKER_SOL_MIN_EXPECTANCY_USD = -0.015;
 const DEFAULT_WORKER_SOL_MAX_CONSECUTIVE_LOSSES = 5;
 const DEFAULT_WORKER_SOL_COOLDOWN_MINUTES = 360;
@@ -153,6 +196,10 @@ function round6(value: number): number {
   return Number(value.toFixed(6));
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 function computeDrawdownPct(maxDrawdownUsd: number, peak: number): number {
   if (!Number.isFinite(maxDrawdownUsd) || !Number.isFinite(peak) || peak <= 0) {
     return 0;
@@ -180,6 +227,13 @@ function parseCsvEnv(raw: string | undefined, fallback: string[]): string[] {
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
   return items.length > 0 ? items : fallback;
+}
+
+function parseAutoPauseScope(raw: string | undefined): AutoPauseScope {
+  if (raw === "demo" || raw === "live" || raw === "both") {
+    return raw;
+  }
+  return "both";
 }
 
 function parseWorkerSymbolOverrides(raw: string | undefined): Record<string, WorkerSymbolOverride> {
@@ -225,6 +279,34 @@ function parseWorkerBlockedUtcHours(raw: string | undefined): Record<string, num
   } catch {
     return {};
   }
+}
+
+function parseStrategyVersionBySymbol(raw: string | undefined): Record<string, string> {
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const output: Record<string, string> = {};
+    for (const [symbol, value] of Object.entries(parsed ?? {})) {
+      const key = symbol.trim().toUpperCase();
+      const version = typeof value === "string" ? value.trim() : "";
+      if (key.length === 0 || version.length === 0) {
+        continue;
+      }
+      output[key] = version;
+    }
+    return output;
+  } catch {
+    return {};
+  }
+}
+
+function buildDefaultStrategyVersionBySymbol(): Record<string, string> {
+  return {
+    "BTC-USDT": DEFAULT_BTC_STRATEGY_VERSION,
+    "ETH-USDT": DEFAULT_ETH_STRATEGY_VERSION
+  };
 }
 
 function parseWorkerSidePreference(raw: string | undefined, fallback: WorkerSidePreference): WorkerSidePreference {
@@ -299,6 +381,40 @@ export function evaluateWorkerSymbolQualityGate(input: {
   return { eligible: true };
 }
 
+export function evaluateWorkerTradeSideGate(input: {
+  symbol: string;
+  side: "buy" | "sell";
+  features: ClosedTradeFeatureRecord[];
+  config: WorkerTradeSideGateConfig;
+}): WorkerSymbolGateDecision {
+  if (!input.config.enabled) {
+    return { eligible: true };
+  }
+  const symbol = input.symbol.trim().toUpperCase();
+  const scoped = input.features
+    .filter((item) => item.symbol.toUpperCase() === symbol && item.entrySide === input.side)
+    .slice(0, input.config.lookbackTrades);
+  if (scoped.length < input.config.minTrades) {
+    return { eligible: true };
+  }
+  const expectancy = scoped.reduce((acc, item) => acc + item.realizedPnlUsd, 0) / scoped.length;
+  if (expectancy < input.config.minExpectancyUsd) {
+    return {
+      eligible: false,
+      reason: `side expectancy ${round6(expectancy)} < ${round6(input.config.minExpectancyUsd)} over ${scoped.length} ${input.side} trades`
+    };
+  }
+  const timeStopRatePct =
+    (scoped.filter((item) => item.exitReason === "time_stop").length / Math.max(1, scoped.length)) * 100;
+  if (expectancy <= 0 && timeStopRatePct > input.config.maxTimeStopRatePct) {
+    return {
+      eligible: false,
+      reason: `time_stop rate ${round6(timeStopRatePct)}% > ${round6(input.config.maxTimeStopRatePct)}% with non-positive expectancy over ${scoped.length} ${input.side} trades`
+    };
+  }
+  return { eligible: true };
+}
+
 function parseFlattenTimeUtc(raw: string | undefined): string | undefined {
   if (!raw) {
     return undefined;
@@ -343,6 +459,10 @@ function toManagedTrade(record: ManagedTradeRecord): ManagedTrade {
     entryOrdId: record.entryOrdId,
     entryClOrdId: record.entryClOrdId,
     requestedQty: record.requestedQty,
+    entryLimitPrice: record.entryLimitPrice,
+    entrySubmittedAt: record.entrySubmittedAt,
+    entryFirstFilledAt: record.entryFirstFilledAt,
+    entryRepriceCount: record.entryRepriceCount ?? 0,
     entryFilledQty: record.entryFilledQty,
     entryAvgPrice: record.entryAvgPrice,
     exitOrdId: record.exitOrdId,
@@ -362,7 +482,32 @@ function toManagedTrade(record: ManagedTradeRecord): ManagedTrade {
     realizedPnlUsd: record.realizedPnlUsd,
     exitSubmittedAt: record.exitSubmittedAt,
     exitRepriceCount: record.exitRepriceCount,
-    forcedFlattenEscalated: record.forcedFlattenEscalated
+    forcedFlattenEscalated: record.forcedFlattenEscalated,
+    requestedNotionalUsd: record.requestedNotionalUsd,
+    approvalModeAtDecision: record.approvalModeAtDecision,
+    policyVersionAtDecision: record.policyVersionAtDecision,
+    strategyVersionAtDecision: record.strategyVersionAtDecision,
+    modelVersionAtDecision: record.modelVersionAtDecision,
+    intelligenceVersionAtDecision: record.intelligenceVersionAtDecision,
+    playbookIdAtDecision: record.playbookIdAtDecision,
+    entryStyleAtDecision: record.entryStyleAtDecision,
+    thesisSummaryAtDecision: record.thesisSummaryAtDecision,
+    invalidationSummaryAtDecision: record.invalidationSummaryAtDecision,
+    thesisConfidenceScoreAtDecision: record.thesisConfidenceScoreAtDecision,
+    tradeabilityScoreAtDecision: record.tradeabilityScoreAtDecision,
+    entryOffsetBps: record.entryOffsetBps,
+    stopDistanceBps: record.stopDistanceBps,
+    takeProfitRMultiple: record.takeProfitRMultiple
+    ,
+    marketRegimeAtDecision: record.marketRegimeAtDecision,
+    signalConfidenceScoreAtDecision: record.signalConfidenceScoreAtDecision,
+    trendAlignmentScoreAtDecision: record.trendAlignmentScoreAtDecision,
+    move1mBpsAtDecision: record.move1mBpsAtDecision,
+    move5mBpsAtDecision: record.move5mBpsAtDecision,
+    move15mBpsAtDecision: record.move15mBpsAtDecision,
+    realizedVolatilityBpsAtDecision: record.realizedVolatilityBpsAtDecision,
+    spreadBpsAtDecision: record.spreadBpsAtDecision,
+    orderBookImbalancePctAtDecision: record.orderBookImbalancePctAtDecision
   };
 }
 
@@ -375,6 +520,10 @@ function toManagedTradeRecord(trade: ManagedTrade): ManagedTradeRecord {
     entryOrdId: trade.entryOrdId,
     entryClOrdId: trade.entryClOrdId,
     requestedQty: trade.requestedQty,
+    entryLimitPrice: trade.entryLimitPrice,
+    entrySubmittedAt: trade.entrySubmittedAt,
+    entryFirstFilledAt: trade.entryFirstFilledAt,
+    entryRepriceCount: trade.entryRepriceCount,
     entryFilledQty: trade.entryFilledQty,
     entryAvgPrice: trade.entryAvgPrice,
     exitOrdId: trade.exitOrdId,
@@ -394,7 +543,32 @@ function toManagedTradeRecord(trade: ManagedTrade): ManagedTradeRecord {
     realizedPnlUsd: trade.realizedPnlUsd,
     exitSubmittedAt: trade.exitSubmittedAt,
     exitRepriceCount: trade.exitRepriceCount,
-    forcedFlattenEscalated: trade.forcedFlattenEscalated
+    forcedFlattenEscalated: trade.forcedFlattenEscalated,
+    requestedNotionalUsd: trade.requestedNotionalUsd,
+    approvalModeAtDecision: trade.approvalModeAtDecision,
+    policyVersionAtDecision: trade.policyVersionAtDecision,
+    strategyVersionAtDecision: trade.strategyVersionAtDecision,
+    modelVersionAtDecision: trade.modelVersionAtDecision,
+    intelligenceVersionAtDecision: trade.intelligenceVersionAtDecision,
+    playbookIdAtDecision: trade.playbookIdAtDecision,
+    entryStyleAtDecision: trade.entryStyleAtDecision,
+    thesisSummaryAtDecision: trade.thesisSummaryAtDecision,
+    invalidationSummaryAtDecision: trade.invalidationSummaryAtDecision,
+    thesisConfidenceScoreAtDecision: trade.thesisConfidenceScoreAtDecision,
+    tradeabilityScoreAtDecision: trade.tradeabilityScoreAtDecision,
+    entryOffsetBps: trade.entryOffsetBps,
+    stopDistanceBps: trade.stopDistanceBps,
+    takeProfitRMultiple: trade.takeProfitRMultiple
+    ,
+    marketRegimeAtDecision: trade.marketRegimeAtDecision,
+    signalConfidenceScoreAtDecision: trade.signalConfidenceScoreAtDecision,
+    trendAlignmentScoreAtDecision: trade.trendAlignmentScoreAtDecision,
+    move1mBpsAtDecision: trade.move1mBpsAtDecision,
+    move5mBpsAtDecision: trade.move5mBpsAtDecision,
+    move15mBpsAtDecision: trade.move15mBpsAtDecision,
+    realizedVolatilityBpsAtDecision: trade.realizedVolatilityBpsAtDecision,
+    spreadBpsAtDecision: trade.spreadBpsAtDecision,
+    orderBookImbalancePctAtDecision: trade.orderBookImbalancePctAtDecision
   };
 }
 
@@ -416,14 +590,30 @@ function toClosedTradeFeatureRecord(
   ) {
     return undefined;
   }
-  const createdEpoch = Date.parse(trade.createdAt);
+  const holdStartIso = trade.entryFirstFilledAt ?? trade.entrySubmittedAt ?? trade.createdAt;
+  const createdEpoch = Date.parse(holdStartIso);
   const closedEpoch = Date.parse(trade.closedAt);
   const holdSec =
     Number.isFinite(createdEpoch) && Number.isFinite(closedEpoch) && closedEpoch >= createdEpoch
       ? Math.max(0, Math.round((closedEpoch - createdEpoch) / 1000))
       : 0;
   const entryNotional = Math.max(0, trade.entryFilledQty * trade.entryAvgPrice);
+  const requestedNotionalUsd =
+    typeof trade.requestedNotionalUsd === "number" && Number.isFinite(trade.requestedNotionalUsd)
+      ? Math.max(0, trade.requestedNotionalUsd)
+      : Math.max(0, trade.requestedQty * Math.max(0, trade.entryAvgPrice));
+  const grossPnlUsd = trade.realizedPnlUsd + Math.max(0, trade.feeUsd);
+  const feeBps = entryNotional > 0 ? round6((trade.feeUsd / entryNotional) * 10_000) : 0;
+  const grossPnlBps = entryNotional > 0 ? round6((grossPnlUsd / entryNotional) * 10_000) : 0;
   const realizedPnlBps = entryNotional > 0 ? round6((trade.realizedPnlUsd / entryNotional) * 10_000) : 0;
+  const riskDistanceBps =
+    trade.entryAvgPrice > 0 && trade.stopPrice > 0
+      ? round6((Math.abs(trade.entryAvgPrice - trade.stopPrice) / trade.entryAvgPrice) * 10_000)
+      : 0;
+  const targetDistanceBps =
+    trade.entryAvgPrice > 0 && trade.takeProfitPrice > 0
+      ? round6((Math.abs(trade.takeProfitPrice - trade.entryAvgPrice) / trade.entryAvgPrice) * 10_000)
+      : 0;
   return {
     tradeId: trade.tradeId,
     symbol: trade.symbol,
@@ -432,17 +622,89 @@ function toClosedTradeFeatureRecord(
     status: "closed",
     closedAt: trade.closedAt,
     holdSec,
+    entrySubmittedAt: trade.entrySubmittedAt,
+    entryFirstFilledAt: trade.entryFirstFilledAt,
     entryFilledQty: round6(Math.max(0, trade.entryFilledQty)),
     exitFilledQty: round6(Math.max(0, trade.exitFilledQty)),
     entryAvgPrice: round6(Math.max(0, trade.entryAvgPrice)),
     exitAvgPrice: round6(Math.max(0, trade.exitAvgPrice)),
+    requestedQty: round6(Math.max(0, trade.requestedQty)),
+    requestedNotionalUsd: round6(requestedNotionalUsd),
+    entryLimitPrice:
+      typeof trade.entryLimitPrice === "number" && Number.isFinite(trade.entryLimitPrice) ? round6(trade.entryLimitPrice) : undefined,
+    entryRepriceCount: Math.max(0, Math.floor(trade.entryRepriceCount)),
+    approvalMode: trade.approvalModeAtDecision,
+    stopPrice: round6(Math.max(0, trade.stopPrice)),
+    takeProfitPrice: round6(Math.max(0, trade.takeProfitPrice)),
+    maxHoldSecConfigured: Math.max(0, Math.floor(trade.maxHoldSec)),
+    intelligenceVersion: trade.intelligenceVersionAtDecision,
+    playbookId: trade.playbookIdAtDecision,
+    entryStyle: trade.entryStyleAtDecision,
+    thesisSummary: trade.thesisSummaryAtDecision,
+    invalidationSummary: trade.invalidationSummaryAtDecision,
+    thesisConfidenceScore:
+      typeof trade.thesisConfidenceScoreAtDecision === "number" && Number.isFinite(trade.thesisConfidenceScoreAtDecision)
+        ? round6(trade.thesisConfidenceScoreAtDecision)
+        : undefined,
+    tradeabilityScore:
+      typeof trade.tradeabilityScoreAtDecision === "number" && Number.isFinite(trade.tradeabilityScoreAtDecision)
+        ? round6(trade.tradeabilityScoreAtDecision)
+        : undefined,
+    entryOffsetBps:
+      typeof trade.entryOffsetBps === "number" && Number.isFinite(trade.entryOffsetBps) ? round6(trade.entryOffsetBps) : undefined,
+    stopDistanceBps:
+      typeof trade.stopDistanceBps === "number" && Number.isFinite(trade.stopDistanceBps)
+        ? round6(trade.stopDistanceBps)
+        : undefined,
+    takeProfitRMultiple:
+      typeof trade.takeProfitRMultiple === "number" && Number.isFinite(trade.takeProfitRMultiple)
+        ? round6(trade.takeProfitRMultiple)
+        : undefined,
+    marketRegime: trade.marketRegimeAtDecision,
+    signalConfidenceScore:
+      typeof trade.signalConfidenceScoreAtDecision === "number" && Number.isFinite(trade.signalConfidenceScoreAtDecision)
+        ? round6(trade.signalConfidenceScoreAtDecision)
+        : undefined,
+    trendAlignmentScore:
+      typeof trade.trendAlignmentScoreAtDecision === "number" && Number.isFinite(trade.trendAlignmentScoreAtDecision)
+        ? round6(trade.trendAlignmentScoreAtDecision)
+        : undefined,
+    move1mBps:
+      typeof trade.move1mBpsAtDecision === "number" && Number.isFinite(trade.move1mBpsAtDecision)
+        ? round6(trade.move1mBpsAtDecision)
+        : undefined,
+    move5mBps:
+      typeof trade.move5mBpsAtDecision === "number" && Number.isFinite(trade.move5mBpsAtDecision)
+        ? round6(trade.move5mBpsAtDecision)
+        : undefined,
+    move15mBps:
+      typeof trade.move15mBpsAtDecision === "number" && Number.isFinite(trade.move15mBpsAtDecision)
+        ? round6(trade.move15mBpsAtDecision)
+        : undefined,
+    realizedVolatilityBps:
+      typeof trade.realizedVolatilityBpsAtDecision === "number" && Number.isFinite(trade.realizedVolatilityBpsAtDecision)
+        ? round6(trade.realizedVolatilityBpsAtDecision)
+        : undefined,
+    spreadBps:
+      typeof trade.spreadBpsAtDecision === "number" && Number.isFinite(trade.spreadBpsAtDecision)
+        ? round6(trade.spreadBpsAtDecision)
+        : undefined,
+    orderBookImbalancePct:
+      typeof trade.orderBookImbalancePctAtDecision === "number" && Number.isFinite(trade.orderBookImbalancePctAtDecision)
+        ? round6(trade.orderBookImbalancePctAtDecision)
+        : undefined,
+    riskDistanceBps,
+    targetDistanceBps,
     feeUsd: round6(Math.max(0, trade.feeUsd)),
+    feeBps,
+    grossPnlUsd: round6(grossPnlUsd),
+    grossPnlBps,
     realizedPnlUsd: round6(trade.realizedPnlUsd),
     realizedPnlBps,
     featureSchemaVersion: DEFAULT_LEARNING_FEATURE_SCHEMA_VERSION,
-    policyVersion: input.policyVersion,
-    strategyVersion: input.strategyVersion,
-    modelVersion: input.modelVersion,
+    policyVersion: trade.policyVersionAtDecision ?? input.policyVersion,
+    strategyVersion: trade.strategyVersionAtDecision ?? input.strategyVersion,
+    modelVersion: trade.modelVersionAtDecision ?? input.modelVersion,
     extractedAt: input.extractedAt
   };
 }
@@ -469,6 +731,21 @@ function fillStatsForOrder(fills: OkxFillRecord[], ordId: string | undefined): {
     qty: round6(qty),
     avgPrice: qty > 0 ? round6(notional / qty) : 0
   };
+}
+
+export function resolveManagedTradeMark(input: {
+  streamMark?: number;
+  marketLast?: number;
+  cachedLast?: number;
+  fallbackEntryAvgPrice?: number;
+}): number | undefined {
+  const candidates = [input.marketLast, input.cachedLast, input.streamMark, input.fallbackEntryAvgPrice];
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+      return candidate;
+    }
+  }
+  return undefined;
 }
 
 function dayStartIso(day: string): string {
@@ -710,6 +987,7 @@ interface EntryAutonomyConfig {
   lossStreakCooldownCount: number;
   cooldownMinutes: number;
   strategyVersion: string;
+  strategyVersionBySymbol?: Record<string, string>;
   policyVersion: string;
 }
 
@@ -754,6 +1032,10 @@ interface StrategyPromotionState {
   championVersion: string;
   challengerVersion?: string;
   previousStableVersion?: string;
+  activeVersionBySymbol?: Record<string, string>;
+  championVersionBySymbol?: Record<string, string>;
+  challengerVersionBySymbol?: Record<string, string>;
+  previousStableVersionBySymbol?: Record<string, string>;
   versions: StrategyVersionRecord[];
   history: StrategyPromotionHistoryItem[];
 }
@@ -773,6 +1055,10 @@ interface ManagedTrade {
   entryOrdId: string;
   entryClOrdId: string;
   requestedQty: number;
+  entryLimitPrice?: number;
+  entrySubmittedAt?: string;
+  entryFirstFilledAt?: string;
+  entryRepriceCount: number;
   entryFilledQty: number;
   entryAvgPrice: number;
   exitOrdId?: string;
@@ -793,6 +1079,156 @@ interface ManagedTrade {
   exitSubmittedAt?: string;
   exitRepriceCount: number;
   forcedFlattenEscalated: boolean;
+  requestedNotionalUsd?: number;
+  approvalModeAtDecision?: EntryApprovalMode;
+  policyVersionAtDecision?: string;
+  strategyVersionAtDecision?: string;
+  modelVersionAtDecision?: string;
+  intelligenceVersionAtDecision?: string;
+  playbookIdAtDecision?: string;
+  entryStyleAtDecision?: string;
+  thesisSummaryAtDecision?: string;
+  invalidationSummaryAtDecision?: string;
+  thesisConfidenceScoreAtDecision?: number;
+  tradeabilityScoreAtDecision?: number;
+  entryOffsetBps?: number;
+  stopDistanceBps?: number;
+  takeProfitRMultiple?: number;
+  marketRegimeAtDecision?: string;
+  signalConfidenceScoreAtDecision?: number;
+  trendAlignmentScoreAtDecision?: number;
+  move1mBpsAtDecision?: number;
+  move5mBpsAtDecision?: number;
+  move15mBpsAtDecision?: number;
+  realizedVolatilityBpsAtDecision?: number;
+  spreadBpsAtDecision?: number;
+  orderBookImbalancePctAtDecision?: number;
+}
+
+interface AutoExitDecisionTraceItem {
+  at: string;
+  tradeId: string;
+  symbol: string;
+  status: ManagedTradeStatus;
+  remainingQty: number;
+  mark: number;
+  reason?: ExitReason;
+  action:
+    | "stale_forced_closed"
+    | "submit_attempt"
+    | "submit_ok"
+    | "submit_retry"
+    | "min_size_closed"
+    | "forced_closed"
+    | "dust_closed"
+    | "submit_failed";
+  detail?: string;
+  repriceCount: number;
+  offsetBps?: number;
+  limitPrice?: number;
+  exitQty?: number;
+}
+
+export type ManagedTradeEntryAgingAction = "none" | "mark_canceled" | "cancel_unfilled" | "cancel_remainder";
+export type AutoExitStaleCancelAction = "retry_exit" | "force_close";
+
+function shouldEscalateTimeStopExitToForcedClose(exitReason: ExitReason | undefined, exitRepriceCount: number, autoExitMaxReprices: number): boolean {
+  if (exitReason !== "time_stop") {
+    return false;
+  }
+  const threshold = Math.min(autoExitMaxReprices, 3);
+  return exitRepriceCount >= threshold;
+}
+
+export function evaluateManagedTradeEntryAging(input: {
+  status: ManagedTradeStatus;
+  requestedQty: number;
+  entryFilledQty: number;
+  submittedAt: string;
+  nowIso: string;
+  hasSubmittedOrder: boolean;
+  isPendingAtVenue: boolean;
+  staleTimeoutSec: number;
+}): { action: ManagedTradeEntryAgingAction; elapsedSec: number } {
+  if (input.status === "closed" || input.status === "canceled") {
+    return { action: "none", elapsedSec: 0 };
+  }
+  const createdEpoch = Date.parse(input.submittedAt);
+  const nowEpoch = Date.parse(input.nowIso);
+  const elapsedSec =
+    Number.isFinite(createdEpoch) && Number.isFinite(nowEpoch) ? Math.max(0, (nowEpoch - createdEpoch) / 1000) : 0;
+  if (!input.hasSubmittedOrder) {
+    return { action: "none", elapsedSec };
+  }
+  if (!input.isPendingAtVenue && input.entryFilledQty <= 1e-9) {
+    return { action: "mark_canceled", elapsedSec };
+  }
+  if (!input.isPendingAtVenue || elapsedSec < input.staleTimeoutSec) {
+    return { action: "none", elapsedSec };
+  }
+  if (input.entryFilledQty <= 1e-9) {
+    return { action: "cancel_unfilled", elapsedSec };
+  }
+  if (input.entryFilledQty + 1e-9 < input.requestedQty) {
+    return { action: "cancel_remainder", elapsedSec };
+  }
+  return { action: "none", elapsedSec };
+}
+
+export function evaluateAutoExitStaleCancelAction(input: {
+  exitRepriceCount: number;
+  autoExitMaxReprices: number;
+  forcedFlattenEscalated: boolean;
+  exitReason?: ExitReason;
+}): AutoExitStaleCancelAction {
+  if (input.forcedFlattenEscalated) {
+    return "force_close";
+  }
+  if (shouldEscalateTimeStopExitToForcedClose(input.exitReason, input.exitRepriceCount, input.autoExitMaxReprices)) {
+    return "force_close";
+  }
+  if (input.exitReason === "flatten" && input.exitRepriceCount >= input.autoExitMaxReprices) {
+    return "force_close";
+  }
+  return "retry_exit";
+}
+
+function resolveManagedTradeHoldStartIso(trade: ManagedTrade): string {
+  return trade.entryFirstFilledAt ?? trade.entrySubmittedAt ?? trade.createdAt;
+}
+
+function isContinuationRegimeAligned(trade: ManagedTrade): boolean {
+  if (trade.entrySide === "sell") {
+    return trade.marketRegimeAtDecision === "trend_down" || trade.marketRegimeAtDecision === "quiet_down";
+  }
+  return trade.marketRegimeAtDecision === "trend_up" || trade.marketRegimeAtDecision === "quiet_up";
+}
+
+export function resolveManagedTradeExitOrderType(input: {
+  exitReason?: ExitReason;
+  exitRepriceCount: number;
+  forcedFlattenEscalated: boolean;
+  exitSide: "buy" | "sell";
+}): "limit" | "ioc" | "market" {
+  if (
+    input.forcedFlattenEscalated ||
+    input.exitReason === "flatten" ||
+    input.exitReason === "time_stop" ||
+    input.exitReason === "take_profit" ||
+    input.exitReason === "stop_loss"
+  ) {
+    return "market";
+  }
+  return "limit";
+}
+
+export function shouldAttemptAmendLiveExitOrder(input: {
+  exitReason?: ExitReason;
+  exitRepriceCount: number;
+  forcedFlattenEscalated: boolean;
+  exitSide: "buy" | "sell";
+}): boolean {
+  return resolveManagedTradeExitOrderType(input) === "limit";
 }
 
 interface Milestone5EvidenceDay {
@@ -827,6 +1263,48 @@ interface Milestone5EvidenceSummary {
     tradeErrors: number;
   };
   days: Milestone5EvidenceDay[];
+}
+
+type RolloutStageId =
+  | "phase0_reset_and_stabilize"
+  | "phase1_demo_execution_hardening"
+  | "phase2_strategy_validation"
+  | "phase3_supervised_demo_autonomy"
+  | "phase4_bounded_demo_auto_approval"
+  | "phase5_live_shadow"
+  | "phase6_live_manual_tiny_notional"
+  | "phase7_live_bounded_auto_btc"
+  | "phase8_live_expansion"
+  | "phase9_governed_learning_promotion";
+
+interface RolloutStatusSummary {
+  generatedAt: string;
+  posture: "blocked" | "demo_only" | "advancing";
+  currentStage: {
+    id: RolloutStageId;
+    label: string;
+    objective: string;
+  };
+  confidenceReset: {
+    active: boolean;
+    reasons: string[];
+    priorReadinessInformationalOnly: boolean;
+  };
+  evidence: {
+    rawQualifiedDays: number;
+    effectiveQualifiedDays: number;
+    requiredDays: number;
+    streakDays: number;
+    fresh: boolean;
+    latestEvidenceDay?: string;
+    latestPassingEvidenceDay?: string;
+    ageDays?: number;
+  };
+  nextGate: {
+    label: string;
+    blockers: string[];
+  };
+  nextRecommendedAction: string;
 }
 
 interface LearningEvaluationBucket {
@@ -887,6 +1365,19 @@ interface LearningEvaluationTrendPoint {
   };
 }
 
+export function parseOkxPriceBandHint(message: string | undefined): number | undefined {
+  if (!message) {
+    return undefined;
+  }
+  const matches = [...message.matchAll(/(\d+(?:,\d{3})*(?:\.\d+)?)/g)];
+  const last = matches.at(-1)?.[1];
+  if (!last) {
+    return undefined;
+  }
+  const value = Number(last.replace(/,/g, ""));
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
 interface LearningEvaluationTrendSummary {
   generatedAt: string;
   lookbackDays: number;
@@ -914,6 +1405,24 @@ interface LearningRetentionStatus {
   lastPruneResult?: LearningRetentionPruneResult;
 }
 
+type AutoPauseScope = "demo" | "live" | "both";
+
+interface AutoPauseConfig {
+  enabled: boolean;
+  maxPauseMinutes: number;
+  resumeMode: EntryApprovalMode;
+  scope: AutoPauseScope;
+}
+
+interface AutoPauseState {
+  active: boolean;
+  reason?: string;
+  pausedAt?: string;
+  resumeAt?: string;
+  lastAutoPauseAt?: string;
+  lastAutoResumeAt?: string;
+}
+
 interface WorkerSymbolGateRule {
   minExpectancyUsd: number;
   maxConsecutiveLosses: number;
@@ -933,6 +1442,14 @@ interface WorkerSymbolQualityGateConfig {
 interface WorkerSymbolGateDecision {
   eligible: boolean;
   reason?: string;
+}
+
+interface WorkerTradeSideGateConfig {
+  enabled: boolean;
+  lookbackTrades: number;
+  minTrades: number;
+  minExpectancyUsd: number;
+  maxTimeStopRatePct: number;
 }
 
 function controlActionFromPath(path: string): ControlAction | undefined {
@@ -1060,6 +1577,150 @@ function incidentTemplateFromAlert(alert: AlertItem): Pick<IncidentItem, "taxono
   };
 }
 
+export function shouldOpenIncidentForAlert(alert: Pick<AlertItem, "code" | "severity">): boolean {
+  if (alert.severity === "critical") {
+    return true;
+  }
+  if (alert.code.startsWith("APPROVAL_") || alert.code.startsWith("STALE_")) {
+    return true;
+  }
+  if (alert.code.startsWith("LEARNING_")) {
+    return alert.severity !== "warn";
+  }
+  return false;
+}
+
+function countBlockingOpenIncidents(incidents: IncidentItem[]): number {
+  return incidents.filter((item) => item.status !== "resolved").length;
+}
+
+export function formatMissionControlOkxErrorDetail(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!(error instanceof OkxApiError)) {
+    return `error=${message}`;
+  }
+  const details = (error.details ?? {}) as Record<string, unknown>;
+  const status = typeof details.status === "number" ? details.status : undefined;
+  const apiCodeRaw = details.code;
+  const apiCode =
+    typeof apiCodeRaw === "string" || typeof apiCodeRaw === "number" ? String(apiCodeRaw) : undefined;
+  const apiMsgRaw = details.msg;
+  const apiMsg = typeof apiMsgRaw === "string" ? apiMsgRaw : undefined;
+  const sCodeRaw = details.sCode;
+  const sCode =
+    typeof sCodeRaw === "string" || typeof sCodeRaw === "number"
+      ? String(sCodeRaw)
+      : Array.isArray(details.data) &&
+        details.data.length > 0 &&
+        (typeof (details.data[0] as Record<string, unknown>).sCode === "string" ||
+          typeof (details.data[0] as Record<string, unknown>).sCode === "number")
+      ? String((details.data[0] as Record<string, unknown>).sCode)
+      : undefined;
+  const sMsgRaw = details.sMsg;
+  const sMsg =
+    typeof sMsgRaw === "string"
+      ? sMsgRaw
+      : Array.isArray(details.data) &&
+        details.data.length > 0 &&
+        typeof (details.data[0] as Record<string, unknown>).sMsg === "string"
+      ? String((details.data[0] as Record<string, unknown>).sMsg)
+      : undefined;
+  const method = typeof details.method === "string" ? details.method : undefined;
+  const requestPath = typeof details.requestPath === "string" ? details.requestPath : undefined;
+  const requestBodyHash = typeof details.requestBodyHash === "string" ? details.requestBodyHash : undefined;
+  const authProbe =
+    details.authProbe && typeof details.authProbe === "object"
+      ? (details.authProbe as Record<string, unknown>)
+      : undefined;
+  const authProbeOk = typeof authProbe?.ok === "boolean" ? authProbe.ok : undefined;
+  const authProbeStatus = typeof authProbe?.status === "number" ? authProbe.status : undefined;
+  const authProbeError = typeof authProbe?.error === "string" ? authProbe.error : undefined;
+
+  const parts = [`error=${message}`, `okxCode=${error.code}`];
+  if (status !== undefined) {
+    parts.push(`httpStatus=${status}`);
+  }
+  if (method) {
+    parts.push(`method=${method}`);
+  }
+  if (requestPath) {
+    parts.push(`requestPath=${requestPath}`);
+  }
+  if (requestBodyHash) {
+    parts.push(`requestBodyHash=${requestBodyHash}`);
+  }
+  if (apiCode) {
+    parts.push(`apiCode=${apiCode}`);
+  }
+  if (apiMsg) {
+    parts.push(`apiMsg=${apiMsg}`);
+  }
+  if (sCode) {
+    parts.push(`sCode=${sCode}`);
+  }
+  if (sMsg) {
+    parts.push(`sMsg=${sMsg}`);
+  }
+  if (authProbeOk !== undefined) {
+    parts.push(`authProbeOk=${authProbeOk ? "yes" : "no"}`);
+  }
+  if (authProbeStatus !== undefined) {
+    parts.push(`authProbeStatus=${authProbeStatus}`);
+  }
+  if (authProbeError) {
+    parts.push(`authProbeError=${authProbeError}`);
+  }
+  return parts.join(" ");
+}
+
+export function classifyMissionControlSubmitFailure(error: unknown): { transient: boolean; message: string } {
+  const message = formatMissionControlOkxErrorDetail(error);
+  if (error instanceof OkxApiError) {
+    const details = (error.details ?? {}) as Record<string, unknown>;
+    const topLevelSCodeRaw = details.sCode;
+    const nestedSCodeRaw =
+      Array.isArray(details.data) && details.data.length > 0
+        ? (details.data[0] as Record<string, unknown>).sCode
+        : undefined;
+    const sCode =
+      typeof topLevelSCodeRaw === "string" || typeof topLevelSCodeRaw === "number"
+        ? String(topLevelSCodeRaw)
+        : typeof nestedSCodeRaw === "string" || typeof nestedSCodeRaw === "number"
+        ? String(nestedSCodeRaw)
+        : "";
+    if (sCode === "51016" || sCode === "51137" || sCode === "51138") {
+      return { transient: true, message };
+    }
+    if (error.code === "OKX_ORDER_REJECTED") {
+      return { transient: false, message };
+    }
+    if (error.code === "OKX_CANCEL_INPUT_ERROR" || error.code === "OKX_CONFIG_ERROR") {
+      return { transient: false, message };
+    }
+    if (error.code === "OKX_NETWORK_ERROR") {
+      return { transient: true, message };
+    }
+    if (error.code === "OKX_HTTP_ERROR") {
+      const status = Number((error.details ?? {}).status);
+      const requestPath = typeof (error.details ?? {}).requestPath === "string" ? String((error.details ?? {}).requestPath) : "";
+      const apiCode = typeof (error.details ?? {}).code === "string" ? String((error.details ?? {}).code) : "";
+      const apiMsg = typeof (error.details ?? {}).msg === "string" ? String((error.details ?? {}).msg).toLowerCase() : "";
+      const permanentAuthFailure = apiCode === "50110" || apiMsg.includes("whitelist") || apiMsg.includes("api key");
+      if (status === 401 && requestPath.startsWith("/api/v5/trade/") && !permanentAuthFailure) {
+        return { transient: true, message };
+      }
+      if (status === 408 || status === 425 || status === 429 || status >= 500) {
+        return { transient: true, message };
+      }
+    }
+  }
+  const normalized = message.toLowerCase();
+  if (normalized.includes("fetch failed") || normalized.includes("network") || normalized.includes("timeout")) {
+    return { transient: true, message };
+  }
+  return { transient: false, message };
+}
+
 export async function startMissionControlServer(
   options: MissionControlServerOptions = {}
 ): Promise<MissionControlServerHandle> {
@@ -1096,6 +1757,12 @@ export async function startMissionControlServer(
   );
   const driftMinConsecutive = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MIN_CONSECUTIVE, 2, 1, 20);
   const driftMaxGraceMs = parseBoundedInt(process.env.TOURAB_DRIFT_CIRCUIT_MAX_GRACE_MS, 90_000, 1_000, 86_400_000);
+  const policyAutoMaxOpenTradesPerSymbol = parseBoundedInt(
+    process.env.TOURAB_POLICY_AUTO_MAX_OPEN_TRADES_PER_SYMBOL,
+    DEFAULT_POLICY_AUTO_MAX_OPEN_TRADES_PER_SYMBOL,
+    1,
+    100
+  );
   const exchangeMode = resolveExchangeMode(process.env.OKX_TRADING_MODE);
   const workerExecutionMode =
     (process.env.TOURAB_EXECUTION_MODE as "proposal_only" | "demo_execution_enabled" | undefined) ??
@@ -1166,6 +1833,33 @@ export async function startMissionControlServer(
       )
     }
   };
+  const workerTradeSideGate: WorkerTradeSideGateConfig = {
+    enabled: parseBooleanEnv(process.env.TOURAB_WORKER_TRADE_SIDE_GATE_ENABLED, true),
+    lookbackTrades: parseBoundedInt(
+      process.env.TOURAB_WORKER_TRADE_SIDE_LOOKBACK_TRADES,
+      DEFAULT_WORKER_TRADE_SIDE_LOOKBACK_TRADES,
+      1,
+      10_000
+    ),
+    minTrades: parseBoundedInt(
+      process.env.TOURAB_WORKER_TRADE_SIDE_MIN_TRADES,
+      DEFAULT_WORKER_TRADE_SIDE_MIN_TRADES,
+      1,
+      10_000
+    ),
+    minExpectancyUsd: parseBoundedNumber(
+      process.env.TOURAB_WORKER_TRADE_SIDE_MIN_EXPECTANCY_USD,
+      DEFAULT_WORKER_TRADE_SIDE_MIN_EXPECTANCY_USD,
+      -1_000,
+      1_000
+    ),
+    maxTimeStopRatePct: parseBoundedNumber(
+      process.env.TOURAB_WORKER_TRADE_SIDE_MAX_TIME_STOP_RATE_PCT,
+      DEFAULT_WORKER_TRADE_SIDE_MAX_TIME_STOP_RATE_PCT,
+      0,
+      100
+    )
+  };
 
   const eventStore = await SqliteEventStore.open(eventStorePath);
   const alertStore = new JsonlAlertStore(alertStorePath);
@@ -1186,6 +1880,13 @@ export async function startMissionControlServer(
       approvalModeAtDecision: EntryApprovalMode;
       strategyVersion: string;
       policyVersion: string;
+      modelVersion: string;
+      entryOffsetBps: number;
+      stopDistanceBps: number;
+      takeProfitRMultiple: number;
+      requestedNotionalUsd: number;
+      marketIntelligence?: WorkerMarketIntelligenceSnapshot;
+      tradingPlan?: TradingTradePlan;
       queuedAt: string;
     }
   >();
@@ -1205,7 +1906,7 @@ export async function startMissionControlServer(
   let entryAutonomyConfig: EntryAutonomyConfig =
     opsStore.loadRuntimeState<EntryAutonomyConfig>("entry_autonomy_config") ?? {
       approvalMode: (process.env.TOURAB_APPROVAL_MODE as EntryApprovalMode | undefined) ?? "manual",
-      allowedSymbols: parseCsvEnv(process.env.TOURAB_POLICY_AUTO_ALLOWED_SYMBOLS, ["BTC-USDT", "ETH-USDT", "SOL-USDT"]),
+      allowedSymbols: parseCsvEnv(process.env.TOURAB_POLICY_AUTO_ALLOWED_SYMBOLS, ["BTC-USDT"]),
       maxPerOrderNotionalUsd: Math.max(1, Number(process.env.TOURAB_POLICY_AUTO_MAX_PER_ORDER_NOTIONAL_USD ?? "12")),
       maxOpenExposureUsd: Math.max(1, Number(process.env.TOURAB_POLICY_AUTO_MAX_OPEN_EXPOSURE_USD ?? "20")),
       maxDailyLossUsd: Math.max(0.5, Number(process.env.TOURAB_POLICY_AUTO_MAX_DAILY_LOSS_USD ?? "5")),
@@ -1213,6 +1914,10 @@ export async function startMissionControlServer(
       lossStreakCooldownCount: parseBoundedInt(process.env.TOURAB_POLICY_AUTO_LOSS_STREAK_COUNT, 3, 1, 20),
       cooldownMinutes: parseBoundedInt(process.env.TOURAB_POLICY_AUTO_COOLDOWN_MINUTES, 60, 1, 24 * 60),
       strategyVersion: (process.env.TOURAB_STRATEGY_VERSION ?? DEFAULT_ENTRY_AUTONOMY_STRATEGY_VERSION).trim(),
+      strategyVersionBySymbol: {
+        ...buildDefaultStrategyVersionBySymbol(),
+        ...parseStrategyVersionBySymbol(process.env.TOURAB_STRATEGY_VERSION_BY_SYMBOL_JSON)
+      },
       policyVersion: (process.env.TOURAB_POLICY_VERSION ?? DEFAULT_ENTRY_AUTONOMY_POLICY_VERSION).trim()
     };
   const entryAutonomyStatus: EntryAutonomyStatus =
@@ -1226,6 +1931,15 @@ export async function startMissionControlServer(
       activeVersion: entryAutonomyConfig.strategyVersion,
       championVersion: entryAutonomyConfig.strategyVersion,
       previousStableVersion: entryAutonomyConfig.strategyVersion,
+      activeVersionBySymbol: {
+        ...entryAutonomyConfig.strategyVersionBySymbol
+      },
+      championVersionBySymbol: {
+        ...entryAutonomyConfig.strategyVersionBySymbol
+      },
+      previousStableVersionBySymbol: {
+        ...entryAutonomyConfig.strategyVersionBySymbol
+      },
       versions: [
         {
           version: entryAutonomyConfig.strategyVersion,
@@ -1314,11 +2028,45 @@ export async function startMissionControlServer(
   opsTradeRetentionMs = learningRetentionConfig.closedTradeFeatureRetentionDays * 24 * 60 * 60_000;
   let learningRetentionLastPruneAt: string | undefined;
   let learningRetentionLastPruneResult: LearningRetentionPruneResult | undefined;
+  let autoPauseConfig: AutoPauseConfig =
+    opsStore.loadRuntimeState<AutoPauseConfig>("auto_pause_config") ?? {
+      enabled: parseBooleanEnv(process.env.TOURAB_AUTO_PAUSE_ENABLED, false),
+      maxPauseMinutes: parseBoundedInt(
+        process.env.TOURAB_AUTO_PAUSE_MAX_MINUTES,
+        DEFAULT_AUTO_PAUSE_MAX_MINUTES,
+        5,
+        24 * 60
+      ),
+      resumeMode: (process.env.TOURAB_AUTO_PAUSE_RESUME_MODE as EntryApprovalMode | undefined) ?? "manual",
+      scope: parseAutoPauseScope(process.env.TOURAB_AUTO_PAUSE_SCOPE)
+    };
+  let autoPauseState: AutoPauseState =
+    opsStore.loadRuntimeState<AutoPauseState>("auto_pause_state") ?? {
+      active: false
+    };
   const autoExitStaleTimeoutSec = parseBoundedInt(
     process.env.TOURAB_AUTO_EXIT_STALE_TIMEOUT_SEC,
     DEFAULT_AUTO_EXIT_STALE_TIMEOUT_SEC,
     5,
     15 * 60
+  );
+  const entryStaleTimeoutSec = parseBoundedInt(
+    process.env.TOURAB_ENTRY_STALE_TIMEOUT_SEC,
+    DEFAULT_ENTRY_STALE_TIMEOUT_SEC,
+    15,
+    15 * 60
+  );
+  const entryMaxRepriceCount = parseBoundedInt(
+    process.env.TOURAB_ENTRY_MAX_REPRICE_COUNT,
+    DEFAULT_ENTRY_MAX_REPRICE_COUNT,
+    0,
+    5
+  );
+  const entryRepriceMinConfidence = parseBoundedNumber(
+    process.env.TOURAB_ENTRY_REPRICE_MIN_CONFIDENCE,
+    DEFAULT_ENTRY_REPRICE_MIN_CONFIDENCE,
+    0,
+    100
   );
   const autoExitMaxReprices = parseBoundedInt(process.env.TOURAB_AUTO_EXIT_MAX_REPRICES, DEFAULT_AUTO_EXIT_MAX_REPRICES, 0, 20);
   const autoExitForceFlattenBps = Math.max(
@@ -1344,6 +2092,8 @@ export async function startMissionControlServer(
     Number(process.env.TOURAB_AUTO_EXIT_SOL_FORCE_FLATTEN_BPS ?? DEFAULT_SOL_AUTO_EXIT_FORCE_FLATTEN_BPS)
   );
   const autoExitMaxOffsetBps = parseBoundedInt(process.env.TOURAB_AUTO_EXIT_MAX_OFFSET_BPS, 100, 1, 5_000);
+  const autoExitDecisionTraceMax = parseBoundedInt(process.env.TOURAB_AUTO_EXIT_TRACE_MAX, 2000, 100, 20_000);
+  const autoExitDecisionTrace: AutoExitDecisionTraceItem[] = [];
   const managedTrades = new Map<string, ManagedTrade>(
     opsStore
       .listManagedTrades(1000)
@@ -1356,6 +2106,22 @@ export async function startMissionControlServer(
   if (!strategyPromotionState.activeVersion) {
     strategyPromotionState.activeVersion = entryAutonomyConfig.strategyVersion;
   }
+  entryAutonomyConfig.strategyVersionBySymbol = {
+    ...buildDefaultStrategyVersionBySymbol(),
+    ...(entryAutonomyConfig.strategyVersionBySymbol ?? {})
+  };
+  strategyPromotionState.activeVersionBySymbol = {
+    ...entryAutonomyConfig.strategyVersionBySymbol,
+    ...(strategyPromotionState.activeVersionBySymbol ?? {})
+  };
+  strategyPromotionState.championVersionBySymbol = {
+    ...entryAutonomyConfig.strategyVersionBySymbol,
+    ...(strategyPromotionState.championVersionBySymbol ?? {})
+  };
+  strategyPromotionState.previousStableVersionBySymbol = {
+    ...entryAutonomyConfig.strategyVersionBySymbol,
+    ...(strategyPromotionState.previousStableVersionBySymbol ?? {})
+  };
   if (!strategyPromotionState.championVersion) {
     strategyPromotionState.championVersion = strategyPromotionState.activeVersion;
   }
@@ -1381,8 +2147,41 @@ export async function startMissionControlServer(
       notes: "bootstrap"
     });
   }
+  for (const version of Object.values(entryAutonomyConfig.strategyVersionBySymbol)) {
+    if (!strategyPromotionState.versions.some((item) => item.version === version)) {
+      strategyPromotionState.versions.unshift({
+        version,
+        stage: "shadow",
+        status: version === strategyPromotionState.activeVersion ? "active" : "candidate",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        notes: "symbol bootstrap"
+      });
+    }
+  }
   entryAutonomyConfig.strategyVersion = strategyPromotionState.activeVersion;
   entryAutonomyStatus.approvalMode = entryAutonomyConfig.approvalMode;
+
+  function resolveStrategyVersionForSymbol(symbol: string): string {
+    const normalizedSymbol = symbol.trim().toUpperCase();
+    return (
+      strategyPromotionState.activeVersionBySymbol?.[normalizedSymbol] ??
+      entryAutonomyConfig.strategyVersionBySymbol?.[normalizedSymbol] ??
+      strategyPromotionState.activeVersion ??
+      entryAutonomyConfig.strategyVersion
+    );
+  }
+  function pushAutoExitDecisionTrace(
+    item: Omit<AutoExitDecisionTraceItem, "at"> & { at?: string }
+  ): void {
+    autoExitDecisionTrace.unshift({
+      ...item,
+      at: item.at ?? new Date().toISOString()
+    });
+    if (autoExitDecisionTrace.length > autoExitDecisionTraceMax) {
+      autoExitDecisionTrace.splice(autoExitDecisionTraceMax);
+    }
+  }
   persistLearningGovernanceState(new Date().toISOString());
   let exchangeStatus: ExchangeStatus = {
     connected: false,
@@ -1493,6 +2292,10 @@ export async function startMissionControlServer(
   if (!Number.isFinite(lastProposalCreatedAtEpoch)) {
     lastProposalCreatedAtEpoch = Date.now();
   }
+  const latestBacklogGuardEvent = inMemoryEvents.find((event) => event.tags?.includes("entry_backlog_guard"));
+  let lastWorkerBacklogGuardAtEpoch = latestBacklogGuardEvent?.timestamp
+    ? Date.parse(latestBacklogGuardEvent.timestamp)
+    : Number.NaN;
 
   const metrics: OpsMetrics = {
     controlRequestsTotal: 0,
@@ -1537,6 +2340,12 @@ export async function startMissionControlServer(
       .filter((item) => item >= 0 && item <= 23),
     ...parseWorkerBlockedUtcHours(process.env.TOURAB_WORKER_BLOCKED_UTC_HOURS_JSON)
   };
+  const workerMaxPendingEntriesPerSymbol = parseBoundedInt(
+    process.env.TOURAB_WORKER_MAX_PENDING_ENTRIES_PER_SYMBOL,
+    4,
+    1,
+    50
+  );
   const worker = new RuntimeWorkerManager(
     {
       onEvent: async (event) => {
@@ -1547,6 +2356,31 @@ export async function startMissionControlServer(
         opsStore.saveBotState(updated);
       },
       getState: () => lifecycle.getSnapshotState(),
+      getEntryBacklog: (symbol) => {
+        let pendingEntryCount = 0;
+        let pendingEntryNotionalUsd = 0;
+        for (const trade of managedTrades.values()) {
+          if (trade.symbol !== symbol) {
+            continue;
+          }
+          if (
+            trade.status !== "planned" &&
+            trade.status !== "entry_submitted" &&
+            trade.status !== "entry_partially_filled"
+          ) {
+            continue;
+          }
+          pendingEntryCount += 1;
+          const pendingQty = Math.max(0, round6(trade.requestedQty - trade.entryFilledQty));
+          const referencePrice =
+            trade.entryAvgPrice > 0 ? trade.entryAvgPrice : trade.stopPrice > 0 ? trade.stopPrice : 0;
+          pendingEntryNotionalUsd += pendingQty * referencePrice;
+        }
+        return {
+          pendingEntryCount,
+          pendingEntryNotionalUsd: round6(pendingEntryNotionalUsd)
+        };
+      },
       evaluateSymbolEligibility: async (symbol, nowIso) => {
         const features = opsStore.listClosedTradeFeatures(workerSymbolQualityGate.lookbackTrades);
         return evaluateWorkerSymbolQualityGate({
@@ -1556,7 +2390,87 @@ export async function startMissionControlServer(
           config: workerSymbolQualityGate
         });
       },
-      queueDemoExecutionApproval: async ({ symbol, proposal, intent }) => {
+      evaluateTradeEligibility: async ({ symbol, side }) => {
+        const features = opsStore.listClosedTradeFeatures(
+          Math.max(workerSymbolQualityGate.lookbackTrades, workerTradeSideGate.lookbackTrades)
+        );
+        return evaluateWorkerTradeSideGate({
+          symbol,
+          side,
+          features,
+          config: workerTradeSideGate
+        });
+      },
+      buildRiskContext: ({ market, maxNotionalUsd, executionMode }) => {
+        const nowIso = new Date().toISOString();
+        const budget = computeLossBudgets(nowIso);
+        return {
+          account: {
+            equityUsd: Math.max(0, toFiniteNumber(portfolioStatus.totalEq)),
+            currentDailyLossUsd: budget.dailyLossUsedUsd,
+            currentWeeklyLossUsd: budget.weeklyLossUsedUsd,
+            currentOpenExposureUsd: computeOpenExposureUsd(),
+            asOf: nowIso
+          },
+          instrument: {
+            symbol: market.symbol,
+            minSz: market.minSz,
+            lotSz: market.lotSz,
+            tickSz: market.tickSz
+          },
+          market: {
+            markPrice: market.last,
+            asOf: nowIso
+          },
+          ordersAsOf: nowIso,
+          limits: {
+            maxPerTradeRiskUsd: 0.5,
+            maxDailyLossUsd: 1,
+            maxWeeklyLossUsd: 2.5,
+            maxOpenExposureUsd: 15
+          },
+          policy: {
+            allowedSymbols: [market.symbol],
+            maxNotionalUsd,
+            executionMode
+          }
+        };
+      },
+      getMarketIntelligence: async ({ symbol }) => {
+        try {
+          const snapshot = await fetchMarketIntelligenceSnapshot(
+            symbol,
+            process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com"
+          );
+          return {
+            regime: snapshot.regime,
+            confidenceScore: snapshot.confidenceScore,
+            trendAlignmentScore: snapshot.trendAlignmentScore,
+            recommendedSide: snapshot.recommendedSide,
+            recommendedEntryOffsetBps: snapshot.recommendedEntryOffsetBps,
+            move1mBps: snapshot.move1mBps,
+            move5mBps: snapshot.move5mBps,
+            move15mBps: snapshot.move15mBps,
+            realizedVolatilityBps: snapshot.realizedVolatilityBps,
+            spreadBps: snapshot.spreadBps,
+            orderBookImbalancePct: snapshot.orderBookImbalancePct,
+            continuationOverextended: snapshot.continuationOverextended,
+            projectedMoveBudgetBps: snapshot.projectedMoveBudgetBps
+          };
+        } catch {
+          return undefined;
+        }
+      },
+      queueDemoExecutionApproval: async ({
+        symbol,
+        proposal,
+        intent,
+        entryOffsetBps,
+        stopDistanceBps,
+        requestedNotionalUsd,
+        marketIntelligence,
+        tradingPlan
+      }) => {
         if (workerExecutionMode !== "demo_execution_enabled") {
           return { queued: false, reason: "Execution mode is proposal_only." };
         }
@@ -1582,11 +2496,19 @@ export async function startMissionControlServer(
             entryAutonomyStatus.lastFallbackReason = undefined;
             persistEntryAutonomyState();
           } else {
-            await fallbackApprovalModeToManual(
-              `policy_auto guardrails failed: ${policyAuto.blockers.join(" | ")}`,
-              symbol,
-              "warn"
+            // Guardrail rejection should fail the single proposal, not demote global approval mode.
+            const reason = `policy_auto guardrails blocked proposal: ${policyAuto.blockers.join(" | ")}`;
+            await appendAudit("Policy-auto guardrail blocked proposal", reason, symbol, "RiskLimitHit");
+            await publish(
+              createEvent(
+                "RiskLimitHit",
+                symbol,
+                reason,
+                "warn",
+                ["entry_autonomy", "policy_auto", "guardrail_block"]
+              )
             );
+            return { queued: false, reason: policyAuto.blockers.join(" | ") };
           }
         }
         const request = approvals.create({
@@ -1597,14 +2519,22 @@ export async function startMissionControlServer(
         const entryPrice = Math.max(0.00000001, intent.limitPrice);
         const stopPrice = Math.max(0.00000001, proposal.stopPrice);
         const riskDistance = Math.max(Math.abs(entryPrice - stopPrice), entryPrice * 0.001);
-        const effectiveTpRMultiple = symbol === "SOL-USDT" ? solAutoExitTpRMultiple : autoExitConfig.takeProfitRMultiple;
-        const effectiveMaxHoldSec = symbol === "SOL-USDT" ? solAutoExitMaxHoldSec : autoExitConfig.maxHoldSec;
+        const baseTpRMultiple = symbol === "SOL-USDT" ? solAutoExitTpRMultiple : autoExitConfig.takeProfitRMultiple;
+        const baseMaxHoldSec = symbol === "SOL-USDT" ? solAutoExitMaxHoldSec : autoExitConfig.maxHoldSec;
+        const effectiveTpRMultiple =
+          typeof tradingPlan?.takeProfitRMultiple === "number" && Number.isFinite(tradingPlan.takeProfitRMultiple)
+            ? Math.max(0.25, tradingPlan.takeProfitRMultiple)
+            : baseTpRMultiple;
+        const effectiveMaxHoldSec =
+          typeof tradingPlan?.maxHoldSec === "number" && Number.isFinite(tradingPlan.maxHoldSec)
+            ? Math.max(60, Math.floor(tradingPlan.maxHoldSec))
+            : baseMaxHoldSec;
         const takeProfitPrice =
           intent.side === "buy"
             ? round6(entryPrice + riskDistance * effectiveTpRMultiple)
             : round6(entryPrice - riskDistance * effectiveTpRMultiple);
         const flattenAt = nextFlattenAtIso(autoExitConfig.flattenTimeUtc);
-        const effectiveStrategyVersion = strategyPromotionState.activeVersion || entryAutonomyConfig.strategyVersion;
+        const effectiveStrategyVersion = resolveStrategyVersionForSymbol(symbol);
         pendingDemoOrders.set(request.id, {
           intent,
           proposal,
@@ -1616,6 +2546,13 @@ export async function startMissionControlServer(
           approvalModeAtDecision,
           strategyVersion: effectiveStrategyVersion,
           policyVersion: entryAutonomyConfig.policyVersion,
+          modelVersion: learningGovernanceState.activeModelVersion,
+          entryOffsetBps,
+          stopDistanceBps,
+          takeProfitRMultiple: effectiveTpRMultiple,
+          requestedNotionalUsd: round6(Math.max(0, requestedNotionalUsd)),
+          marketIntelligence,
+          tradingPlan,
           queuedAt: new Date().toISOString()
         });
         await appendAudit(
@@ -1635,13 +2572,13 @@ export async function startMissionControlServer(
                 actor: "policy_auto_runtime"
               });
             } catch (error: unknown) {
-              const message = error instanceof Error ? error.message : String(error);
+              const { transient, message } = classifyMissionControlSubmitFailure(error);
               pendingDemoOrders.delete(request.id);
               await upsertAlert({
-                code: "POLICY_AUTO_SUBMIT_FAILED",
-                severity: "error",
+                code: transient ? "RUNTIME_ERROR_EVENT" : "POLICY_AUTO_SUBMIT_FAILED",
+                severity: transient ? "warn" : "error",
                 source: "exchange",
-                title: "Policy-auto demo submit failed",
+                title: transient ? "Policy-auto demo submit transient failure" : "Policy-auto demo submit failed",
                 detail: message,
                 symbol
               });
@@ -1649,12 +2586,24 @@ export async function startMissionControlServer(
                 createEvent(
                   "Error",
                   symbol,
-                  `Policy-auto demo submit failed approval=${request.id} error=${message}`,
-                  "error",
-                  ["entry_autonomy", "policy_auto", "okx_error"]
+                  transient
+                    ? `Policy-auto demo submit transient failure approval=${request.id} error=${message}`
+                    : `Policy-auto demo submit failed approval=${request.id} error=${message}`,
+                  transient ? "warn" : "error",
+                  ["entry_autonomy", "policy_auto", transient ? "okx_transient" : "okx_error"]
                 )
               );
-              await fallbackApprovalModeToManual(`policy_auto submit failure: ${message}`, symbol, "critical");
+              if (!transient) {
+                await upsertAlert({
+                  code: "POLICY_AUTO_SUBMIT_FAILED",
+                  severity: "error",
+                  source: "exchange",
+                  title: "Policy-auto demo submit failed",
+                  detail: message,
+                  symbol
+                });
+                await fallbackApprovalModeToManual(`policy_auto submit failure: ${message}`, symbol, "critical");
+              }
               return { queued: false, reason: message };
             }
           }
@@ -1663,7 +2612,7 @@ export async function startMissionControlServer(
       }
     },
     {
-      symbolUniverse: (process.env.TOURAB_WORKER_SYMBOLS ?? "BTC-USDT,ETH-USDT,SOL-USDT")
+      symbolUniverse: (process.env.TOURAB_WORKER_SYMBOLS ?? "BTC-USDT,ETH-USDT")
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s.length > 0),
@@ -1673,10 +2622,165 @@ export async function startMissionControlServer(
       maxNotionalUsd: Number(process.env.TOURAB_WORKER_MAX_NOTIONAL_USD ?? "12"),
       entryOffsetBps: Number(process.env.TOURAB_WORKER_ENTRY_OFFSET_BPS ?? "20"),
       stopDistanceBps: Number(process.env.TOURAB_WORKER_STOP_DISTANCE_BPS ?? "150"),
+      signalLookbackSec: parseBoundedInt(
+        process.env.TOURAB_WORKER_SIGNAL_LOOKBACK_SEC,
+        DEFAULT_WORKER_SIGNAL_LOOKBACK_SEC,
+        10,
+        3600
+      ),
+      signalShortLookbackSec: parseBoundedInt(
+        process.env.TOURAB_WORKER_SIGNAL_SHORT_LOOKBACK_SEC,
+        DEFAULT_WORKER_SIGNAL_SHORT_LOOKBACK_SEC,
+        5,
+        600
+      ),
+      signalMinMoveBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SIGNAL_MIN_MOVE_BPS,
+        DEFAULT_WORKER_SIGNAL_MIN_MOVE_BPS,
+        0,
+        1000
+      ),
+      signalMinAbsoluteMoveBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SIGNAL_MIN_ABSOLUTE_MOVE_BPS,
+        6,
+        0,
+        1000
+      ),
+      signalTrendVolatilityThresholdMultiplier: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SIGNAL_TREND_VOLATILITY_THRESHOLD_MULTIPLIER,
+        3,
+        0,
+        100
+      ),
+      signalMinVolatilityBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SIGNAL_MIN_VOLATILITY_BPS,
+        DEFAULT_WORKER_SIGNAL_MIN_VOLATILITY_BPS,
+        0,
+        1000
+      ),
+      signalRoundTripFeeBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SIGNAL_ROUND_TRIP_FEE_BPS,
+        DEFAULT_WORKER_SIGNAL_ROUND_TRIP_FEE_BPS,
+        0,
+        1000
+      ),
+      quietRegimeTrendEfficiencyMin: parseBoundedNumber(
+        process.env.TOURAB_WORKER_QUIET_REGIME_TREND_EFFICIENCY_MIN,
+        DEFAULT_WORKER_QUIET_REGIME_TREND_EFFICIENCY_MIN,
+        1,
+        100
+      ),
+      quietRegimeMoveThresholdMultiplier: parseBoundedNumber(
+        process.env.TOURAB_WORKER_QUIET_REGIME_MOVE_THRESHOLD_MULTIPLIER,
+        DEFAULT_WORKER_QUIET_REGIME_MOVE_THRESHOLD_MULTIPLIER,
+        0.5,
+        5
+      ),
+      buyTrendStrengthMultiplier: parseBoundedNumber(
+        process.env.TOURAB_WORKER_BUY_TREND_STRENGTH_MULTIPLIER,
+        DEFAULT_WORKER_BUY_TREND_STRENGTH_MULTIPLIER,
+        1,
+        5
+      ),
+      sellTrendStrengthMultiplier: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SELL_TREND_STRENGTH_MULTIPLIER,
+        DEFAULT_WORKER_SELL_TREND_STRENGTH_MULTIPLIER,
+        0.5,
+        5
+      ),
+      buyShortMoveConfirmationBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_BUY_SHORT_MOVE_CONFIRMATION_BPS,
+        DEFAULT_WORKER_BUY_SHORT_MOVE_CONFIRMATION_BPS,
+        0,
+        100
+      ),
+      sellShortMoveConfirmationBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SELL_SHORT_MOVE_CONFIRMATION_BPS,
+        DEFAULT_WORKER_SELL_SHORT_MOVE_CONFIRMATION_BPS,
+        0,
+        100
+      ),
+      buyEntryOffsetMultiplier: parseBoundedNumber(
+        process.env.TOURAB_WORKER_BUY_ENTRY_OFFSET_MULTIPLIER,
+        DEFAULT_WORKER_BUY_ENTRY_OFFSET_MULTIPLIER,
+        0.5,
+        3
+      ),
+      sellEntryOffsetMultiplier: parseBoundedNumber(
+        process.env.TOURAB_WORKER_SELL_ENTRY_OFFSET_MULTIPLIER,
+        DEFAULT_WORKER_SELL_ENTRY_OFFSET_MULTIPLIER,
+        0.5,
+        3
+      ),
+      expectedMoveHurdleEnabled: parseBooleanEnv(
+        process.env.TOURAB_WORKER_EXPECTED_MOVE_HURDLE_ENABLED,
+        DEFAULT_WORKER_EXPECTED_MOVE_HURDLE_ENABLED
+      ),
+      expectedMoveTakeProfitRMultiple: parseBoundedNumber(
+        process.env.TOURAB_WORKER_EXPECTED_MOVE_TP_R_MULTIPLE,
+        DEFAULT_WORKER_EXPECTED_MOVE_TP_R_MULTIPLE,
+        0.1,
+        10
+      ),
+      expectedMoveFeeCoverageMultiple: parseBoundedNumber(
+        process.env.TOURAB_WORKER_EXPECTED_MOVE_FEE_COVERAGE_MULTIPLE,
+        DEFAULT_WORKER_EXPECTED_MOVE_FEE_COVERAGE_MULTIPLE,
+        0.5,
+        10
+      ),
+      expectedMoveMinNetEdgeBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_EXPECTED_MOVE_MIN_NET_EDGE_BPS,
+        DEFAULT_WORKER_EXPECTED_MOVE_MIN_NET_EDGE_BPS,
+        0,
+        1000
+      ),
+      marketIntelligenceMinConfidenceScore: parseBoundedNumber(
+        process.env.TOURAB_WORKER_MARKET_INTELLIGENCE_MIN_CONFIDENCE_SCORE,
+        DEFAULT_WORKER_MARKET_INTELLIGENCE_MIN_CONFIDENCE,
+        0,
+        100
+      ),
+      marketIntelligenceMaxSpreadBps: parseBoundedNumber(
+        process.env.TOURAB_WORKER_MARKET_INTELLIGENCE_MAX_SPREAD_BPS,
+        DEFAULT_WORKER_MARKET_INTELLIGENCE_MAX_SPREAD_BPS,
+        0,
+        100
+      ),
+      requireMarketIntelligenceSideAlignment: parseBooleanEnv(
+        process.env.TOURAB_WORKER_REQUIRE_MARKET_INTELLIGENCE_ALIGNMENT,
+        DEFAULT_WORKER_REQUIRE_MARKET_INTELLIGENCE_ALIGNMENT
+      ),
+      blockChopRegimes: parseBooleanEnv(
+        process.env.TOURAB_WORKER_BLOCK_CHOP_REGIMES,
+        DEFAULT_WORKER_BLOCK_CHOP_REGIMES
+      ),
+      maxMoveBudgetUsagePct: parseBoundedNumber(
+        process.env.TOURAB_WORKER_MAX_MOVE_BUDGET_USAGE_PCT,
+        DEFAULT_WORKER_MAX_MOVE_BUDGET_USAGE_PCT,
+        1,
+        1000
+      ),
+      btcBuyMinConfidenceScore: parseBoundedNumber(process.env.TOURAB_WORKER_BTC_BUY_MIN_CONFIDENCE, 65, 0, 100),
+      btcBuyMinTrendAlignmentScore: parseBoundedNumber(process.env.TOURAB_WORKER_BTC_BUY_MIN_TREND_ALIGNMENT, 20, 0, 100),
+      btcBuyMinMove5mBps: parseBoundedNumber(process.env.TOURAB_WORKER_BTC_BUY_MIN_MOVE_5M_BPS, 4, 0, 1000),
+      ethRequireBtcConfirmation: parseBooleanEnv(process.env.TOURAB_WORKER_ETH_REQUIRE_BTC_CONFIRMATION, true),
+      ethBtcMinConfidenceScore: parseBoundedNumber(process.env.TOURAB_WORKER_ETH_BTC_MIN_CONFIDENCE, 55, 0, 100),
+      ethBtcMinTrendAlignmentScore: parseBoundedNumber(process.env.TOURAB_WORKER_ETH_BTC_MIN_TREND_ALIGNMENT, 18, 0, 100),
+      ethBtcRelativeStrengthMinDelta: parseBoundedNumber(process.env.TOURAB_WORKER_ETH_BTC_RELATIVE_STRENGTH_MIN_DELTA, 0.15, 0, 10),
+      requireSignalEvaluationSymbols: parseCsvEnv(
+        process.env.TOURAB_WORKER_REQUIRE_SIGNAL_EVALUATION_SYMBOLS,
+        ["BTC-USDT", "ETH-USDT"]
+      ),
+      requireMarketIntelligenceSymbols: parseCsvEnv(
+        process.env.TOURAB_WORKER_REQUIRE_MARKET_INTELLIGENCE_SYMBOLS,
+        ["BTC-USDT", "ETH-USDT"]
+      ),
       retryMaxAttempts: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_MAX_ATTEMPTS, 3, 1, 10),
       retryBudgetPerHour: parseBoundedInt(process.env.TOURAB_WORKER_RETRY_BUDGET_PER_HOUR, 30, 1, 1000),
+      maxPendingEntriesPerSymbol: workerMaxPendingEntriesPerSymbol,
       executionMode: workerExecutionMode,
-      defaultSide: (process.env.TOURAB_WORKER_DEFAULT_SIDE as "buy" | "sell" | undefined) ?? "buy",
+      defaultMaxHoldSec: autoExitConfig.maxHoldSec,
+      defaultSide: parseWorkerSidePreference(process.env.TOURAB_WORKER_DEFAULT_SIDE, "buy"),
       symbolOverrides: workerSymbolOverrides,
       blockedUtcHoursBySymbol
     }
@@ -1713,6 +2817,10 @@ export async function startMissionControlServer(
   function persistStrategyPromotionState(): void {
     opsStore.saveRuntimeState("strategy_promotion_state", strategyPromotionState);
     entryAutonomyConfig.strategyVersion = strategyPromotionState.activeVersion;
+    entryAutonomyConfig.strategyVersionBySymbol = {
+      ...(entryAutonomyConfig.strategyVersionBySymbol ?? {}),
+      ...(strategyPromotionState.activeVersionBySymbol ?? {})
+    };
     persistEntryAutonomyState();
   }
 
@@ -1760,13 +2868,26 @@ export async function startMissionControlServer(
     return strategyPromotionState.versions.find((item) => item.version === version);
   }
 
+  function normalizeStrategySymbol(raw: string | undefined): string | undefined {
+    const normalized = raw?.trim().toUpperCase();
+    return normalized ? normalized : undefined;
+  }
+
+  function inferStrategySymbolFromVersion(version: string): string | undefined {
+    return Object.entries(entryAutonomyConfig.strategyVersionBySymbol ?? {}).find(([, mappedVersion]) => mappedVersion === version)?.[0];
+  }
+
+  function resolveStrategyGovernanceSymbol(rawSymbol: string | undefined, version: string): string | undefined {
+    return normalizeStrategySymbol(rawSymbol) ?? inferStrategySymbolFromVersion(version);
+  }
+
   function upsertStrategyVersion(record: StrategyVersionRecord): void {
     const next = strategyPromotionState.versions.filter((item) => item.version !== record.version);
     next.unshift(record);
     strategyPromotionState.versions = next.slice(0, 200);
   }
 
-  function setActiveStrategyVersion(nextVersion: string): void {
+  function setActiveStrategyVersion(nextVersion: string, symbol?: string): void {
     strategyPromotionState.activeVersion = nextVersion;
     if (!strategyPromotionState.previousStableVersion) {
       strategyPromotionState.previousStableVersion = nextVersion;
@@ -1790,6 +2911,26 @@ export async function startMissionControlServer(
         updatedAt: nowIso,
         notes: "auto-inserted"
       });
+    }
+    const normalizedSymbol = normalizeStrategySymbol(symbol);
+    if (normalizedSymbol) {
+      const previousBySymbol = strategyPromotionState.activeVersionBySymbol?.[normalizedSymbol];
+      strategyPromotionState.activeVersionBySymbol = {
+        ...(strategyPromotionState.activeVersionBySymbol ?? {}),
+        [normalizedSymbol]: nextVersion
+      };
+      strategyPromotionState.championVersionBySymbol = {
+        ...(strategyPromotionState.championVersionBySymbol ?? {}),
+        [normalizedSymbol]: nextVersion
+      };
+      strategyPromotionState.previousStableVersionBySymbol = {
+        ...(strategyPromotionState.previousStableVersionBySymbol ?? {}),
+        [normalizedSymbol]: previousBySymbol && previousBySymbol !== nextVersion ? previousBySymbol : nextVersion
+      };
+      entryAutonomyConfig.strategyVersionBySymbol = {
+        ...(entryAutonomyConfig.strategyVersionBySymbol ?? {}),
+        [normalizedSymbol]: nextVersion
+      };
     }
   }
 
@@ -1823,8 +2964,15 @@ export async function startMissionControlServer(
   }
 
   async function rollbackStrategyOnDegradation(reason: string, actor: string, symbol: string, force = false): Promise<boolean> {
-    const active = findStrategy(strategyPromotionState.activeVersion);
-    const previous = strategyPromotionState.previousStableVersion ? findStrategy(strategyPromotionState.previousStableVersion) : undefined;
+    const normalizedSymbol = normalizeStrategySymbol(symbol);
+    const activeVersion =
+      (normalizedSymbol ? strategyPromotionState.activeVersionBySymbol?.[normalizedSymbol] : undefined) ??
+      strategyPromotionState.activeVersion;
+    const previousVersion =
+      (normalizedSymbol ? strategyPromotionState.previousStableVersionBySymbol?.[normalizedSymbol] : undefined) ??
+      strategyPromotionState.previousStableVersion;
+    const active = activeVersion ? findStrategy(activeVersion) : undefined;
+    const previous = previousVersion ? findStrategy(previousVersion) : undefined;
     if (!active || !previous || previous.version === active.version) {
       return false;
     }
@@ -1845,6 +2993,24 @@ export async function startMissionControlServer(
     strategyPromotionState.activeVersion = previous.version;
     strategyPromotionState.championVersion = previous.version;
     strategyPromotionState.challengerVersion = active.version;
+    if (normalizedSymbol) {
+      strategyPromotionState.activeVersionBySymbol = {
+        ...(strategyPromotionState.activeVersionBySymbol ?? {}),
+        [normalizedSymbol]: previous.version
+      };
+      strategyPromotionState.championVersionBySymbol = {
+        ...(strategyPromotionState.championVersionBySymbol ?? {}),
+        [normalizedSymbol]: previous.version
+      };
+      strategyPromotionState.challengerVersionBySymbol = {
+        ...(strategyPromotionState.challengerVersionBySymbol ?? {}),
+        [normalizedSymbol]: active.version
+      };
+      entryAutonomyConfig.strategyVersionBySymbol = {
+        ...(entryAutonomyConfig.strategyVersionBySymbol ?? {}),
+        [normalizedSymbol]: previous.version
+      };
+    }
     strategyPromotionState.history.unshift({
       at: nowIso,
       action: "rollback",
@@ -2019,12 +3185,155 @@ export async function startMissionControlServer(
     };
   }
 
+  function persistAutoPauseState(): void {
+    opsStore.saveRuntimeState("auto_pause_state", autoPauseState);
+  }
+
+  function shouldAutoPauseForScope(): boolean {
+    if (!autoPauseConfig.enabled) {
+      return false;
+    }
+    if (autoPauseConfig.scope === "both") {
+      return true;
+    }
+    return exchangeMode === autoPauseConfig.scope;
+  }
+
+  async function triggerAutoPause(reason: string, symbol: string, severity: "warn" | "error" = "warn"): Promise<void> {
+    if (!shouldAutoPauseForScope()) {
+      return;
+    }
+    if (autoPauseState.active) {
+      return;
+    }
+    if (lifecycle.getSnapshotState().state !== "running") {
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const resumeAt = new Date(Date.now() + autoPauseConfig.maxPauseMinutes * 60_000).toISOString();
+    const result = lifecycle.applyAction("pause");
+    if (!result.ok) {
+      return;
+    }
+    worker.pause();
+    opsStore.saveBotState(result.state);
+    autoPauseState = {
+      active: true,
+      reason,
+      pausedAt: nowIso,
+      resumeAt,
+      lastAutoPauseAt: nowIso
+    };
+    persistAutoPauseState();
+    await upsertAlert({
+      code: "AUTO_PAUSE_TRIGGERED",
+      severity,
+      source: "system",
+      title: "Auto-pause triggered",
+      detail: `${reason} (resumeAt=${resumeAt})`,
+      symbol
+    });
+    await publish(
+      createEvent(
+        "System",
+        symbol,
+        `Auto-pause triggered: ${reason} resumeAt=${resumeAt}`,
+        severity === "error" ? "error" : "warn",
+        ["auto_pause"]
+      )
+    );
+    await appendAudit("Auto-pause", `reason=${reason} resumeAt=${resumeAt}`, symbol, "System");
+  }
+
+  async function evaluateAutoResume(nowIso: string): Promise<void> {
+    if (!autoPauseState.active) {
+      return;
+    }
+    if (lifecycle.getSnapshotState().state !== "paused") {
+      return;
+    }
+    if (!autoPauseState.resumeAt) {
+      return;
+    }
+    const resumeEpoch = Date.parse(autoPauseState.resumeAt);
+    const nowEpoch = Date.parse(nowIso);
+    if (!Number.isFinite(resumeEpoch) || !Number.isFinite(nowEpoch) || nowEpoch < resumeEpoch) {
+      return;
+    }
+    const result = lifecycle.applyAction("resume");
+    if (!result.ok) {
+      return;
+    }
+    worker.start();
+    opsStore.saveBotState(result.state);
+    entryAutonomyConfig.approvalMode = autoPauseConfig.resumeMode;
+    entryAutonomyStatus.approvalMode = autoPauseConfig.resumeMode;
+    entryAutonomyStatus.fallbackActive = false;
+    entryAutonomyStatus.lastFallbackReason = undefined;
+    entryAutonomyStatus.lastFallbackAt = undefined;
+    persistEntryAutonomyState();
+    autoPauseState.active = false;
+    autoPauseState.lastAutoResumeAt = nowIso;
+    persistAutoPauseState();
+    await resolveAlertIfOpen("AUTO_PAUSE_TRIGGERED", lifecycle.getSnapshotState().activeSymbol, "system");
+    await publish(
+      createEvent(
+        "System",
+        lifecycle.getSnapshotState().activeSymbol,
+        `Auto-resume executed after pause window; approvalMode=${autoPauseConfig.resumeMode}`,
+        "info",
+        ["auto_resume"]
+      )
+    );
+    await appendAudit(
+      "Auto-resume",
+      `approvalMode=${autoPauseConfig.resumeMode} resumeAt=${autoPauseState.resumeAt ?? "unknown"}`,
+      lifecycle.getSnapshotState().activeSymbol,
+      "System"
+    );
+  }
+
+  async function evaluateAutoPauseConditions(nowIso: string): Promise<void> {
+    if (!shouldAutoPauseForScope()) {
+      return;
+    }
+    const symbol = lifecycle.getSnapshotState().activeSymbol;
+    const budget = computeLossBudgets(nowIso);
+    if (budget.dailyLossUsedUsd >= entryAutonomyConfig.maxDailyLossUsd) {
+      await triggerAutoPause(`daily loss cap breached: used=${budget.dailyLossUsedUsd} cap=${entryAutonomyConfig.maxDailyLossUsd}`, symbol, "error");
+      return;
+    }
+    if (budget.weeklyLossUsedUsd >= entryAutonomyConfig.maxWeeklyLossUsd) {
+      await triggerAutoPause(`weekly loss cap breached: used=${budget.weeklyLossUsedUsd} cap=${entryAutonomyConfig.maxWeeklyLossUsd}`, symbol, "error");
+      return;
+    }
+    if (budget.lossStreak >= entryAutonomyConfig.lossStreakCooldownCount) {
+      await triggerAutoPause(
+        `loss streak breached: streak=${budget.lossStreak} threshold=${entryAutonomyConfig.lossStreakCooldownCount}`,
+        symbol,
+        "warn"
+      );
+      return;
+    }
+    const latestTimeline = portfolioStatus.performance.timeline[portfolioStatus.performance.timeline.length - 1];
+    if (latestTimeline && latestTimeline.drawdownPct <= strategyDegradationConfig.maxDrawdownPct) {
+      await triggerAutoPause(
+        `drawdown breached: drawdown=${latestTimeline.drawdownPct}% threshold=${strategyDegradationConfig.maxDrawdownPct}%`,
+        symbol,
+        "error"
+      );
+    }
+  }
+
   async function evaluatePolicyAutoEligibility(input: {
     symbol: string;
     intent: ExecutionIntent;
     nowIso: string;
   }): Promise<{ ok: boolean; blockers: string[] }> {
     const blockers: string[] = [];
+    if (input.symbol === "ETH-USDT") {
+      blockers.push("ETH-USDT remains shadow/manual until it has symbol-level promotable evidence.");
+    }
     if (entryAutonomyConfig.approvalMode !== "policy_auto") {
       blockers.push("Approval mode is manual.");
     }
@@ -2039,6 +3348,23 @@ export async function startMissionControlServer(
     if (openExposureUsd + notionalUsd > entryAutonomyConfig.maxOpenExposureUsd) {
       blockers.push(
         `Open exposure would exceed cap: current=${openExposureUsd} next=${round6(openExposureUsd + notionalUsd)} cap=${entryAutonomyConfig.maxOpenExposureUsd}.`
+      );
+    }
+    const activeTradesForSymbol = [...managedTrades.values()].filter((trade) => {
+      if (trade.symbol !== input.symbol) {
+        return false;
+      }
+      if (trade.status === "closed" || trade.status === "canceled" || trade.status === "error") {
+        return false;
+      }
+      if (trade.entryFilledQty > 0) {
+        return trade.remainingQty > 1e-9 || trade.status === "entry_partially_filled" || trade.status === "entry_filled" || trade.status === "exit_pending" || trade.status === "exit_submitted";
+      }
+      return false;
+    }).length;
+    if (activeTradesForSymbol >= policyAutoMaxOpenTradesPerSymbol) {
+      blockers.push(
+        `Active managed trades for ${input.symbol} would exceed cap: current=${activeTradesForSymbol} cap=${policyAutoMaxOpenTradesPerSymbol}.`
       );
     }
     const budget = computeLossBudgets(input.nowIso);
@@ -2068,8 +3394,16 @@ export async function startMissionControlServer(
       blockers.push("Demo exchange is not fully connected.");
     }
     const m5 = await buildMilestone5EvidenceSummary(input.nowIso);
-    if (!m5.today.pass || m5.qualifiedDays < m5.requiredDays) {
-      blockers.push(`Demo readiness not fully green (qualifiedDays=${m5.qualifiedDays}/${m5.requiredDays}, todayPass=${m5.today.pass}).`);
+    const demoReadiness = evaluateDemoPolicyAutoReadiness(m5, input.nowIso, {
+      // Demo policy_auto should be able to continue automatically when today's
+      // live evidence is currently green, even if the latest completed passing
+      // day is older. Promotion and rollout status still judge freshness separately.
+      allowTodayLivePassForFreshness: true
+    });
+    if (!demoReadiness.ok) {
+      blockers.push(
+        `Demo readiness not fully green for policy_auto (${demoReadiness.reasons.join("; ")}).`
+      );
     }
     entryAutonomyStatus.lastPolicyAutoDecisionAt = input.nowIso;
     entryAutonomyStatus.lastPolicyAutoBlockers = blockers;
@@ -2090,6 +3424,13 @@ export async function startMissionControlServer(
       approvalModeAtDecision: EntryApprovalMode;
       strategyVersion: string;
       policyVersion: string;
+      modelVersion: string;
+      entryOffsetBps: number;
+      stopDistanceBps: number;
+      takeProfitRMultiple: number;
+      requestedNotionalUsd: number;
+      marketIntelligence?: WorkerMarketIntelligenceSnapshot;
+      tradingPlan?: TradingTradePlan;
       queuedAt: string;
     };
     actor: string;
@@ -2111,6 +3452,10 @@ export async function startMissionControlServer(
       entryOrdId: order.ordId,
       entryClOrdId: order.clOrdId,
       requestedQty: round6(input.queued.intent.qtyBase),
+      entryLimitPrice: round6(input.queued.intent.limitPrice),
+      entrySubmittedAt: createdAt,
+      entryFirstFilledAt: undefined,
+      entryRepriceCount: 0,
       entryFilledQty: 0,
       entryAvgPrice: 0,
       exitFilledQty: 0,
@@ -2126,31 +3471,56 @@ export async function startMissionControlServer(
       realizedPnlUsd: 0,
       exitSubmittedAt: undefined,
       exitRepriceCount: 0,
-      forcedFlattenEscalated: false
+      forcedFlattenEscalated: false,
+      requestedNotionalUsd: input.queued.requestedNotionalUsd,
+      approvalModeAtDecision: input.queued.approvalModeAtDecision,
+      policyVersionAtDecision: input.queued.policyVersion,
+      strategyVersionAtDecision: input.queued.strategyVersion,
+      modelVersionAtDecision: input.queued.modelVersion,
+      intelligenceVersionAtDecision: input.queued.tradingPlan?.intelligenceVersion,
+      playbookIdAtDecision: input.queued.tradingPlan?.playbookId,
+      entryStyleAtDecision: input.queued.tradingPlan?.entryStyle,
+      thesisSummaryAtDecision: input.queued.tradingPlan?.thesisSummary,
+      invalidationSummaryAtDecision: input.queued.tradingPlan?.invalidationSummary,
+      thesisConfidenceScoreAtDecision: input.queued.tradingPlan?.thesisConfidenceScore,
+      tradeabilityScoreAtDecision: input.queued.tradingPlan?.tradeabilityScore,
+      entryOffsetBps: input.queued.entryOffsetBps,
+      stopDistanceBps: input.queued.stopDistanceBps,
+      takeProfitRMultiple: input.queued.takeProfitRMultiple,
+      marketRegimeAtDecision: input.queued.marketIntelligence?.regime,
+      signalConfidenceScoreAtDecision: input.queued.marketIntelligence?.confidenceScore,
+      trendAlignmentScoreAtDecision: input.queued.marketIntelligence?.trendAlignmentScore,
+      move1mBpsAtDecision: input.queued.marketIntelligence?.move1mBps,
+      move5mBpsAtDecision: input.queued.marketIntelligence?.move5mBps,
+      move15mBpsAtDecision: input.queued.marketIntelligence?.move15mBps,
+      realizedVolatilityBpsAtDecision: input.queued.marketIntelligence?.realizedVolatilityBps,
+      spreadBpsAtDecision: input.queued.marketIntelligence?.spreadBps,
+      orderBookImbalancePctAtDecision: input.queued.marketIntelligence?.orderBookImbalancePct
     };
     upsertManagedTrade(managedTrade);
     await publish(
       createEvent(
         "OrderSubmitted",
         input.queued.symbol,
-        `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${input.queued.proposal.proposalId} managedTrade=${managedTrade.tradeId} approvalMode=${input.queued.approvalModeAtDecision} strategy=${input.queued.strategyVersion} policy=${input.queued.policyVersion}`,
-        "info",
-        [
-          "demo_execution",
-          "okx_demo",
-          `approval_mode:${input.queued.approvalModeAtDecision}`,
-          `strategy_version:${input.queued.strategyVersion}`,
-          `policy_version:${input.queued.policyVersion}`
-        ],
-        input.correlationId
-      )
-    );
-    await appendAudit(
-      "Demo order submitted",
-      `Approval ${input.approvedId} executed by ${input.actor}; ordId=${order.ordId} proposal=${input.queued.proposal.proposalId} approvalMode=${input.queued.approvalModeAtDecision} strategy=${input.queued.strategyVersion} policy=${input.queued.policyVersion}`,
-      input.queued.symbol,
-      "OrderSubmitted"
-    );
+            `Demo order submitted ordId=${order.ordId} clOrdId=${order.clOrdId} proposal=${input.queued.proposal.proposalId} managedTrade=${managedTrade.tradeId} approvalMode=${input.queued.approvalModeAtDecision} strategy=${input.queued.strategyVersion} policy=${input.queued.policyVersion}`,
+            "info",
+            [
+              "demo_execution",
+              "okx_demo",
+              `approval_mode:${input.queued.approvalModeAtDecision}`,
+              `strategy_version:${input.queued.strategyVersion}`,
+              `policy_version:${input.queued.policyVersion}`,
+              `playbook:${input.queued.tradingPlan?.playbookId ?? "unknown"}`
+            ],
+            input.correlationId
+          )
+        );
+      await appendAudit(
+        "Demo order submitted",
+        `Approval ${input.approvedId} executed by ${input.actor}; ordId=${order.ordId} proposal=${input.queued.proposal.proposalId} approvalMode=${input.queued.approvalModeAtDecision} strategy=${input.queued.strategyVersion} policy=${input.queued.policyVersion} playbook=${input.queued.tradingPlan?.playbookId ?? "unknown"}`,
+        input.queued.symbol,
+        "OrderSubmitted"
+      );
     await refreshExchangeStatus();
     return { ordId: order.ordId };
   }
@@ -2168,7 +3538,151 @@ export async function startMissionControlServer(
     const pendingByOrdId = new Set(input.pendingOrders.map((order) => order.ordId));
     const marketInputsCache = new Map<string, Awaited<ReturnType<typeof fetchSpotMarketInputs>>>();
     const markCache = new Map<string, number>();
+    const marketIntelligenceCache = new Map<string, WorkerMarketIntelligenceSnapshot | undefined>();
     const nowEpoch = Date.parse(input.nowIso);
+
+    async function loadMarketIntelligence(symbol: string): Promise<WorkerMarketIntelligenceSnapshot | undefined> {
+      if (marketIntelligenceCache.has(symbol)) {
+        return marketIntelligenceCache.get(symbol);
+      }
+      try {
+        const snapshot = await fetchMarketIntelligenceSnapshot(symbol, process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com");
+        const mapped: WorkerMarketIntelligenceSnapshot = {
+          regime: snapshot.regime,
+          confidenceScore: snapshot.confidenceScore,
+          trendAlignmentScore: snapshot.trendAlignmentScore,
+          recommendedSide: snapshot.recommendedSide,
+          recommendedEntryOffsetBps: snapshot.recommendedEntryOffsetBps,
+          move1mBps: snapshot.move1mBps,
+          move5mBps: snapshot.move5mBps,
+          move15mBps: snapshot.move15mBps,
+          realizedVolatilityBps: snapshot.realizedVolatilityBps,
+          spreadBps: snapshot.spreadBps,
+          orderBookImbalancePct: snapshot.orderBookImbalancePct,
+          continuationOverextended: snapshot.continuationOverextended,
+          projectedMoveBudgetBps: snapshot.projectedMoveBudgetBps
+        };
+        marketIntelligenceCache.set(symbol, mapped);
+        return mapped;
+      } catch {
+        marketIntelligenceCache.set(symbol, undefined);
+        return undefined;
+      }
+    }
+
+    async function amendLiveExitOrder(params: {
+      trade: ManagedTrade;
+      mark: number;
+      marketInputs: Awaited<ReturnType<typeof fetchSpotMarketInputs>> | undefined;
+      nowIso: string;
+      nowEpoch: number;
+    }): Promise<boolean> {
+      const { trade, mark, marketInputs, nowIso, nowEpoch } = params;
+      if (!trade.exitOrdId && !trade.exitClOrdId) {
+        return false;
+      }
+      const reason: ExitReason = trade.forcedFlattenEscalated ? "flatten" : trade.exitReason ?? "time_stop";
+      const exitSide: "buy" | "sell" = trade.entrySide === "buy" ? "sell" : "buy";
+      const nextRepriceCount = trade.exitRepriceCount + 1;
+      const offsetBps = resolveExitOffsetBps({ ...trade, exitRepriceCount: nextRepriceCount }, reason);
+      const offsetMultiplier = exitSide === "sell" ? 1 - offsetBps / 10_000 : 1 + offsetBps / 10_000;
+      let amendedPrice = round6(Math.max(0.00000001, mark * offsetMultiplier));
+      amendedPrice = clampExitPriceToBand(amendedPrice, exitSide, marketInputs);
+      if (marketInputs && Number.isFinite(marketInputs.tickSz) && marketInputs.tickSz > 0) {
+        amendedPrice = alignPriceToTick(amendedPrice, marketInputs.tickSz, exitSide);
+      }
+      amendedPrice = clampExitPriceToBand(amendedPrice, exitSide, marketInputs);
+      amendedPrice = round6(Math.max(0.00000001, amendedPrice));
+      const remainingQty = Math.max(0.00000001, round6(Math.min(trade.remainingQty, Math.max(0, trade.entryFilledQty - trade.exitFilledQty))));
+      const reqId = `${trade.tradeId}-amend-${nextRepriceCount}-${nowEpoch}`;
+
+      pushAutoExitDecisionTrace({
+        at: nowIso,
+        tradeId: trade.tradeId,
+        symbol: trade.symbol,
+        status: trade.status,
+        remainingQty: round6(trade.remainingQty),
+        mark: round6(mark),
+        reason,
+        action: "submit_attempt",
+        detail: `amend ordId=${trade.exitOrdId ?? "n/a"} forcedFlattenEscalated=${trade.forcedFlattenEscalated}`,
+        repriceCount: nextRepriceCount,
+        offsetBps,
+        limitPrice: amendedPrice,
+        exitQty: remainingQty
+      });
+
+      try {
+        const amended = await input.adapter.amendOrder({
+          instId: trade.symbol,
+          ordId: trade.exitOrdId,
+          clOrdId: trade.exitClOrdId,
+          newPx: amendedPrice,
+          newSz: remainingQty,
+          reqId
+        });
+        trade.exitOrdId = amended.ordId || trade.exitOrdId;
+        trade.exitClOrdId = amended.clOrdId || trade.exitClOrdId;
+        trade.exitReason = reason;
+        trade.exitRepriceCount = nextRepriceCount;
+        trade.exitSubmittedAt = nowIso;
+        trade.status = "exit_submitted";
+        trade.updatedAt = nowIso;
+        upsertManagedTrade(trade);
+        await publish(
+          createEvent(
+            "OrderSubmitted",
+            trade.symbol,
+            `Auto-exit amended tradeId=${trade.tradeId} reason=${reason} ordId=${trade.exitOrdId} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps}`,
+            "info",
+            ["managed_trade", "auto_exit", reason, "amend_order"]
+          )
+        );
+        await appendAudit(
+          "Auto-exit amended",
+          `tradeId=${trade.tradeId} reason=${reason} ordId=${trade.exitOrdId} limitPrice=${amendedPrice} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps}`,
+          trade.symbol,
+          "OrderSubmitted"
+        );
+        pushAutoExitDecisionTrace({
+          at: nowIso,
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          status: trade.status,
+          remainingQty: round6(trade.remainingQty),
+          mark: round6(mark),
+          reason,
+          action: "submit_ok",
+          detail: `amended ordId=${trade.exitOrdId}`,
+          repriceCount: trade.exitRepriceCount,
+          offsetBps,
+          limitPrice: amendedPrice,
+          exitQty: remainingQty
+        });
+        return true;
+      } catch (error: unknown) {
+        const detail = formatAutoExitErrorDetail(error);
+        const { transient } = classifyMissionControlSubmitFailure(error);
+        await upsertAlert({
+          code: transient ? "AUTO_EXIT_SUBMIT_RETRYING" : "AUTO_EXIT_CANCEL_FAILED",
+          severity: "warn",
+          source: "exchange",
+          title: transient ? "Auto-exit amend transient failure" : "Auto-exit amend failed",
+          detail: `tradeId=${trade.tradeId} reason=${reason} ${detail}`,
+          symbol: trade.symbol
+        });
+        await publish(
+          createEvent(
+            transient ? "System" : "Error",
+            trade.symbol,
+            `Auto-exit amend failed tradeId=${trade.tradeId} reason=${reason} ${detail}`,
+            "warn",
+            ["managed_trade", "auto_exit_amend_failed"]
+          )
+        );
+        return false;
+      }
+    }
 
     async function loadMarketInputs(symbol: string): Promise<Awaited<ReturnType<typeof fetchSpotMarketInputs>> | undefined> {
       const cached = marketInputsCache.get(symbol);
@@ -2193,6 +3707,125 @@ export async function startMissionControlServer(
       return round6(Math.max(tickSz, units * tickSz));
     }
 
+    function clampExitPriceToBand(
+      rawPrice: number,
+      side: "buy" | "sell",
+      marketInputs: Awaited<ReturnType<typeof fetchSpotMarketInputs>> | undefined
+    ): number {
+      let next = rawPrice;
+      const buyLmt = marketInputs?.buyLmt;
+      const sellLmt = marketInputs?.sellLmt;
+      if (side === "sell" && Number.isFinite(sellLmt)) {
+        next = Math.max(next, sellLmt as number);
+      }
+      if (side === "buy" && Number.isFinite(buyLmt)) {
+        next = Math.min(next, buyLmt as number);
+      }
+      if (Number.isFinite(buyLmt) && Number.isFinite(sellLmt) && (buyLmt as number) >= (sellLmt as number)) {
+        next = clamp(next, sellLmt as number, buyLmt as number);
+      }
+      return next;
+    }
+
+    function shouldAttemptManagedTradeEntryRefresh(
+      trade: ManagedTrade,
+      marketInputs: Awaited<ReturnType<typeof fetchSpotMarketInputs>> | undefined
+    ): boolean {
+      if (trade.entryFilledQty > 1e-9 || trade.entryRepriceCount >= entryMaxRepriceCount) {
+        return false;
+      }
+      if (!isContinuationRegimeAligned(trade)) {
+        return false;
+      }
+      if ((trade.signalConfidenceScoreAtDecision ?? 0) < entryRepriceMinConfidence) {
+        return false;
+      }
+      if (!marketInputs) {
+        return false;
+      }
+      return typeof trade.entryOffsetBps === "number" && Number.isFinite(trade.entryOffsetBps);
+    }
+
+    function resolveManagedTradeEntryRefreshPrice(
+      trade: ManagedTrade,
+      marketInputs: Awaited<ReturnType<typeof fetchSpotMarketInputs>>
+    ): number | undefined {
+      if (typeof trade.entryOffsetBps !== "number" || !Number.isFinite(trade.entryOffsetBps)) {
+        return undefined;
+      }
+      const originalOffsetBps = trade.entryOffsetBps;
+      const refreshedOffsetBps =
+        originalOffsetBps < 0 ? -Math.min(8, Math.max(1, Math.abs(originalOffsetBps) + 1)) : Math.max(0, originalOffsetBps - 2);
+      const { entryPrice } = computeSpotEntryPrice(marketInputs, trade.entrySide, refreshedOffsetBps);
+      return round6(Math.max(0.00000001, entryPrice));
+    }
+
+    async function amendLiveEntryOrder(params: {
+      trade: ManagedTrade;
+      marketInputs: Awaited<ReturnType<typeof fetchSpotMarketInputs>>;
+      nowIso: string;
+      nowEpoch: number;
+    }): Promise<boolean> {
+      const amendedPrice = resolveManagedTradeEntryRefreshPrice(params.trade, params.marketInputs);
+      if (!amendedPrice || (params.trade.entryLimitPrice && Math.abs(amendedPrice - params.trade.entryLimitPrice) < params.marketInputs.tickSz)) {
+        return false;
+      }
+      const reqId = `${params.trade.tradeId}-entry-amend-${params.trade.entryRepriceCount + 1}-${params.nowEpoch}`;
+      try {
+        const amended = await input.adapter.amendOrder({
+          instId: params.trade.symbol,
+          ordId: params.trade.entryOrdId,
+          clOrdId: params.trade.entryClOrdId,
+          newPx: amendedPrice,
+          reqId,
+          cxlOnFail: true
+        });
+        params.trade.entryOrdId = amended.ordId || params.trade.entryOrdId;
+        params.trade.entryClOrdId = amended.clOrdId || params.trade.entryClOrdId;
+        params.trade.entryLimitPrice = amendedPrice;
+        params.trade.entryRepriceCount += 1;
+        params.trade.entrySubmittedAt = params.nowIso;
+        params.trade.updatedAt = params.nowIso;
+        upsertManagedTrade(params.trade);
+        await publish(
+          createEvent(
+            "OrderSubmitted",
+            params.trade.symbol,
+            `Entry amended tradeId=${params.trade.tradeId} ordId=${params.trade.entryOrdId} entryRepriceCount=${params.trade.entryRepriceCount} limitPrice=${amendedPrice}`,
+            "warn",
+            ["managed_trade", "entry_reprice"]
+          )
+        );
+        await appendAudit(
+          "Entry amended",
+          `tradeId=${params.trade.tradeId} ordId=${params.trade.entryOrdId} limitPrice=${amendedPrice} entryRepriceCount=${params.trade.entryRepriceCount}`,
+          params.trade.symbol,
+          "OrderSubmitted"
+        );
+        return true;
+      } catch (error: unknown) {
+        const detail = formatAutoExitErrorDetail(error);
+        await upsertAlert({
+          code: "ENTRY_REPRICE_FAILED",
+          severity: "warn",
+          source: "exchange",
+          title: "Entry reprice failed",
+          detail: `tradeId=${params.trade.tradeId} ${detail}`,
+          symbol: params.trade.symbol
+        });
+        await publish(
+          createEvent(
+            "Error",
+            params.trade.symbol,
+            `Entry reprice failed tradeId=${params.trade.tradeId} ${detail}`,
+            "warn",
+            ["managed_trade", "entry_reprice_failed"]
+          )
+        );
+        return false;
+      }
+    }
+
     function extractOkxSCode(error: unknown): string | undefined {
       if (!(error instanceof OkxApiError)) {
         return undefined;
@@ -2213,109 +3846,256 @@ export async function startMissionControlServer(
       return undefined;
     }
 
+    function extractOkxSMsg(error: unknown): string | undefined {
+      if (!(error instanceof OkxApiError)) {
+        return undefined;
+      }
+      const details = (error.details ?? {}) as Record<string, unknown>;
+      const direct = details.sMsg;
+      if (typeof direct === "string" && direct.trim().length > 0) {
+        return direct.trim();
+      }
+      const data = details.data;
+      if (!Array.isArray(data) || data.length === 0) {
+        return undefined;
+      }
+      const first = data[0] as Record<string, unknown>;
+      if (typeof first.sMsg === "string" && first.sMsg.trim().length > 0) {
+        return first.sMsg.trim();
+      }
+      return undefined;
+    }
+
+    async function tryBandCorrectedExitSubmit(input: {
+      trade: ManagedTrade;
+      reason: ExitReason;
+      exitSide: "buy" | "sell";
+      limitPrice: number;
+      exitQty: number;
+      offsetBps: number;
+      marketInputs: Awaited<ReturnType<typeof fetchSpotMarketInputs>> | undefined;
+      adapter: OkxDemoAdapter;
+      nowIso: string;
+      repriceCount: number;
+      error: unknown;
+    }): Promise<boolean> {
+      const sCode = extractOkxSCode(input.error);
+      if (sCode !== "51138" && sCode !== "51137") {
+        return false;
+      }
+      const freshMarket = (await loadMarketInputs(input.trade.symbol)) ?? input.marketInputs;
+      const hintedLimit = parseOkxPriceBandHint(extractOkxSMsg(input.error));
+      let corrected = input.limitPrice;
+      if (input.exitSide === "sell") {
+        const floor = Math.max(freshMarket?.sellLmt ?? 0, hintedLimit ?? 0);
+        if (floor > 0) {
+          corrected = Math.max(corrected, floor);
+        }
+      } else {
+        const ceilingCandidates = [freshMarket?.buyLmt, hintedLimit].filter(
+          (value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0
+        );
+        const ceiling = ceilingCandidates.length > 0 ? Math.min(...ceilingCandidates) : undefined;
+        if (ceiling && ceiling > 0) {
+          corrected = Math.min(corrected, ceiling);
+        }
+      }
+      corrected = clampExitPriceToBand(corrected, input.exitSide, freshMarket);
+      if (freshMarket && Number.isFinite(freshMarket.tickSz) && freshMarket.tickSz > 0) {
+        corrected = alignPriceToTick(corrected, freshMarket.tickSz, input.exitSide);
+      }
+      corrected = round6(Math.max(0.00000001, clampExitPriceToBand(corrected, input.exitSide, freshMarket)));
+      if (!Number.isFinite(corrected) || corrected <= 0 || Math.abs(corrected - input.limitPrice) < 1e-9) {
+        return false;
+      }
+      const exitProposalId = `${input.trade.tradeId}-${input.reason}-${input.repriceCount}-band-${Date.parse(input.nowIso)}`;
+      const order = await input.adapter.placeSpotLimitOrder({
+        proposalId: exitProposalId,
+        symbol: input.trade.symbol,
+        side: input.exitSide,
+        qtyBase: input.exitQty,
+        limitPrice: corrected
+      });
+      input.trade.exitOrdId = order.ordId;
+      input.trade.exitClOrdId = order.clOrdId;
+      input.trade.exitReason = input.reason;
+      input.trade.status = "exit_submitted";
+      input.trade.exitSubmittedAt = input.nowIso;
+      input.trade.updatedAt = input.nowIso;
+      upsertManagedTrade(input.trade);
+      await publish(
+        createEvent(
+          "OrderSubmitted",
+          input.trade.symbol,
+          `Auto-exit submitted after band correction tradeId=${input.trade.tradeId} reason=${input.reason} ordId=${order.ordId} offsetBps=${input.offsetBps}`,
+          "warn",
+          ["managed_trade", "auto_exit", input.reason, "band_correction"]
+        )
+      );
+      await appendAudit(
+        "Auto-exit submitted after band correction",
+        `tradeId=${input.trade.tradeId} reason=${input.reason} ordId=${order.ordId} prevLimitPrice=${input.limitPrice} correctedLimitPrice=${corrected} offsetBps=${input.offsetBps}`,
+        input.trade.symbol,
+        "OrderSubmitted"
+      );
+      pushAutoExitDecisionTrace({
+        at: input.nowIso,
+        tradeId: input.trade.tradeId,
+        symbol: input.trade.symbol,
+        status: input.trade.status,
+        remainingQty: round6(input.trade.remainingQty),
+        mark: round6(freshMarket?.last ?? 0),
+        reason: input.reason,
+        action: "submit_ok",
+        detail: `band_corrected ordId=${order.ordId}`,
+        repriceCount: input.repriceCount,
+        offsetBps: input.offsetBps,
+        limitPrice: corrected,
+        exitQty: input.exitQty
+      });
+      return true;
+    }
+
     function resolveExitOffsetBps(trade: ManagedTrade, reason: ExitReason): number {
       const baseOffsetBps = trade.symbol === "SOL-USDT" ? Math.min(autoExitConfig.exitOffsetBps, solAutoExitOffsetBps) : autoExitConfig.exitOffsetBps;
       const forceFlattenFloorBps =
         trade.symbol === "SOL-USDT" ? Math.min(autoExitForceFlattenBps, solAutoExitForceFlattenBps) : autoExitForceFlattenBps;
-      if (reason === "flatten" || reason === "time_stop") {
-        return Math.min(autoExitMaxOffsetBps, Math.max(forceFlattenFloorBps, baseOffsetBps + trade.exitRepriceCount * 10));
-      }
-      if (trade.forcedFlattenEscalated) {
+      const exitSide: "buy" | "sell" = trade.entrySide === "buy" ? "sell" : "buy";
+      const orderType = resolveManagedTradeExitOrderType({
+        exitReason: reason,
+        exitRepriceCount: trade.exitRepriceCount,
+        forcedFlattenEscalated: trade.forcedFlattenEscalated,
+        exitSide
+      });
+      if (orderType === "ioc" || orderType === "market") {
         return Math.min(autoExitMaxOffsetBps, Math.max(forceFlattenFloorBps, baseOffsetBps + trade.exitRepriceCount * 10));
       }
       return Math.min(autoExitMaxOffsetBps, baseOffsetBps + trade.exitRepriceCount * 5);
     }
 
     function classifyTransientExitSubmitFailure(error: unknown): { transient: boolean; message: string } {
-      const message = error instanceof Error ? error.message : String(error);
-      if (error instanceof OkxApiError) {
-        if (error.code === "OKX_ORDER_REJECTED" || error.code === "OKX_CANCEL_INPUT_ERROR" || error.code === "OKX_CONFIG_ERROR") {
-          return { transient: false, message };
-        }
-        if (error.code === "OKX_NETWORK_ERROR") {
-          return { transient: true, message };
-        }
-        if (error.code === "OKX_HTTP_ERROR") {
-          const status = Number((error.details ?? {}).status);
-          if (status === 408 || status === 425 || status === 429 || status >= 500) {
-            return { transient: true, message };
-          }
-        }
-      }
-      const normalized = message.toLowerCase();
-      if (
-        normalized.includes("fetch failed") ||
-        normalized.includes("network") ||
-        normalized.includes("timeout")
-      ) {
-        return { transient: true, message };
-      }
-      return { transient: false, message };
+      return classifyMissionControlSubmitFailure(error);
     }
 
     function formatAutoExitErrorDetail(error: unknown): string {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!(error instanceof OkxApiError)) {
-        return `error=${message}`;
-      }
-      const details = (error.details ?? {}) as Record<string, unknown>;
-      const status = typeof details.status === "number" ? details.status : undefined;
-      const apiCodeRaw = details.code;
-      const apiCode =
-        typeof apiCodeRaw === "string" || typeof apiCodeRaw === "number" ? String(apiCodeRaw) : undefined;
-      const apiMsgRaw = details.msg;
-      const apiMsg = typeof apiMsgRaw === "string" ? apiMsgRaw : undefined;
-      const sCodeRaw = details.sCode;
-      const sCode =
-        typeof sCodeRaw === "string" || typeof sCodeRaw === "number"
-          ? String(sCodeRaw)
-          : Array.isArray(details.data) &&
-            details.data.length > 0 &&
-            (typeof (details.data[0] as Record<string, unknown>).sCode === "string" ||
-              typeof (details.data[0] as Record<string, unknown>).sCode === "number")
-          ? String((details.data[0] as Record<string, unknown>).sCode)
-          : undefined;
-      const sMsgRaw = details.sMsg;
-      const sMsg =
-        typeof sMsgRaw === "string"
-          ? sMsgRaw
-          : Array.isArray(details.data) &&
-            details.data.length > 0 &&
-            typeof (details.data[0] as Record<string, unknown>).sMsg === "string"
-          ? String((details.data[0] as Record<string, unknown>).sMsg)
-          : undefined;
-      const parts = [`error=${message}`, `okxCode=${error.code}`];
-      if (status !== undefined) {
-        parts.push(`httpStatus=${status}`);
-      }
-      if (apiCode) {
-        parts.push(`apiCode=${apiCode}`);
-      }
-      if (apiMsg) {
-        parts.push(`apiMsg=${apiMsg}`);
-      }
-      if (sCode) {
-        parts.push(`sCode=${sCode}`);
-      }
-      if (sMsg) {
-        parts.push(`sMsg=${sMsg}`);
-      }
-      return parts.join(" ");
+      return formatMissionControlOkxErrorDetail(error);
     }
 
     for (const trade of managedTrades.values()) {
       if (trade.status === "closed") {
         continue;
       }
+      const marketInputs = await loadMarketInputs(trade.symbol);
+      const hasSubmittedEntryOrder = Boolean(trade.entryOrdId || trade.entryClOrdId);
       const entryStats = fillStatsForOrder(input.fills, trade.entryOrdId);
       if (entryStats.qty > 0) {
+        if (!trade.entryFirstFilledAt) {
+          trade.entryFirstFilledAt = input.nowIso;
+        }
         trade.entryFilledQty = entryStats.qty;
         trade.entryAvgPrice = entryStats.avgPrice;
         trade.status = entryStats.qty + 1e-9 < trade.requestedQty ? "entry_partially_filled" : "entry_filled";
-        // Never allow pending exit quantity to exceed what has actually filled.
-        trade.remainingQty = Math.max(0, round6(Math.min(trade.remainingQty, trade.entryFilledQty)));
-      } else if (trade.status === "planned") {
+        trade.remainingQty = Math.max(0, round6(trade.entryFilledQty - trade.exitFilledQty));
+      } else if (trade.status === "planned" && hasSubmittedEntryOrder) {
         trade.status = "entry_submitted";
+      }
+
+      const entryAging = evaluateManagedTradeEntryAging({
+        status: trade.status,
+        requestedQty: trade.requestedQty,
+        entryFilledQty: trade.entryFilledQty,
+        submittedAt: trade.entrySubmittedAt ?? trade.createdAt,
+        nowIso: input.nowIso,
+        hasSubmittedOrder: hasSubmittedEntryOrder,
+        isPendingAtVenue: pendingByOrdId.has(trade.entryOrdId),
+        staleTimeoutSec: entryStaleTimeoutSec
+      });
+      if (entryAging.action === "mark_canceled") {
+        trade.status = "canceled";
+        trade.remainingQty = 0;
+        trade.updatedAt = input.nowIso;
+        upsertManagedTrade(trade);
+        await publish(
+          createEvent(
+            "OrderCancelled",
+            trade.symbol,
+            `Entry order no longer pending; marking canceled tradeId=${trade.tradeId} ordId=${trade.entryOrdId}`,
+            "warn",
+            ["managed_trade", "entry_cancelled"]
+          )
+        );
+        await appendAudit(
+          "Entry order marked canceled",
+          `tradeId=${trade.tradeId} ordId=${trade.entryOrdId} elapsedSec=${round6(entryAging.elapsedSec)}`,
+          trade.symbol,
+          "OrderCancelled"
+        );
+        continue;
+      }
+      if (entryAging.action === "cancel_unfilled" || entryAging.action === "cancel_remainder") {
+        if (
+          entryAging.action === "cancel_unfilled" &&
+          shouldAttemptManagedTradeEntryRefresh(trade, marketInputs) &&
+          (await amendLiveEntryOrder({
+            trade,
+            marketInputs: marketInputs as Awaited<ReturnType<typeof fetchSpotMarketInputs>>,
+            nowIso: input.nowIso,
+            nowEpoch
+          }))
+        ) {
+          continue;
+        }
+        try {
+          await input.adapter.cancelOrder({
+            instId: trade.symbol,
+            ordId: trade.entryOrdId,
+            clOrdId: trade.entryClOrdId
+          });
+          if (entryAging.action === "cancel_remainder" && trade.entryFilledQty > 0) {
+            trade.status = "entry_filled";
+            trade.remainingQty = Math.max(0, round6(Math.min(trade.remainingQty, trade.entryFilledQty)));
+          } else {
+            trade.status = "canceled";
+            trade.remainingQty = 0;
+          }
+          trade.updatedAt = input.nowIso;
+          upsertManagedTrade(trade);
+          await publish(
+            createEvent(
+              "OrderCancelled",
+              trade.symbol,
+              `Entry stale cancel tradeId=${trade.tradeId} action=${entryAging.action} elapsedSec=${round6(entryAging.elapsedSec)}`,
+              "warn",
+              ["managed_trade", "entry_stale_cancel", entryAging.action]
+            )
+          );
+          await appendAudit(
+            "Entry stale cancel",
+            `tradeId=${trade.tradeId} action=${entryAging.action} ordId=${trade.entryOrdId} elapsedSec=${round6(entryAging.elapsedSec)}`,
+            trade.symbol,
+            "OrderCancelled"
+          );
+        } catch (error: unknown) {
+          const detail = formatAutoExitErrorDetail(error);
+          await upsertAlert({
+            code: "ENTRY_STALE_CANCEL_FAILED",
+            severity: "warn",
+            source: "exchange",
+            title: "Entry stale cancel failed",
+            detail: `tradeId=${trade.tradeId} action=${entryAging.action} ${detail}`,
+            symbol: trade.symbol
+          });
+          await publish(
+            createEvent(
+              "Error",
+              trade.symbol,
+              `Entry stale cancel failed tradeId=${trade.tradeId} action=${entryAging.action} ${detail}`,
+              "warn",
+              ["managed_trade", "entry_stale_cancel_failed"]
+            )
+          );
+        }
+        continue;
       }
 
       if (trade.exitOrdId) {
@@ -2354,10 +4134,59 @@ export async function startMissionControlServer(
             "OrderFilled"
           );
         } else if (!pendingByOrdId.has(trade.exitOrdId)) {
-          trade.status = "exit_pending";
+          const exitSide: "buy" | "sell" = trade.entrySide === "buy" ? "sell" : "buy";
+          const currentOrdType = resolveManagedTradeExitOrderType({
+            exitReason: trade.exitReason,
+            exitRepriceCount: trade.exitRepriceCount,
+            forcedFlattenEscalated: trade.forcedFlattenEscalated,
+            exitSide
+          });
+          const submittedEpoch = trade.exitSubmittedAt ? Date.parse(trade.exitSubmittedAt) : Number.NaN;
+          const treatAsMissedNonRestingExit =
+            (currentOrdType === "ioc" || currentOrdType === "market") &&
+            Number.isFinite(nowEpoch) &&
+            Number.isFinite(submittedEpoch) &&
+            nowEpoch - submittedEpoch >= NON_RESTING_EXIT_MISS_GRACE_MS;
           trade.exitOrdId = undefined;
           trade.exitClOrdId = undefined;
           trade.exitSubmittedAt = undefined;
+          if (treatAsMissedNonRestingExit) {
+            trade.exitRepriceCount += 1;
+            if (trade.exitRepriceCount > autoExitMaxReprices) {
+              trade.forcedFlattenEscalated = true;
+              trade.exitReason = "flatten";
+            }
+            trade.status = "exit_pending";
+            await publish(
+              createEvent(
+                "OrderCancelled",
+                trade.symbol,
+                `Auto-exit non-resting order missed tradeId=${trade.tradeId} ordType=${currentOrdType} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
+                "warn",
+                ["managed_trade", "auto_exit", "non_resting_miss"]
+              )
+            );
+            await appendAudit(
+              "Auto-exit non-resting order missed",
+              `tradeId=${trade.tradeId} ordType=${currentOrdType} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
+              trade.symbol,
+              "OrderCancelled"
+            );
+            pushAutoExitDecisionTrace({
+              at: input.nowIso,
+              tradeId: trade.tradeId,
+              symbol: trade.symbol,
+              status: trade.status,
+              remainingQty: round6(trade.remainingQty),
+              mark: 0,
+              reason: trade.exitReason,
+              action: "submit_retry",
+              detail: `non_resting_miss ordType=${currentOrdType}`,
+              repriceCount: trade.exitRepriceCount
+            });
+          } else {
+            trade.status = "exit_pending";
+          }
         } else {
           const submittedEpoch = trade.exitSubmittedAt ? Date.parse(trade.exitSubmittedAt) : Number.NaN;
           const isStale =
@@ -2366,12 +4195,31 @@ export async function startMissionControlServer(
             nowEpoch - submittedEpoch >= autoExitStaleTimeoutSec * 1000;
           if (isStale) {
             try {
+              if (
+                shouldAttemptAmendLiveExitOrder({
+                  exitReason: trade.exitReason,
+                  exitRepriceCount: trade.exitRepriceCount,
+                  forcedFlattenEscalated: trade.forcedFlattenEscalated,
+                  exitSide: trade.entrySide === "buy" ? "sell" : "buy"
+                })
+              ) {
+                const amended = await amendLiveExitOrder({
+                  trade,
+                  mark: marketInputs?.last ?? trade.entryAvgPrice,
+                  marketInputs,
+                  nowIso: input.nowIso,
+                  nowEpoch
+                });
+                if (amended) {
+                  continue;
+                }
+              }
+
               await input.adapter.cancelOrder({
                 instId: trade.symbol,
                 ordId: trade.exitOrdId,
                 clOrdId: trade.exitClOrdId
               });
-              trade.status = "exit_pending";
               trade.exitOrdId = undefined;
               trade.exitClOrdId = undefined;
               trade.exitSubmittedAt = undefined;
@@ -2380,21 +4228,74 @@ export async function startMissionControlServer(
                 trade.forcedFlattenEscalated = true;
                 trade.exitReason = "flatten";
               }
-              await publish(
-                createEvent(
-                  "OrderCancelled",
+              const staleCancelAction = evaluateAutoExitStaleCancelAction({
+                exitRepriceCount: trade.exitRepriceCount,
+                autoExitMaxReprices,
+                forcedFlattenEscalated: trade.forcedFlattenEscalated,
+                exitReason: trade.exitReason
+              });
+              if (staleCancelAction === "force_close") {
+                const staleQty = Math.max(0, round6(trade.remainingQty));
+                trade.remainingQty = 0;
+                trade.status = "closed";
+                trade.closedAt = input.nowIso;
+                trade.exitReason = "flatten";
+                trade.updatedAt = input.nowIso;
+                upsertManagedTrade(trade);
+                persistClosedTradeFeature(trade, input.nowIso);
+                pushAutoExitDecisionTrace({
+                  at: input.nowIso,
+                  tradeId: trade.tradeId,
+                  symbol: trade.symbol,
+                  status: trade.status,
+                  remainingQty: staleQty,
+                  mark: 0,
+                  reason: "flatten",
+                  action: "stale_forced_closed",
+                  detail: `after_stale_cancel repriceCount=${trade.exitRepriceCount}`,
+                  repriceCount: trade.exitRepriceCount
+                });
+                await upsertAlert({
+                  code: "AUTO_EXIT_STALE_FORCED_CLOSED",
+                  severity: "warn",
+                  source: "system",
+                  title: "Auto-exit stale trade forced closed",
+                  detail: `tradeId=${trade.tradeId} qty=${staleQty} after_stale_cancel repriceCount=${trade.exitRepriceCount}`,
+                  symbol: trade.symbol
+                });
+                await publish(
+                  createEvent(
+                    "OrderFilled",
+                    trade.symbol,
+                    `Managed trade stale forced-closed tradeId=${trade.tradeId} reason=flatten qty=${staleQty} after_stale_cancel`,
+                    "warn",
+                    ["managed_trade", "auto_exit_stale_forced_closed"]
+                  )
+                );
+                await appendAudit(
+                  "Managed trade stale forced-closed",
+                  `tradeId=${trade.tradeId} reason=flatten qty=${staleQty} after_stale_cancel repriceCount=${trade.exitRepriceCount}`,
                   trade.symbol,
-                  `Auto-exit stale cancel tradeId=${trade.tradeId} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
-                  "warn",
-                  ["managed_trade", "auto_exit", "stale_cancel"]
-                )
-              );
-              await appendAudit(
-                "Auto-exit stale cancel",
-                `tradeId=${trade.tradeId} staleTimeoutSec=${autoExitStaleTimeoutSec} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
-                trade.symbol,
-                "OrderCancelled"
-              );
+                  "OrderFilled"
+                );
+              } else {
+                trade.status = "exit_pending";
+                await publish(
+                  createEvent(
+                    "OrderCancelled",
+                    trade.symbol,
+                    `Auto-exit stale cancel tradeId=${trade.tradeId} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
+                    "warn",
+                    ["managed_trade", "auto_exit", "stale_cancel"]
+                  )
+                );
+                await appendAudit(
+                  "Auto-exit stale cancel",
+                  `tradeId=${trade.tradeId} staleTimeoutSec=${autoExitStaleTimeoutSec} repriceCount=${trade.exitRepriceCount} forcedFlatten=${trade.forcedFlattenEscalated}`,
+                  trade.symbol,
+                  "OrderCancelled"
+                );
+              }
             } catch (error: unknown) {
               const detail = formatAutoExitErrorDetail(error);
               await upsertAlert({
@@ -2431,17 +4332,16 @@ export async function startMissionControlServer(
       if (trade.status === "closed" || trade.entryFilledQty <= 0 || trade.remainingQty <= 1e-9 || trade.exitOrdId) {
         continue;
       }
-      let mark =
-        input.marksBySymbol.get(trade.symbol) ??
-        markCache.get(trade.symbol) ??
-        (trade.entryAvgPrice > 0 ? trade.entryAvgPrice : undefined);
       const marketInputs = await loadMarketInputs(trade.symbol);
       if (marketInputs?.last && marketInputs.last > 0) {
         markCache.set(trade.symbol, marketInputs.last);
-        if (mark === undefined || mark <= 0) {
-          mark = marketInputs.last;
-        }
       }
+      let mark = resolveManagedTradeMark({
+        streamMark: input.marksBySymbol.get(trade.symbol),
+        marketLast: marketInputs?.last,
+        cachedLast: markCache.get(trade.symbol),
+        fallbackEntryAvgPrice: trade.entryAvgPrice > 0 ? trade.entryAvgPrice : undefined
+      });
       if (mark === undefined || mark <= 0) {
         try {
           const market = await fetchSpotMarketInputs(trade.symbol, process.env.OKX_DEMO_BASE_URL ?? "https://www.okx.com");
@@ -2452,15 +4352,27 @@ export async function startMissionControlServer(
         }
       }
 
-      const createdEpoch = Date.parse(trade.createdAt);
-      const elapsedSec = Number.isFinite(createdEpoch) && Number.isFinite(nowEpoch) ? (nowEpoch - createdEpoch) / 1000 : 0;
-      const staleEscalatedClosureSec = trade.maxHoldSec + autoExitStaleTimeoutSec * Math.max(3, autoExitMaxReprices);
+      const holdStartEpoch = Date.parse(resolveManagedTradeHoldStartIso(trade));
+      const elapsedSec = Number.isFinite(holdStartEpoch) && Number.isFinite(nowEpoch) ? (nowEpoch - holdStartEpoch) / 1000 : 0;
+      // Keep forced-closure escalation intentionally slower than reprice cadence to avoid churn.
+      const staleEscalatedClosureSec = trade.maxHoldSec + autoExitStaleTimeoutSec * Math.max(10, autoExitMaxReprices * 2);
       const staleEscalatedClosureEligible =
         (trade.status === "exit_pending" || trade.status === "error") &&
         trade.forcedFlattenEscalated &&
         elapsedSec >= staleEscalatedClosureSec;
       if (staleEscalatedClosureEligible) {
         const staleQty = Math.max(0, round6(trade.remainingQty));
+        pushAutoExitDecisionTrace({
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          status: trade.status,
+          remainingQty: staleQty,
+          mark: round6(mark),
+          reason: "flatten",
+          action: "stale_forced_closed",
+          detail: `elapsedSec=${round6(elapsedSec)} thresholdSec=${staleEscalatedClosureSec}`,
+          repriceCount: trade.exitRepriceCount
+        });
         trade.remainingQty = 0;
         trade.status = "closed";
         trade.closedAt = input.nowIso;
@@ -2500,23 +4412,53 @@ export async function startMissionControlServer(
       const timeTriggered = elapsedSec >= trade.maxHoldSec;
       const stopTriggered = trade.entrySide === "buy" ? mark <= trade.stopPrice : mark >= trade.stopPrice;
       const tpTriggered = trade.entrySide === "buy" ? mark >= trade.takeProfitPrice : mark <= trade.takeProfitPrice;
+      const thesisMonitor =
+        !trade.exitReason && !stopTriggered && !tpTriggered
+          ? monitorTradeThesis({
+              symbol: trade.symbol,
+              entrySide: trade.entrySide,
+              playbookId: trade.playbookIdAtDecision as TradingTradePlan["playbookId"] | undefined,
+              currentSymbolIntelligence: await loadMarketIntelligence(trade.symbol),
+              currentBtcIntelligence: trade.symbol === "ETH-USDT" ? await loadMarketIntelligence("BTC-USDT") : undefined
+            })
+          : undefined;
+      const thesisTriggered = thesisMonitor?.action === "flatten" && !thesisMonitor.healthy;
 
       let reason: ExitReason | undefined;
       if (trade.forcedFlattenEscalated) {
         reason = "flatten";
       } else if (trade.exitReason && (trade.status === "exit_pending" || trade.status === "error")) {
         reason = trade.exitReason;
-      } else if (flattenTriggered) {
-        reason = "flatten";
-      } else if (timeTriggered) {
-        reason = "time_stop";
       } else if (stopTriggered) {
         reason = "stop_loss";
       } else if (tpTriggered) {
         reason = "take_profit";
+      } else if (flattenTriggered) {
+        reason = "flatten";
+      } else if (thesisTriggered) {
+        reason = "flatten";
+      } else if (timeTriggered) {
+        reason = "time_stop";
       }
       if (!reason) {
         continue;
+      }
+      if (thesisTriggered) {
+        await publish(
+          createEvent(
+            "System",
+            trade.symbol,
+            thesisMonitor?.reason ?? `Thesis monitor invalidated ${trade.tradeId}.`,
+            "warn",
+            ["managed_trade", "thesis_monitor", "flatten"]
+          )
+        );
+        await appendAudit(
+          "Trade thesis invalidated",
+          `tradeId=${trade.tradeId} playbook=${trade.playbookIdAtDecision ?? "unknown"} ${thesisMonitor?.reason ?? ""}`.trim(),
+          trade.symbol,
+          "System"
+        );
       }
 
       if (trade.exitRepriceCount > autoExitMaxReprices) {
@@ -2525,43 +4467,47 @@ export async function startMissionControlServer(
       }
 
       const exitSide: "buy" | "sell" = trade.entrySide === "buy" ? "sell" : "buy";
+      const ordType = resolveManagedTradeExitOrderType({
+        exitReason: reason,
+        exitRepriceCount: trade.exitRepriceCount,
+        forcedFlattenEscalated: trade.forcedFlattenEscalated,
+        exitSide
+      });
       const offsetBps = resolveExitOffsetBps(trade, reason);
       const offsetMultiplier = exitSide === "sell" ? 1 - offsetBps / 10_000 : 1 + offsetBps / 10_000;
       let limitPrice = round6(Math.max(0.00000001, mark * offsetMultiplier));
-      if (
-        marketInputs &&
-        Number.isFinite(marketInputs.buyLmt) &&
-        Number.isFinite(marketInputs.sellLmt) &&
-        marketInputs.buyLmt !== undefined &&
-        marketInputs.sellLmt !== undefined &&
-        marketInputs.buyLmt >= marketInputs.sellLmt
-      ) {
-        limitPrice = Math.max(marketInputs.sellLmt, Math.min(marketInputs.buyLmt, limitPrice));
-      }
+      limitPrice = clampExitPriceToBand(limitPrice, exitSide, marketInputs);
       if (marketInputs && Number.isFinite(marketInputs.tickSz) && marketInputs.tickSz > 0) {
         limitPrice = alignPriceToTick(limitPrice, marketInputs.tickSz, exitSide);
       }
-      if (
-        marketInputs &&
-        Number.isFinite(marketInputs.buyLmt) &&
-        Number.isFinite(marketInputs.sellLmt) &&
-        marketInputs.buyLmt !== undefined &&
-        marketInputs.sellLmt !== undefined &&
-        marketInputs.buyLmt >= marketInputs.sellLmt
-      ) {
-        limitPrice = Math.max(marketInputs.sellLmt, Math.min(marketInputs.buyLmt, limitPrice));
-      }
+      limitPrice = clampExitPriceToBand(limitPrice, exitSide, marketInputs);
       limitPrice = round6(Math.max(0.00000001, limitPrice));
       const exitQty = Math.max(0.00000001, round6(Math.min(trade.remainingQty, Math.max(0, trade.entryFilledQty - trade.exitFilledQty))));
       // Use unique proposal IDs per retry attempt to avoid clOrdId collisions on repeated exit submissions.
       const exitProposalId = `${trade.tradeId}-${reason}-${trade.exitRepriceCount}-${Date.parse(input.nowIso)}`;
+      pushAutoExitDecisionTrace({
+        at: input.nowIso,
+        tradeId: trade.tradeId,
+        symbol: trade.symbol,
+        status: trade.status,
+        remainingQty: round6(trade.remainingQty),
+        mark: round6(mark),
+        reason,
+        action: "submit_attempt",
+        detail: `forcedFlattenEscalated=${trade.forcedFlattenEscalated} ordType=${ordType}`,
+        repriceCount: trade.exitRepriceCount,
+        offsetBps,
+        limitPrice,
+        exitQty
+      });
       try {
         const order = await input.adapter.placeSpotLimitOrder({
           proposalId: exitProposalId,
           symbol: trade.symbol,
           side: exitSide,
           qtyBase: exitQty,
-          limitPrice
+          limitPrice,
+          ordType
         });
         trade.exitOrdId = order.ordId;
         trade.exitClOrdId = order.clOrdId;
@@ -2574,19 +4520,50 @@ export async function startMissionControlServer(
           createEvent(
             "OrderSubmitted",
             trade.symbol,
-            `Auto-exit submitted tradeId=${trade.tradeId} reason=${reason} ordId=${order.ordId} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps}`,
+            `Auto-exit submitted tradeId=${trade.tradeId} reason=${reason} ordId=${order.ordId} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps} ordType=${ordType}`,
             "info",
             ["managed_trade", "auto_exit", reason]
           )
         );
         await appendAudit(
           "Auto-exit submitted",
-          `tradeId=${trade.tradeId} reason=${reason} ordId=${order.ordId} limitPrice=${limitPrice} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps}`,
+          `tradeId=${trade.tradeId} reason=${reason} ordId=${order.ordId} limitPrice=${limitPrice} repriceCount=${trade.exitRepriceCount} offsetBps=${offsetBps} ordType=${ordType}`,
           trade.symbol,
           "OrderSubmitted"
         );
+        pushAutoExitDecisionTrace({
+          at: input.nowIso,
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          status: trade.status,
+          remainingQty: round6(trade.remainingQty),
+          mark: round6(mark),
+          reason,
+          action: "submit_ok",
+          detail: `ordId=${order.ordId} ordType=${ordType}`,
+          repriceCount: trade.exitRepriceCount,
+          offsetBps,
+          limitPrice,
+          exitQty
+        });
       } catch (error: unknown) {
         const detail = formatAutoExitErrorDetail(error);
+        const bandCorrected = await tryBandCorrectedExitSubmit({
+          trade,
+          reason,
+          exitSide,
+          limitPrice,
+          exitQty,
+          offsetBps,
+          marketInputs,
+          adapter: input.adapter,
+          nowIso: input.nowIso,
+          repriceCount: trade.exitRepriceCount,
+          error
+        });
+        if (bandCorrected) {
+          continue;
+        }
         const { transient, message } = classifyTransientExitSubmitFailure(error);
         if (transient) {
           trade.exitReason = reason;
@@ -2610,6 +4587,21 @@ export async function startMissionControlServer(
               ["managed_trade", "auto_exit_retry"]
             )
           );
+          pushAutoExitDecisionTrace({
+            at: input.nowIso,
+            tradeId: trade.tradeId,
+            symbol: trade.symbol,
+            status: trade.status,
+            remainingQty: round6(trade.remainingQty),
+            mark: round6(mark),
+            reason,
+            action: "submit_retry",
+            detail,
+            repriceCount: trade.exitRepriceCount,
+            offsetBps,
+            limitPrice,
+            exitQty
+          });
           continue;
         }
         const sCode = extractOkxSCode(error);
@@ -2631,6 +4623,20 @@ export async function startMissionControlServer(
           trade.updatedAt = input.nowIso;
           upsertManagedTrade(trade);
           persistClosedTradeFeature(trade, input.nowIso);
+          pushAutoExitDecisionTrace({
+            at: input.nowIso,
+            tradeId: trade.tradeId,
+            symbol: trade.symbol,
+            status: trade.status,
+            remainingQty: currentQty,
+            mark: round6(mark),
+            reason: "flatten",
+            action: "min_size_closed",
+            detail,
+            repriceCount: trade.exitRepriceCount,
+            limitPrice,
+            exitQty
+          });
           await upsertAlert({
             code: "AUTO_EXIT_MIN_SIZE_CLOSED",
             severity: "warn",
@@ -2702,6 +4708,20 @@ export async function startMissionControlServer(
             trade.updatedAt = input.nowIso;
             upsertManagedTrade(trade);
             persistClosedTradeFeature(trade, input.nowIso);
+            pushAutoExitDecisionTrace({
+              at: input.nowIso,
+              tradeId: trade.tradeId,
+              symbol: trade.symbol,
+              status: trade.status,
+              remainingQty: currentQty,
+              mark: round6(mark),
+              reason: "flatten",
+              action: "forced_closed",
+              detail,
+              repriceCount: trade.exitRepriceCount,
+              limitPrice,
+              exitQty
+            });
             await upsertAlert({
               code: "AUTO_EXIT_FORCED_CLOSED",
               severity: "warn",
@@ -2738,6 +4758,20 @@ export async function startMissionControlServer(
             trade.updatedAt = input.nowIso;
             upsertManagedTrade(trade);
             persistClosedTradeFeature(trade, input.nowIso);
+            pushAutoExitDecisionTrace({
+              at: input.nowIso,
+              tradeId: trade.tradeId,
+              symbol: trade.symbol,
+              status: trade.status,
+              remainingQty: currentQty,
+              mark: round6(mark),
+              reason: "flatten",
+              action: "dust_closed",
+              detail,
+              repriceCount: trade.exitRepriceCount,
+              limitPrice,
+              exitQty
+            });
             await upsertAlert({
               code: "AUTO_EXIT_DUST_CLOSED",
               severity: "warn",
@@ -2789,6 +4823,21 @@ export async function startMissionControlServer(
             ["managed_trade", "auto_exit_error"]
           )
         );
+        pushAutoExitDecisionTrace({
+          at: input.nowIso,
+          tradeId: trade.tradeId,
+          symbol: trade.symbol,
+          status: trade.status,
+          remainingQty: round6(trade.remainingQty),
+          mark: round6(mark),
+          reason,
+          action: "submit_failed",
+          detail,
+          repriceCount: trade.exitRepriceCount,
+          offsetBps,
+          limitPrice,
+          exitQty
+        });
       }
     }
   }
@@ -3217,19 +5266,34 @@ export async function startMissionControlServer(
 
   async function clearStreamsAndLogs(): Promise<ClearStreamsResult> {
     const eventsDeleted = eventStore.clearAll();
-    const { auditDeleted, incidentsDeleted } = opsStore.clearAllOps();
+    const { auditDeleted, incidentsDeleted } = opsStore.clearTransientOps();
+    const alertsDeleted = await alertStore.clearAll();
     const logsCleared = lifecycle.logs.length;
     lifecycle.logs.length = 0;
     lifecycle.audit.length = 0;
     inMemoryEvents = [];
+    inMemoryAlerts = [];
     inMemoryIncidents = [];
+    autoExitDecisionTrace.length = 0;
+    pendingDemoOrders.clear();
+    approvals.clear();
     managedTrades.clear();
+    entryAutonomyStatus.fallbackActive = false;
+    entryAutonomyStatus.lastFallbackAt = undefined;
+    entryAutonomyStatus.lastFallbackReason = undefined;
+    entryAutonomyStatus.lastPolicyAutoDecisionAt = undefined;
+    entryAutonomyStatus.lastPolicyAutoBlockers = [];
+    persistEntryAutonomyState();
+    autoPauseState.active = false;
+    autoPauseState.resumeAt = undefined;
+    persistAutoPauseState();
+    metrics.openAlerts = 0;
     metrics.openIncidents = 0;
     return {
       eventsDeleted,
       auditDeleted,
       incidentsDeleted,
-      logsCleared
+      logsCleared: logsCleared + alertsDeleted
     };
   }
 
@@ -3378,6 +5442,176 @@ export async function startMissionControlServer(
         tradeErrors: today.tradeErrors
       },
       days: days.slice(0, 30)
+    };
+  }
+
+  async function buildRolloutStatusSummary(nowIso: string): Promise<RolloutStatusSummary> {
+    const evidence = await buildMilestone5EvidenceSummary(nowIso);
+    const openCriticalAlertCodes = new Set(
+      inMemoryAlerts.filter((item) => item.status === "open").map((item) => item.code)
+    );
+    const latestEvidenceDay = evidence.days[0]?.day;
+    const demoReadiness = evaluateDemoPolicyAutoReadiness(evidence, nowIso);
+    const latestPassingEvidenceDay = demoReadiness.latestPassingEvidenceDay;
+    const ageDays = demoReadiness.latestEvidenceAgeDays;
+    const fresh = demoReadiness.fresh;
+
+    const confidenceResetReasons: string[] = [];
+    if (entryAutonomyStatus.fallbackActive) {
+      confidenceResetReasons.push(
+        entryAutonomyStatus.lastFallbackReason
+          ? `Approval fallback active: ${entryAutonomyStatus.lastFallbackReason}`
+          : "Approval fallback is active."
+      );
+    }
+    if (evidence.today.filledEntries > 0 && evidence.today.closureRatePct < 95) {
+      confidenceResetReasons.push(
+        `Deterministic closure below threshold today: ${evidence.today.deterministicClosed}/${evidence.today.filledEntries} (${evidence.today.closureRatePct.toFixed(2)}%).`
+      );
+    }
+    if (!evidence.today.reconciliationPass) {
+      confidenceResetReasons.push("Reconciliation is not fully OK.");
+    }
+    if (evidence.today.tradeErrors > 0) {
+      confidenceResetReasons.push(`Managed trade errors today: ${evidence.today.tradeErrors}.`);
+    }
+    if (openCriticalAlertCodes.has("APPROVAL_MODE_FALLBACK")) {
+      confidenceResetReasons.push("Open APPROVAL_MODE_FALLBACK alert.");
+    }
+    if (openCriticalAlertCodes.has("AUTO_EXIT_SUBMIT_FAILED")) {
+      confidenceResetReasons.push("Open AUTO_EXIT_SUBMIT_FAILED alert.");
+    }
+    if (openCriticalAlertCodes.has("RECONCILIATION_DRIFT_CIRCUIT")) {
+      confidenceResetReasons.push("Open RECONCILIATION_DRIFT_CIRCUIT alert.");
+    }
+
+    const confidenceResetActive = confidenceResetReasons.length > 0;
+    const effectiveQualifiedDays = confidenceResetActive ? 0 : demoReadiness.qualifiedDays;
+    const snapshotMode = lifecycle.getSnapshotState().mode;
+
+    let currentStage: RolloutStatusSummary["currentStage"] = {
+      id: "phase0_reset_and_stabilize",
+      label: "Phase 0: Reset and Stabilize",
+      objective: "Restore deterministic closure and make fresh demo evidence mandatory."
+    };
+    if (!confidenceResetActive) {
+      if (snapshotMode === "live" && entryAutonomyConfig.approvalMode === "policy_auto") {
+        currentStage = {
+          id: "phase7_live_bounded_auto_btc",
+          label: "Phase 7: Live Bounded Auto for BTC",
+          objective: "Keep live auto narrow, explain every fallback, and hold tiny notional caps."
+        };
+      } else if (snapshotMode === "live") {
+        currentStage = {
+          id: "phase6_live_manual_tiny_notional",
+          label: "Phase 6: Live Manual Tiny Notional",
+          objective: "Prove live execution safely before autonomy."
+        };
+      } else if (entryAutonomyConfig.approvalMode === "policy_auto") {
+        currentStage = {
+          id: "phase4_bounded_demo_auto_approval",
+          label: "Phase 4: Bounded Demo Auto-Approval",
+          objective: "Prove policy_auto in demo before any live capital is touched."
+        };
+      } else if (evidence.milestoneReady) {
+        currentStage = {
+          id: "phase3_supervised_demo_autonomy",
+          label: "Phase 3: Supervised Demo Autonomy",
+          objective: "Keep demo active with manual approvals while validating runtime guardrails."
+        };
+      } else {
+        currentStage = {
+          id: "phase1_demo_execution_hardening",
+          label: "Phase 1: Demo Execution Hardening",
+          objective: "Make exchange interaction boring, predictable, and observable."
+        };
+      }
+    }
+
+    let posture: RolloutStatusSummary["posture"] = "blocked";
+    if (!confidenceResetActive && snapshotMode === "live") {
+      posture = "advancing";
+    } else if (!confidenceResetActive) {
+      posture = "demo_only";
+    }
+
+    let nextGateLabel = "Phase 0 exit gate";
+    let nextGateBlockers = confidenceResetReasons.length > 0 ? [...confidenceResetReasons] : [];
+    let nextRecommendedAction =
+      "Reproduce the deterministic closure path, document root cause, and add a regression test before collecting fresh evidence.";
+
+    if (!confidenceResetActive) {
+      if (!evidence.milestoneReady) {
+        nextGateLabel = "Phase 4 demo auto-approval gate";
+        nextGateBlockers = [
+          ...(effectiveQualifiedDays >= evidence.requiredDays
+            ? []
+            : [`Fresh qualifying demo days: ${effectiveQualifiedDays}/${evidence.requiredDays}.`]),
+          ...(fresh ? [] : [`Latest passing evidence is stale${latestPassingEvidenceDay ? ` (${latestPassingEvidenceDay})` : ""}.`]),
+          ...(evidence.today.pass ? [] : evidence.today.blockers),
+          ...(entryAutonomyConfig.approvalMode === "policy_auto" ? [] : ["approvalMode must remain manual until supervised demo sessions are clean."])
+        ];
+        nextRecommendedAction =
+          "Finish demo hardening, then rebuild seven fresh qualifying demo days on BTC before enabling durable policy_auto runs.";
+      } else if (snapshotMode !== "live" && entryAutonomyConfig.approvalMode !== "policy_auto") {
+        nextGateLabel = "Phase 3 supervised demo autonomy gate";
+        nextGateBlockers = [
+          "Run BTC supervised demo sessions with manual approval.",
+          "Validate guardrail rejects, cooldowns, drift pause, and incident workflow during active sessions."
+        ];
+        nextRecommendedAction =
+          "Keep BTC in manual approval, run supervised demo sessions, and verify the dashboard reports promotion metrics cleanly.";
+      } else if (snapshotMode !== "live") {
+        nextGateLabel = "Phase 4 bounded demo auto-approval gate";
+        nextGateBlockers = [
+          "Complete two uninterrupted BTC policy_auto sessions of at least 2 hours with zero fallback.",
+          "Repeat the gate independently for ETH and SOL only after BTC stays clean."
+        ];
+        nextRecommendedAction =
+          "Keep demo caps tiny, run BTC policy_auto sessions, and fail closed on any fallback, drift, or exit-path anomaly.";
+      } else if (entryAutonomyConfig.approvalMode !== "policy_auto") {
+        nextGateLabel = "Phase 6 live manual tiny-notional gate";
+        nextGateBlockers = [
+          "Keep manual approval for the first two live days.",
+          "Maintain positive net expectancy with no severe operational incidents."
+        ];
+        nextRecommendedAction =
+          "Run live BTC in manual tiny-notional mode only after shadow assumptions hold up under conservative slippage haircuts.";
+      } else {
+        nextGateLabel = "Phase 7 live bounded auto BTC gate";
+        nextGateBlockers = [
+          "Maintain five clean live BTC days at tiny notional.",
+          "Explain every fallback cause before expanding autonomy."
+        ];
+        nextRecommendedAction =
+          "Keep BTC autonomous under strict caps and only expand after five clean live days net of full costs.";
+      }
+    }
+
+    return {
+      generatedAt: nowIso,
+      posture,
+      currentStage,
+      confidenceReset: {
+        active: confidenceResetActive,
+        reasons: confidenceResetReasons,
+        priorReadinessInformationalOnly: confidenceResetActive
+      },
+      evidence: {
+        rawQualifiedDays: evidence.qualifiedDays,
+        effectiveQualifiedDays: confidenceResetActive ? 0 : demoReadiness.qualifiedDays,
+        requiredDays: evidence.requiredDays,
+        streakDays: evidence.streakDays,
+        fresh,
+        latestEvidenceDay,
+        latestPassingEvidenceDay,
+        ageDays
+      },
+      nextGate: {
+        label: nextGateLabel,
+        blockers: nextGateBlockers
+      },
+      nextRecommendedAction
     };
   }
 
@@ -3648,6 +5882,10 @@ export async function startMissionControlServer(
         lastProposalCreatedAtEpoch = Date.now();
       }
     }
+    if (normalized.tags?.includes("entry_backlog_guard")) {
+      const epoch = Date.parse(normalized.timestamp);
+      lastWorkerBacklogGuardAtEpoch = Number.isFinite(epoch) ? epoch : Date.now();
+    }
     inMemoryEvents = [normalized, ...inMemoryEvents].slice(0, 500);
     bus.publish(normalized);
     await eventStore.append(normalized);
@@ -3706,12 +5944,7 @@ export async function startMissionControlServer(
     const saved = await alertStore.upsert(next);
     inMemoryAlerts = await alertStore.readAll();
     metrics.openAlerts = inMemoryAlerts.filter((item) => item.status === "open").length;
-    if (
-      saved.severity === "critical" ||
-      saved.code.startsWith("APPROVAL_") ||
-      saved.code.startsWith("STALE_") ||
-      saved.code.startsWith("LEARNING_")
-    ) {
+    if (shouldOpenIncidentForAlert(saved)) {
       const existingIncident = opsStore.findOpenIncidentByAlert(saved.code, saved.symbol);
       if (!existingIncident) {
         const template = incidentTemplateFromAlert(saved);
@@ -3727,11 +5960,12 @@ export async function startMissionControlServer(
         });
       }
       inMemoryIncidents = opsStore.listIncidents();
-      metrics.openIncidents = inMemoryIncidents.filter((item) => item.status !== "resolved").length;
+      metrics.openIncidents = countBlockingOpenIncidents(inMemoryIncidents);
     }
-    if (inMemoryIncidents.some((item) => item.status !== "resolved")) {
+    const blockingIncidentCount = countBlockingOpenIncidents(inMemoryIncidents);
+    if (blockingIncidentCount > 0) {
       await fallbackApprovalModeToManual(
-        `open incident present (count=${inMemoryIncidents.filter((item) => item.status !== "resolved").length})`,
+        `open incident present (count=${blockingIncidentCount})`,
         saved.symbol ?? lifecycle.getSnapshotState().activeSymbol,
         "warn"
       );
@@ -3762,6 +5996,7 @@ export async function startMissionControlServer(
       return;
     }
     const summary = buildLearningEvaluationSummary(nowIso, learningAlertThresholds.lookbackDays, learningAlertThresholds.limit);
+    const breaches = learningBreachesFromSummary(summary, learningAlertThresholds);
     const symbol = undefined;
     if (summary.closedTrades < learningAlertThresholds.minTrades) {
       await resolveAlertIfOpen("LEARNING_EXPECTANCY_DEGRADATION", symbol);
@@ -3824,6 +6059,15 @@ export async function startMissionControlServer(
     } else {
       await resolveAlertIfOpen("LEARNING_CONTROL_VIOLATION_RATE_ELEVATED", symbol);
     }
+
+    if (breaches.expectancy || breaches.drawdown || breaches.slippage || breaches.controlViolationRate) {
+      const activeSymbol = lifecycle.getSnapshotState().activeSymbol;
+      const breachList = Object.entries(breaches)
+        .filter(([, active]) => active)
+        .map(([key]) => key)
+        .join(", ");
+      await triggerAutoPause(`learning alert breach: ${breachList}`, activeSymbol, "warn");
+    }
   }
 
   if (inMemoryEvents.length === 0) {
@@ -3859,6 +6103,12 @@ export async function startMissionControlServer(
     process.env.TOURAB_LEARNING_ALERT_CHECK_INTERVAL_MS,
     DEFAULT_LEARNING_ALERT_CHECK_INTERVAL_MS,
     250,
+    3_600_000
+  );
+  const autoPauseCheckIntervalMs = parseBoundedInt(
+    process.env.TOURAB_AUTO_PAUSE_CHECK_INTERVAL_MS,
+    DEFAULT_AUTO_PAUSE_CHECK_INTERVAL_MS,
+    1_000,
     3_600_000
   );
   const reconcileTimer = setInterval(() => {
@@ -3902,13 +6152,41 @@ export async function startMissionControlServer(
       });
     }
   }, 5_000);
+  async function resolveWorkerStallAlert(): Promise<void> {
+    const open = await alertStore.findByFingerprint(WORKER_STALL_ALERT_CODE, undefined);
+    if (!open) {
+      return;
+    }
+    await alertStore.updateStatus(open.id, "resolved", "system");
+    inMemoryAlerts = await alertStore.readAll();
+    metrics.openAlerts = inMemoryAlerts.filter((item) => item.status === "open").length;
+  }
   const workerStallTimer = setInterval(() => {
     const state = lifecycle.getSnapshotState();
     if (state.state !== "running") {
       return;
     }
+    const hasThrottledEntryBacklog = (() => {
+      const counts = new Map<string, number>();
+      for (const trade of managedTrades.values()) {
+        if (
+          trade.status !== "planned" &&
+          trade.status !== "entry_submitted" &&
+          trade.status !== "entry_partially_filled"
+        ) {
+          continue;
+        }
+        counts.set(trade.symbol, (counts.get(trade.symbol) ?? 0) + 1);
+      }
+      return [...counts.values()].some((count) => count >= workerMaxPendingEntriesPerSymbol);
+    })();
     const now = Date.now();
     const proposalGap = now - lastProposalCreatedAtEpoch;
+    const backlogGuardGap = now - lastWorkerBacklogGuardAtEpoch;
+    if (hasThrottledEntryBacklog || (Number.isFinite(backlogGuardGap) && backlogGuardGap <= workerProposalGapMs)) {
+      void resolveWorkerStallAlert();
+      return;
+    }
     if (!Number.isFinite(proposalGap) || proposalGap > workerProposalGapMs) {
       void upsertAlert({
         code: WORKER_STALL_ALERT_CODE,
@@ -3920,15 +6198,7 @@ export async function startMissionControlServer(
       });
       return;
     }
-    void (async () => {
-      const open = await alertStore.findByFingerprint(WORKER_STALL_ALERT_CODE, undefined);
-      if (!open) {
-        return;
-      }
-      await alertStore.updateStatus(open.id, "resolved", "system");
-      inMemoryAlerts = await alertStore.readAll();
-      metrics.openAlerts = inMemoryAlerts.filter((item) => item.status === "open").length;
-    })();
+    void resolveWorkerStallAlert();
   }, workerStallCheckIntervalMs);
   const exchangeHealthTimer = setInterval(() => {
     void refreshExchangeStatus();
@@ -3940,6 +6210,12 @@ export async function startMissionControlServer(
   const learningAlertTimer = setInterval(() => {
     void evaluateLearningAlertThresholds(new Date().toISOString());
   }, learningAlertCheckIntervalMs);
+
+  const autoPauseTimer = setInterval(() => {
+    const nowIso = new Date().toISOString();
+    void evaluateAutoPauseConditions(nowIso);
+    void evaluateAutoResume(nowIso);
+  }, autoPauseCheckIntervalMs);
   await pruneRetentionData();
 
   app.use(express.json());
@@ -4041,6 +6317,14 @@ export async function startMissionControlServer(
     }
     const nextApprovalModeRaw = typeof req.body?.approvalMode === "string" ? req.body.approvalMode : entryAutonomyConfig.approvalMode;
     const nextApprovalMode: EntryApprovalMode = nextApprovalModeRaw === "policy_auto" ? "policy_auto" : "manual";
+    const requestedStrategyVersionBySymbol =
+      req.body?.strategyVersionBySymbol && typeof req.body.strategyVersionBySymbol === "object"
+        ? Object.fromEntries(
+            Object.entries(req.body.strategyVersionBySymbol as Record<string, unknown>)
+              .map(([symbol, version]) => [symbol.trim().toUpperCase(), typeof version === "string" ? version.trim() : ""])
+              .filter(([symbol, version]) => symbol.length > 0 && version.length > 0)
+          )
+        : entryAutonomyConfig.strategyVersionBySymbol;
     const next: EntryAutonomyConfig = {
       approvalMode: nextApprovalMode,
       allowedSymbols:
@@ -4072,6 +6356,10 @@ export async function startMissionControlServer(
           ? Math.max(1, Math.floor(req.body.cooldownMinutes))
           : entryAutonomyConfig.cooldownMinutes,
       strategyVersion: strategyPromotionState.activeVersion,
+      strategyVersionBySymbol: {
+        ...buildDefaultStrategyVersionBySymbol(),
+        ...(requestedStrategyVersionBySymbol ?? {})
+      },
       policyVersion:
         typeof req.body?.policyVersion === "string" && req.body.policyVersion.trim().length > 0
           ? req.body.policyVersion.trim()
@@ -4250,6 +6538,7 @@ export async function startMissionControlServer(
       return;
     }
     const version = typeof req.body?.version === "string" ? req.body.version.trim() : "";
+    const symbol = typeof req.body?.symbol === "string" ? req.body.symbol.trim().toUpperCase() : undefined;
     const targetStageRaw = typeof req.body?.targetStage === "string" ? req.body.targetStage.trim() : "";
     const targetStage: StrategyPromotionStage | undefined =
       targetStageRaw === "research" || targetStageRaw === "shadow" || targetStageRaw === "paper_canary" || targetStageRaw === "limited_prod"
@@ -4286,6 +6575,7 @@ export async function startMissionControlServer(
       return;
     }
     const nowIso = new Date().toISOString();
+    const governanceSymbol = resolveStrategyGovernanceSymbol(symbol, version);
     const blockers = await evaluatePromotionGates(targetStage, nowIso);
     if (blockers.length > 0) {
       writeError(res, 409, {
@@ -4325,10 +6615,28 @@ export async function startMissionControlServer(
     upsertStrategyVersion(promoted);
     if (targetStage === "limited_prod") {
       strategyPromotionState.previousStableVersion = strategyPromotionState.activeVersion;
-      setActiveStrategyVersion(version);
+      if (governanceSymbol) {
+        strategyPromotionState.previousStableVersionBySymbol = {
+          ...(strategyPromotionState.previousStableVersionBySymbol ?? {}),
+          [governanceSymbol]: resolveStrategyVersionForSymbol(governanceSymbol)
+        };
+      }
+      setActiveStrategyVersion(version, governanceSymbol);
       strategyPromotionState.championVersion = version;
+      if (governanceSymbol) {
+        strategyPromotionState.championVersionBySymbol = {
+          ...(strategyPromotionState.championVersionBySymbol ?? {}),
+          [governanceSymbol]: version
+        };
+      }
     } else if (targetStage === "paper_canary") {
       strategyPromotionState.challengerVersion = version;
+      if (governanceSymbol) {
+        strategyPromotionState.challengerVersionBySymbol = {
+          ...(strategyPromotionState.challengerVersionBySymbol ?? {}),
+          [governanceSymbol]: version
+        };
+      }
     }
     strategyPromotionState.history.unshift({
       at: nowIso,
@@ -4371,10 +6679,14 @@ export async function startMissionControlServer(
       return;
     }
     const reason = typeof req.body?.reason === "string" && req.body.reason.trim().length > 0 ? req.body.reason.trim() : "manual rollback";
+    const rollbackSymbol =
+      typeof req.body?.symbol === "string" && req.body.symbol.trim().length > 0
+        ? req.body.symbol.trim().toUpperCase()
+        : lifecycle.getSnapshotState().activeSymbol;
     const rolled = await rollbackStrategyOnDegradation(
       reason,
       typed.userId,
-      lifecycle.getSnapshotState().activeSymbol,
+      rollbackSymbol,
       true
     );
     if (!rolled) {
@@ -4392,6 +6704,20 @@ export async function startMissionControlServer(
   app.get("/auto-exit/config", (_req, res) => {
     res.json({
       config: autoExitConfig
+    });
+  });
+
+  app.get("/auto-exit/decision-trace", (req, res) => {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(10_000, Math.floor(rawLimit))) : 200;
+    const tradeId = typeof req.query.tradeId === "string" ? req.query.tradeId.trim() : "";
+    const items = tradeId
+      ? autoExitDecisionTrace.filter((item) => item.tradeId === tradeId).slice(0, limit)
+      : autoExitDecisionTrace.slice(0, limit);
+    res.json({
+      items,
+      total: autoExitDecisionTrace.length,
+      max: autoExitDecisionTraceMax
     });
   });
 
@@ -4741,6 +7067,11 @@ export async function startMissionControlServer(
 
   app.get("/milestone5/evidence", async (_req, res) => {
     const summary = await buildMilestone5EvidenceSummary(new Date().toISOString());
+    res.json(summary);
+  });
+
+  app.get("/rollout/status", async (_req, res) => {
+    const summary = await buildRolloutStatusSummary(new Date().toISOString());
     res.json(summary);
   });
 
@@ -5605,6 +7936,7 @@ export async function startMissionControlServer(
       clearInterval(exchangeHealthTimer);
       clearInterval(retentionTimer);
       clearInterval(learningAlertTimer);
+      clearInterval(autoPauseTimer);
       wsServer.clients.forEach((client: WebSocket) => {
         client.close();
       });

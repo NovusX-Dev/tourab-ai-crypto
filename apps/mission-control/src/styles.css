@@ -1743,6 +1743,39 @@ body.resizing-right-panel {
   padding: 10px;
 }
 
+.rollout-status-card {
+  padding: 10px;
+}
+
+.rollout-stage-label {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rollout-stage-objective,
+.rollout-action {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.rollout-status-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.rollout-next-gate {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .m5-readiness-grid {
   margin-top: 8px;
   display: grid;

@@ -1,4 +1,7 @@
-# Milestone 7 Research Pipeline (Slice 2)
+# Reference Only: Milestone 7 Research Pipeline
+
+This document is historical/supporting material. It is not a source-of-truth roadmap.
+Use `docs/autonomy-master-plan.md` for current planning and rollout decisions.
 
 ## Purpose
 

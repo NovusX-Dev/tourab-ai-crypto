@@ -94,4 +94,10 @@ export class JsonlAlertStore {
     await this.persist(next);
     return updated;
   }
+
+  async clearAll(): Promise<number> {
+    const items = await this.readAll();
+    await this.persist([]);
+    return items.length;
+  }
 }

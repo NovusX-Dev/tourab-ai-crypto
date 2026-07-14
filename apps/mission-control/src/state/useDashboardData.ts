@@ -23,6 +23,7 @@ import type {
   OpsMetrics,
   PortfolioStatus,
   ReconciliationStatus,
+  RolloutStatusSummary,
   RiskStatus,
   StrategyDegradationConfig,
   StrategyPromotionState,
@@ -150,6 +151,32 @@ const EMPTY_MILESTONE5_EVIDENCE: Milestone5EvidenceSummary = {
   },
   days: []
 };
+const EMPTY_ROLLOUT_STATUS: RolloutStatusSummary = {
+  generatedAt: new Date(0).toISOString(),
+  posture: "blocked",
+  currentStage: {
+    id: "phase0_reset_and_stabilize",
+    label: "Phase 0: Reset and Stabilize",
+    objective: "Restore deterministic closure and reset promotion confidence."
+  },
+  confidenceReset: {
+    active: true,
+    reasons: ["Rollout status not loaded yet."],
+    priorReadinessInformationalOnly: true
+  },
+  evidence: {
+    rawQualifiedDays: 0,
+    effectiveQualifiedDays: 0,
+    requiredDays: 7,
+    streakDays: 0,
+    fresh: false
+  },
+  nextGate: {
+    label: "Phase 0 exit gate",
+    blockers: ["Rollout status not loaded yet."]
+  },
+  nextRecommendedAction: "Fetch live rollout status before enabling policy_auto or trusting prior evidence."
+};
 const EMPTY_LEARNING_EVALUATION: LearningEvaluationSummary = {
   generatedAt: new Date(0).toISOString(),
   lookbackDays: 30,
@@ -214,6 +241,7 @@ export function useDashboardData(client: BotApiClient) {
   const [strategyDegradation, setStrategyDegradation] = useState<StrategyDegradationConfig>(EMPTY_STRATEGY_DEGRADATION);
   const [managedTrades, setManagedTrades] = useState<ManagedTradeItem[]>(EMPTY_MANAGED_TRADES);
   const [milestone5Evidence, setMilestone5Evidence] = useState<Milestone5EvidenceSummary>(EMPTY_MILESTONE5_EVIDENCE);
+  const [rolloutStatus, setRolloutStatus] = useState<RolloutStatusSummary>(EMPTY_ROLLOUT_STATUS);
   const [learningEvaluation, setLearningEvaluation] = useState<LearningEvaluationSummary>(EMPTY_LEARNING_EVALUATION);
   const [learningEvaluationTrend, setLearningEvaluationTrend] = useState<LearningEvaluationTrendSummary>(EMPTY_LEARNING_EVALUATION_TREND);
   const [learningAlertConfig, setLearningAlertConfig] = useState<LearningAlertConfig>(EMPTY_LEARNING_ALERT_CONFIG);
@@ -236,6 +264,7 @@ export function useDashboardData(client: BotApiClient) {
         autoExitRes,
         managedTradesRes,
         m5EvidenceRes,
+        rolloutStatusRes,
         learningEvaluationRes,
         learningEvaluationTrendRes,
         learningAlertConfigRes,
@@ -247,6 +276,7 @@ export function useDashboardData(client: BotApiClient) {
         client.getAutoExitConfig(),
         client.listManagedTrades(),
         client.getMilestone5Evidence(),
+        client.getRolloutStatus(),
         client.getLearningEvaluation(),
         client.getLearningEvaluationTrend(),
         client.getLearningAlertConfig(),
@@ -276,6 +306,9 @@ export function useDashboardData(client: BotApiClient) {
       }
       if (m5EvidenceRes.status === "fulfilled") {
         setMilestone5Evidence(m5EvidenceRes.value);
+      }
+      if (rolloutStatusRes.status === "fulfilled") {
+        setRolloutStatus(rolloutStatusRes.value);
       }
       if (learningEvaluationRes.status === "fulfilled") {
         setLearningEvaluation(learningEvaluationRes.value);
@@ -412,6 +445,7 @@ export function useDashboardData(client: BotApiClient) {
     managedTrades,
     setManagedTrades,
     milestone5Evidence,
+    rolloutStatus,
     learningEvaluation,
     learningEvaluationTrend,
     learningAlertConfig,

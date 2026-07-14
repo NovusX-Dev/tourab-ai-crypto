@@ -651,7 +651,7 @@ describe("mission-control contract", () => {
       logRequests: false
     });
     try {
-      await delay(2400);
+      await delay(3600);
       const alertsRes = await fetch(`${second.baseHttpUrl}/alerts?status=open`);
       expect(alertsRes.ok).toBe(true);
       const alertsPayload = (await alertsRes.json()) as { items: Array<{ code: string }> };
@@ -673,6 +673,108 @@ describe("mission-control contract", () => {
         delete process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS;
       } else {
         process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS = previousCheck;
+      }
+    }
+  });
+
+  it("does not raise a stall alert while worker is intentionally throttled by entry backlog", async () => {
+    const previousInterval = process.env.TOURAB_WORKER_INTERVAL_MS;
+    const previousGap = process.env.TOURAB_WORKER_PROPOSAL_GAP_MS;
+    const previousCheck = process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS;
+    const previousMaxPending = process.env.TOURAB_WORKER_MAX_PENDING_ENTRIES_PER_SYMBOL;
+    const previousSymbols = process.env.TOURAB_WORKER_SYMBOLS;
+    const previousQualityGateEnabled = process.env.TOURAB_WORKER_SYMBOL_QUALITY_GATE_ENABLED;
+    process.env.TOURAB_WORKER_INTERVAL_MS = "500";
+    process.env.TOURAB_WORKER_PROPOSAL_GAP_MS = "1500";
+    process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS = "500";
+    process.env.TOURAB_WORKER_MAX_PENDING_ENTRIES_PER_SYMBOL = "1";
+    process.env.TOURAB_WORKER_SYMBOLS = "BTC-USDT";
+    process.env.TOURAB_WORKER_SYMBOL_QUALITY_GATE_ENABLED = "false";
+
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const store = await SqliteOpsStore.open(opsStorePath);
+    const now = new Date();
+    const seededTrade: ManagedTradeRecord = {
+      tradeId: "backlog-t-1",
+      status: "planned",
+      symbol: "BTC-USDT",
+      entrySide: "buy",
+      entryOrdId: "",
+      entryClOrdId: "",
+      requestedQty: 0.00001,
+      entryFilledQty: 0,
+      entryAvgPrice: 0,
+      exitFilledQty: 0,
+      exitAvgPrice: 0,
+      remainingQty: 0.00001,
+      stopPrice: 73000,
+      takeProfitPrice: 74600,
+      maxHoldSec: 40,
+      createdAt: new Date(now.getTime() - 30_000).toISOString(),
+      updatedAt: now.toISOString(),
+      feeUsd: 0,
+      realizedPnlUsd: 0,
+      exitRepriceCount: 0,
+      forcedFlattenEscalated: false
+    };
+    store.upsertManagedTrade(seededTrade);
+    store.close();
+
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      await postControl(handle.baseHttpUrl, "/start");
+      await delay(2400);
+
+      const alertsRes = await fetch(`${handle.baseHttpUrl}/alerts?status=open`);
+      expect(alertsRes.ok).toBe(true);
+      const alertsPayload = (await alertsRes.json()) as { items: Array<{ code: string }> };
+      expect(alertsPayload.items.some((item) => item.code === "WORKER_STALLED_NO_PROPOSAL")).toBe(false);
+
+      const eventsRes = await fetch(`${handle.baseHttpUrl}/events?limit=20`);
+      expect(eventsRes.ok).toBe(true);
+      const eventsPayload = (await eventsRes.json()) as { items: Array<{ message: string }> };
+      expect(eventsPayload.items.some((item) => item.message.includes("entry backlog"))).toBe(true);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+      if (previousInterval === undefined) {
+        delete process.env.TOURAB_WORKER_INTERVAL_MS;
+      } else {
+        process.env.TOURAB_WORKER_INTERVAL_MS = previousInterval;
+      }
+      if (previousGap === undefined) {
+        delete process.env.TOURAB_WORKER_PROPOSAL_GAP_MS;
+      } else {
+        process.env.TOURAB_WORKER_PROPOSAL_GAP_MS = previousGap;
+      }
+      if (previousCheck === undefined) {
+        delete process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS;
+      } else {
+        process.env.TOURAB_WORKER_STALL_CHECK_INTERVAL_MS = previousCheck;
+      }
+      if (previousMaxPending === undefined) {
+        delete process.env.TOURAB_WORKER_MAX_PENDING_ENTRIES_PER_SYMBOL;
+      } else {
+        process.env.TOURAB_WORKER_MAX_PENDING_ENTRIES_PER_SYMBOL = previousMaxPending;
+      }
+      if (previousSymbols === undefined) {
+        delete process.env.TOURAB_WORKER_SYMBOLS;
+      } else {
+        process.env.TOURAB_WORKER_SYMBOLS = previousSymbols;
+      }
+      if (previousQualityGateEnabled === undefined) {
+        delete process.env.TOURAB_WORKER_SYMBOL_QUALITY_GATE_ENABLED;
+      } else {
+        process.env.TOURAB_WORKER_SYMBOL_QUALITY_GATE_ENABLED = previousQualityGateEnabled;
       }
     }
   });
@@ -797,6 +899,106 @@ describe("mission-control contract", () => {
     }
   });
 
+  it("resets rollout confidence when fallback or drift regresses after prior demo evidence", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
+    const eventStorePath = join(tempDir, "events.jsonl");
+    const alertStorePath = join(tempDir, "alerts.jsonl");
+    const opsStorePath = join(tempDir, "ops.sqlite");
+    const evidenceDir = join(tempDir, "evidence");
+    const soakDir = join(evidenceDir, "m5-soak-2026-02-17T00-00-00-000Z");
+    await mkdir(soakDir, { recursive: true });
+    await writeFile(
+      join(soakDir, "report.json"),
+      JSON.stringify({
+        startedAt: "2026-02-17T00:00:00.000Z",
+        endedAt: "2026-02-17T00:20:00.000Z",
+        totals: {
+          filledEntries: 10,
+          deterministicClosed: 10,
+          tradeErrors: 0
+        },
+        checks: {
+          closureRatePct: 100,
+          closureRatePass: true,
+          closedTradeDataPass: true,
+          reconciliationSloObservedPass: true
+        }
+      }),
+      "utf-8"
+    );
+    const previousEvidenceDir = process.env.TOURAB_M5_EVIDENCE_DIR;
+    process.env.TOURAB_M5_EVIDENCE_DIR = evidenceDir;
+    const handle = await startMissionControlServer({
+      port: 0,
+      eventStorePath,
+      alertStorePath,
+      opsStorePath,
+      logRequests: false
+    });
+    try {
+      const enablePolicyAuto = await fetch(`${handle.baseHttpUrl}/entry-autonomy/config`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({
+          approvalMode: "policy_auto",
+          policyVersion: "m6-policy-contract"
+        })
+      });
+      expect(enablePolicyAuto.ok).toBe(true);
+
+      await postControl(handle.baseHttpUrl, "/start");
+      await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ orders: "drift" })
+      });
+      const driftTrigger = await fetch(`${handle.baseHttpUrl}/reconciliation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tourab-role": "operator",
+          "x-user-id": "ops-user"
+        },
+        body: JSON.stringify({ orders: "drift" })
+      });
+      expect(driftTrigger.ok).toBe(true);
+
+      const res = await fetch(`${handle.baseHttpUrl}/rollout/status`);
+      expect(res.ok).toBe(true);
+      const payload = (await res.json()) as {
+        posture: string;
+        currentStage: { id: string };
+        confidenceReset: { active: boolean; reasons: string[]; priorReadinessInformationalOnly: boolean };
+        evidence: { rawQualifiedDays: number; effectiveQualifiedDays: number };
+        nextGate: { blockers: string[] };
+      };
+      expect(payload.posture).toBe("blocked");
+      expect(payload.currentStage.id).toBe("phase0_reset_and_stabilize");
+      expect(payload.confidenceReset.active).toBe(true);
+      expect(payload.confidenceReset.priorReadinessInformationalOnly).toBe(true);
+      expect(payload.confidenceReset.reasons.some((item) => item.includes("Approval fallback") || item.includes("RECONCILIATION_DRIFT_CIRCUIT"))).toBe(true);
+      expect(payload.evidence.rawQualifiedDays).toBeGreaterThanOrEqual(1);
+      expect(payload.evidence.effectiveQualifiedDays).toBe(0);
+      expect(payload.nextGate.blockers.length).toBeGreaterThan(0);
+    } finally {
+      await handle.close();
+      await rm(tempDir, { recursive: true, force: true });
+      if (previousEvidenceDir === undefined) {
+        delete process.env.TOURAB_M5_EVIDENCE_DIR;
+      } else {
+        process.env.TOURAB_M5_EVIDENCE_DIR = previousEvidenceDir;
+      }
+    }
+  });
+
   it("exposes learning evaluation summary with model/strategy buckets", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "tourab-mission-contract-"));
     const eventStorePath = join(tempDir, "events.jsonl");
@@ -847,7 +1049,7 @@ describe("mission-control contract", () => {
       expect(payload.closedTrades).toBeGreaterThanOrEqual(1);
       expect(payload.totals.slippageProxyBps).toBeGreaterThanOrEqual(0);
       expect(payload.byModelVersion.some((item) => item.version === "m7-baseline-v1" && item.trades >= 1)).toBe(true);
-      expect(payload.byStrategyVersion.some((item) => item.version === "champion-v1" && item.trades >= 1)).toBe(true);
+      expect(payload.byStrategyVersion.some((item) => item.version === "btc-trend-pullback-v2" && item.trades >= 1)).toBe(true);
     } finally {
       await handle.close();
       await rm(tempDir, { recursive: true, force: true });

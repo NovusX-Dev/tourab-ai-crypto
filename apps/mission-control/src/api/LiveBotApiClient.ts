@@ -24,6 +24,7 @@ import type {
   LearningEvaluationTrendSummary,
   ManagedTradeItem,
   Milestone5EvidenceSummary,
+  RolloutStatusSummary,
   StrategyDegradationConfig,
   StrategyPromotionStage,
   StrategyPromotionState
@@ -586,6 +587,26 @@ export class LiveBotApiClient implements BotApiClient {
       }
       this.setDataSource("mock_fallback");
       return mockBotApiClient.getMilestone5Evidence();
+    }
+  }
+
+  async getRolloutStatus(): Promise<RolloutStatusSummary> {
+    try {
+      const res = await fetch(`${this.baseHttpUrl}/rollout/status`, {
+        headers: {
+          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {})
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Rollout status fetch failed: ${res.status}`);
+      }
+      return (await res.json()) as RolloutStatusSummary;
+    } catch (error: unknown) {
+      if (!this.allowFallback) {
+        throw error;
+      }
+      this.setDataSource("mock_fallback");
+      return mockBotApiClient.getRolloutStatus();
     }
   }
 

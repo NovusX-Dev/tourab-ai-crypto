@@ -12,6 +12,7 @@ import { LogsPanel } from "./components/LogsPanel";
 import { ManagedTradesPanel } from "./components/ManagedTradesPanel";
 import { IncidentsPanel } from "./components/IncidentsPanel";
 import { Milestone5ReadinessCard } from "./components/Milestone5ReadinessCard";
+import { RolloutStatusCard } from "./components/RolloutStatusCard";
 import { OpsMetricsPanel } from "./components/OpsMetricsPanel";
 import { OrdersPanel } from "./components/OrdersPanel";
 import { PortfolioPanel } from "./components/PortfolioPanel";
@@ -1032,6 +1033,7 @@ export default function App() {
 
       <aside className="info-panel card">
         <DemoReadinessCard items={readinessItems} compact />
+        <RolloutStatusCard status={dashboard.rolloutStatus} />
         <Milestone5ReadinessCard evidence={dashboard.milestone5Evidence} />
         <ThemeSwitcher value={theme} onChange={handleTheme} />
       </aside>

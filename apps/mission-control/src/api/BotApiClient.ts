@@ -13,6 +13,7 @@ import type {
   LearningIncidentExportReport,
   LearningRetentionStatus,
   Milestone5EvidenceSummary,
+  RolloutStatusSummary,
   StrategyDegradationConfig,
   StrategyPromotionStage,
   StrategyPromotionState,
@@ -76,6 +77,7 @@ export interface BotApiClient {
   ): Promise<AutoExitConfig>;
   listManagedTrades(): Promise<ManagedTradeItem[]>;
   getMilestone5Evidence(): Promise<Milestone5EvidenceSummary>;
+  getRolloutStatus(): Promise<RolloutStatusSummary>;
   getLearningEvaluation(lookbackDays?: number, limit?: number): Promise<LearningEvaluationSummary>;
   getLearningEvaluationTrend(lookbackDays?: number, bucketDays?: number, limit?: number): Promise<LearningEvaluationTrendSummary>;
   getLearningIncidentReport(
@@ -147,6 +149,7 @@ export interface DashboardData {
   strategyDegradation: StrategyDegradationConfig;
   managedTrades: ManagedTradeItem[];
   milestone5Evidence?: Milestone5EvidenceSummary;
+  rolloutStatus: RolloutStatusSummary;
   learningEvaluation: LearningEvaluationSummary;
   learningEvaluationTrend: LearningEvaluationTrendSummary;
   learningAlertConfig: LearningAlertConfig;

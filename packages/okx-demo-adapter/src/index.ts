@@ -32,6 +32,7 @@ export interface OkxOrderResult {
   clOrdId: string;
   sCode: string;
   sMsg: string;
+  reqId?: string;
   tag?: string;
   ts?: string;
 }
@@ -40,6 +41,12 @@ interface OkxApiEnvelope<T> {
   code: string;
   msg: string;
   data: T[];
+}
+
+interface OkxErrorEnvelope {
+  code?: string;
+  msg?: string;
+  data?: unknown[];
 }
 
 export interface OkxBalanceDetail {
@@ -107,6 +114,21 @@ function makeClientOrderId(proposalId: string): string {
 function signRequest(timestamp: string, method: string, requestPath: string, body: string, secret: string): string {
   const prehash = `${timestamp}${method.toUpperCase()}${requestPath}${body}`;
   return createHmac("sha256", secret).update(prehash).digest("base64");
+}
+
+function tryParseOkxErrorEnvelope(bodyText: string): OkxErrorEnvelope | undefined {
+  if (!bodyText || !bodyText.trim()) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(bodyText) as OkxErrorEnvelope;
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    return undefined;
+  }
 }
 
 function assertDemoConfig(config: OkxDemoConfig): void {
@@ -244,6 +266,74 @@ export class OkxDemoAdapter {
     this.baseUrl = (config.baseUrl ?? "https://www.okx.com").replace(/\/+$/, "");
   }
 
+  private buildPrivateHeaders(method: "GET" | "POST", requestPath: string, body: string): Record<string, string> {
+    const timestamp = this.now().toISOString();
+    const signature = signRequest(timestamp, method, requestPath, body, this.config.apiSecret);
+    return {
+      "Content-Type": "application/json",
+      "OK-ACCESS-KEY": this.config.apiKey,
+      "OK-ACCESS-SIGN": signature,
+      "OK-ACCESS-TIMESTAMP": timestamp,
+      "OK-ACCESS-PASSPHRASE": this.config.passphrase,
+      "x-simulated-trading": "1"
+    };
+  }
+
+  private async sendPrivateHttpRequest(method: "GET" | "POST", requestPath: string, body: string): Promise<Response> {
+    return await this.fetchImpl(`${this.baseUrl}${requestPath}`, {
+      method,
+      headers: this.buildPrivateHeaders(method, requestPath, body),
+      body: method === "POST" ? body : undefined,
+      signal: AbortSignal.timeout(15_000)
+    });
+  }
+
+  private async probePrivateAuth(): Promise<{ ok: boolean; status?: number; body?: string; error?: string }> {
+    try {
+      const response = await this.sendPrivateHttpRequest("GET", "/api/v5/account/balance?ccy=USDT", "");
+      const body = await response.text().catch(() => "");
+      return {
+        ok: response.ok,
+        status: response.status,
+        body: body.slice(0, 300)
+      };
+    } catch (error: unknown) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  private async recoverDuplicateClientOrder(
+    instId: string,
+    clOrdId: string
+  ): Promise<OkxOrderResult | undefined> {
+    const pending = await this.getPendingOrders(instId);
+    const existingPending = pending.find((item) => item.clOrdId === clOrdId);
+    if (existingPending) {
+      return {
+        ordId: existingPending.ordId,
+        clOrdId: existingPending.clOrdId,
+        sCode: "0",
+        sMsg: ""
+      };
+    }
+
+    const fills = await this.getFills(instId, 100);
+    const existingFill = fills.find((item) => item.clOrdId === clOrdId);
+    if (existingFill) {
+      return {
+        ordId: existingFill.ordId,
+        clOrdId: existingFill.clOrdId,
+        sCode: "0",
+        sMsg: ""
+      };
+    }
+
+    return undefined;
+  }
+
   private async privateRequest<T>(
     method: "GET" | "POST",
     requestPath: string,
@@ -251,32 +341,52 @@ export class OkxDemoAdapter {
   ): Promise<OkxApiEnvelope<T>> {
     const maxAttempts = 4;
     let lastError: OkxApiError | undefined;
+    let recoveredAuthRetryUsed = false;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      const timestamp = this.now().toISOString();
-      const signature = signRequest(timestamp, method, requestPath, body, this.config.apiSecret);
       try {
-        const response = await this.fetchImpl(`${this.baseUrl}${requestPath}`, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-            "OK-ACCESS-KEY": this.config.apiKey,
-            "OK-ACCESS-SIGN": signature,
-            "OK-ACCESS-TIMESTAMP": timestamp,
-            "OK-ACCESS-PASSPHRASE": this.config.passphrase,
-            "x-simulated-trading": "1"
-          },
-          body: method === "POST" ? body : undefined,
-          signal: AbortSignal.timeout(15_000)
-        });
+        const response = await this.sendPrivateHttpRequest(method, requestPath, body);
 
         if (!response.ok) {
           const bodyText = await response.text().catch(() => "");
+          const parsedError = tryParseOkxErrorEnvelope(bodyText);
+          const apiCode =
+            typeof parsedError?.code === "string" || typeof parsedError?.code === "number"
+              ? String(parsedError.code)
+              : undefined;
+          const apiMsg = typeof parsedError?.msg === "string" ? parsedError.msg : undefined;
           const retryable = response.status === 429 || response.status >= 500;
+          const requestBodyHash = createHash("sha256").update(body).digest("hex").slice(0, 12);
+          const isTradeEndpoint = requestPath.startsWith("/api/v5/trade/");
+          const permanentAuthFailure =
+            apiCode === "50110" ||
+            (apiMsg?.toLowerCase().includes("whitelist") ?? false) ||
+            (apiMsg?.toLowerCase().includes("api key") ?? false);
+          const shouldProbe401 =
+            response.status === 401 &&
+            isTradeEndpoint &&
+            !permanentAuthFailure &&
+            !recoveredAuthRetryUsed &&
+            attempt < maxAttempts;
+          let authProbe: { ok: boolean; status?: number; body?: string; error?: string } | undefined;
+          if (shouldProbe401) {
+            authProbe = await this.probePrivateAuth();
+          }
           lastError = new OkxApiError("OKX_HTTP_ERROR", `OKX HTTP request failed with status ${response.status}.`, {
             status: response.status,
             body: bodyText.slice(0, 300),
-            attempt
+            code: apiCode,
+            msg: apiMsg,
+            attempt,
+            method,
+            requestPath,
+            requestBodyHash,
+            authProbe
           });
+          if (shouldProbe401 && authProbe?.ok) {
+            recoveredAuthRetryUsed = true;
+            await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+            continue;
+          }
           if (retryable && attempt < maxAttempts) {
             await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
             continue;
@@ -312,15 +422,21 @@ export class OkxDemoAdapter {
 
   async placeSpotLimitOrder(intent: ExecutionIntent): Promise<OkxOrderResult> {
     const requestPath = "/api/v5/trade/order";
+    const clOrdId = makeClientOrderId(intent.proposalId);
     const payload = {
       instId: intent.symbol,
       tdMode: "cash",
       side: toOkxSide(intent.side),
-      ordType: "limit",
-      px: intent.limitPrice.toString(),
+      ordType: intent.ordType ?? "limit",
       sz: intent.qtyBase.toString(),
-      clOrdId: makeClientOrderId(intent.proposalId)
-    };
+      clOrdId
+    } as Record<string, string>;
+    if ((intent.ordType ?? "limit") === "market" && intent.side === "buy") {
+      payload.tgtCcy = "base_ccy";
+    }
+    if ((intent.ordType ?? "limit") !== "market") {
+      payload.px = intent.limitPrice.toString();
+    }
     const body = JSON.stringify(payload);
     const envelope = await this.privateRequest<OkxOrderResult>("POST", requestPath, body);
     if (envelope.data.length === 0) {
@@ -329,6 +445,12 @@ export class OkxDemoAdapter {
 
     const result = envelope.data[0];
     if (result.sCode !== "0") {
+      if (result.sCode === "51016") {
+        const recovered = await this.recoverDuplicateClientOrder(intent.symbol, clOrdId);
+        if (recovered) {
+          return recovered;
+        }
+      }
       throw new OkxApiError("OKX_ORDER_REJECTED", result.sMsg || "Order rejected by OKX.", {
         sCode: result.sCode,
         sMsg: result.sMsg
@@ -388,6 +510,67 @@ export class OkxDemoAdapter {
         sMsg: result.sMsg
       });
     }
+    return result;
+  }
+
+  async amendOrder(params: {
+    instId: string;
+    ordId?: string;
+    clOrdId?: string;
+    newPx?: number;
+    newSz?: number;
+    reqId?: string;
+    cxlOnFail?: boolean;
+  }): Promise<OkxOrderResult> {
+    if (!params.ordId && !params.clOrdId) {
+      throw new OkxApiError("OKX_CANCEL_INPUT_ERROR", "ordId or clOrdId must be provided for amend.");
+    }
+    if (
+      (params.newPx === undefined || !Number.isFinite(params.newPx) || params.newPx <= 0) &&
+      (params.newSz === undefined || !Number.isFinite(params.newSz) || params.newSz <= 0)
+    ) {
+      throw new OkxApiError("OKX_CANCEL_INPUT_ERROR", "newPx or newSz must be provided for amend.");
+    }
+
+    const requestPath = "/api/v5/trade/amend-order";
+    const payload: Record<string, string | boolean> = {
+      instId: params.instId
+    };
+    if (params.ordId) {
+      payload.ordId = params.ordId;
+    }
+    if (params.clOrdId) {
+      payload.clOrdId = params.clOrdId;
+    }
+    if (params.newPx !== undefined && Number.isFinite(params.newPx) && params.newPx > 0) {
+      payload.newPx = params.newPx.toString();
+    }
+    if (params.newSz !== undefined && Number.isFinite(params.newSz) && params.newSz > 0) {
+      payload.newSz = params.newSz.toString();
+    }
+    if (params.reqId) {
+      payload.reqId = params.reqId;
+    }
+    if (params.cxlOnFail !== undefined) {
+      payload.cxlOnFail = params.cxlOnFail;
+    }
+    const body = JSON.stringify(payload);
+    const envelope = await this.privateRequest<OkxOrderResult>("POST", requestPath, body);
+    if (envelope.data.length === 0) {
+      throw new OkxApiError("OKX_API_ERROR", "OKX returned no amend-order data.");
+    }
+
+    const result = envelope.data[0];
+    if (result.sCode !== "0") {
+      throw new OkxApiError("OKX_ORDER_REJECTED", result.sMsg || "Order amend rejected by OKX.", {
+        sCode: result.sCode,
+        sMsg: result.sMsg,
+        ordId: result.ordId,
+        clOrdId: result.clOrdId,
+        reqId: result.reqId
+      });
+    }
+
     return result;
   }
 }

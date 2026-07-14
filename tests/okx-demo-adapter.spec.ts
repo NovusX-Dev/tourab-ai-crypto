@@ -62,6 +62,58 @@ describe("OkxDemoAdapter", () => {
     });
   });
 
+  it("recovers duplicate client order id by reconciling the existing pending order", async () => {
+    const calls: string[] = [];
+    let generatedClOrdId = "";
+    const fetchMock: typeof fetch = async (url, init) => {
+      const asString = String(url);
+      calls.push(asString);
+      if (asString.endsWith("/api/v5/trade/order")) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as { clOrdId?: string };
+        generatedClOrdId = String(body.clOrdId ?? "");
+        return new Response(
+          JSON.stringify({
+            code: "0",
+            msg: "",
+            data: [{ ordId: "", clOrdId: "", sCode: "51016", sMsg: "Client order ID already exists." }]
+          }),
+          { status: 200 }
+        );
+      }
+      if (asString.includes("/api/v5/trade/orders-pending?instType=SPOT&instId=BTC-USDT")) {
+        return new Response(
+          JSON.stringify({
+            code: "0",
+            msg: "",
+            data: [
+              {
+                ordId: "existing-ord-1",
+                clOrdId: generatedClOrdId,
+                instId: "BTC-USDT",
+                side: "buy",
+                px: "100000",
+                sz: "0.0001",
+                accFillSz: "0",
+                state: "live",
+                cTime: "1",
+                uTime: "1"
+              }
+            ]
+          }),
+          { status: 200 }
+        );
+      }
+      throw new Error(`unexpected url ${asString}`);
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    const result = await adapter.placeSpotLimitOrder(intent);
+
+    expect(result.ordId).toBe("existing-ord-1");
+    expect(calls.some((item) => item.endsWith("/api/v5/trade/order"))).toBe(true);
+    expect(calls.some((item) => item.includes("/api/v5/trade/orders-pending?instType=SPOT&instId=BTC-USDT"))).toBe(true);
+  });
+
   it("uses distinct clOrdId values for long proposal IDs that share a prefix", async () => {
     const calls: string[] = [];
     const fetchMock: typeof fetch = async (_url, init) => {
@@ -173,6 +225,168 @@ describe("OkxDemoAdapter", () => {
     expect(result.ordId).toBe("o1");
     expect(calls[0].url).toBe("https://www.okx.com/api/v5/trade/cancel-order");
     expect(calls[0].init?.method).toBe("POST");
+  });
+
+  it("amends an order through trade/amend-order", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ ordId: "o1", clOrdId: "c1", reqId: "r1", sCode: "0", sMsg: "" }]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    const result = await adapter.amendOrder({ instId: "BTC-USDT", ordId: "o1", newPx: 99999, reqId: "r1" });
+    expect(result.ordId).toBe("o1");
+    expect(calls[0].url).toBe("https://www.okx.com/api/v5/trade/amend-order");
+    expect(calls[0].init?.method).toBe("POST");
+    expect(String(calls[0].init?.body)).toContain("\"newPx\":\"99999\"");
+    expect(String(calls[0].init?.body)).toContain("\"reqId\":\"r1\"");
+  });
+
+  it("passes IOC ordType through place order when requested", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ ordId: "ioc-1", clOrdId: "tourab-proposal-abc", sCode: "0", sMsg: "" }]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    await adapter.placeSpotLimitOrder({ ...intent, ordType: "ioc" });
+
+    expect(calls).toHaveLength(1);
+    expect(String(calls[0].init?.body)).toContain("\"ordType\":\"ioc\"");
+  });
+
+  it("sets tgtCcy=base_ccy for market buy orders so size stays in base units", async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const adapter = new OkxDemoAdapter(demoConfig, async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ ordId: "mkt-1", clOrdId: "tourab-proposal-xyz", sCode: "0", sMsg: "" }]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+
+    await adapter.placeSpotLimitOrder({
+      proposalId: "proposal-xyz",
+      symbol: "BTC-USDT",
+      side: "buy",
+      qtyBase: 0.000071,
+      limitPrice: 70000,
+      ordType: "market"
+    });
+
+    expect(String(calls[0].init?.body)).toContain("\"ordType\":\"market\"");
+    expect(String(calls[0].init?.body)).toContain("\"tgtCcy\":\"base_ccy\"");
+    expect(String(calls[0].init?.body)).not.toContain("\"px\":");
+  });
+
+  it("omits px for market orders", async () => {
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetchMock: typeof fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(
+        JSON.stringify({
+          code: "0",
+          msg: "",
+          data: [{ ordId: "mkt-1", clOrdId: "tourab-proposal-abc", sCode: "0", sMsg: "" }]
+        }),
+        { status: 200 }
+      );
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    await adapter.placeSpotLimitOrder({ ...intent, ordType: "market" });
+
+    expect(calls).toHaveLength(1);
+    expect(String(calls[0].init?.body)).toContain("\"ordType\":\"market\"");
+    expect(String(calls[0].init?.body)).not.toContain("\"px\":");
+  });
+
+  it("retries a trade request once after a 401 when the same credentials still pass a balance probe", async () => {
+    const calls: Array<{ url: string; method?: string }> = [];
+    let placeAttempts = 0;
+    const fetchMock: typeof fetch = async (url, init) => {
+      const asString = String(url);
+      calls.push({ url: asString, method: init?.method });
+      if (asString.endsWith("/api/v5/trade/order")) {
+        placeAttempts += 1;
+        if (placeAttempts === 1) {
+          return new Response("unauthorized-on-trade-endpoint", { status: 401 });
+        }
+        return new Response(
+          JSON.stringify({
+            code: "0",
+            msg: "",
+            data: [{ ordId: "retry-ok", clOrdId: "tourab-proposal-abc", sCode: "0", sMsg: "" }]
+          }),
+          { status: 200 }
+        );
+      }
+      if (asString.includes("/api/v5/account/balance?ccy=USDT")) {
+        return new Response(
+          JSON.stringify({
+            code: "0",
+            msg: "",
+            data: [{ totalEq: "10", details: [{ ccy: "USDT", availBal: "10", cashBal: "10", eq: "10" }] }]
+          }),
+          { status: 200 }
+        );
+      }
+      throw new Error(`unexpected url ${asString}`);
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    const result = await adapter.placeSpotLimitOrder(intent);
+
+    expect(result.ordId).toBe("retry-ok");
+    expect(calls.filter((item) => item.url.endsWith("/api/v5/trade/order"))).toHaveLength(2);
+    expect(calls.some((item) => item.url.includes("/api/v5/account/balance?ccy=USDT"))).toBe(true);
+  });
+
+  it("surfaces request diagnostics when a trade 401 fails the auth probe too", async () => {
+    const fetchMock: typeof fetch = async (url) => {
+      const asString = String(url);
+      if (asString.endsWith("/api/v5/trade/order")) {
+        return new Response("trade-unauthorized", { status: 401 });
+      }
+      if (asString.includes("/api/v5/account/balance?ccy=USDT")) {
+        return new Response("balance-unauthorized", { status: 401 });
+      }
+      throw new Error(`unexpected url ${asString}`);
+    };
+
+    const adapter = new OkxDemoAdapter(demoConfig, fetchMock);
+    await expect(adapter.placeSpotLimitOrder(intent)).rejects.toMatchObject({
+      code: "OKX_HTTP_ERROR",
+      details: {
+        status: 401,
+        method: "POST",
+        requestPath: "/api/v5/trade/order",
+        authProbe: {
+          ok: false,
+          status: 401
+        }
+      }
+    });
   });
 
   it("validates demo env and trims values", () => {

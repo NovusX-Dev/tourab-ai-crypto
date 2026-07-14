@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClosedTradeFeatureRecord } from "@tourab/shared";
-import { evaluateWorkerSymbolQualityGate } from "../apps/dashboard/src/mission-control-server.js";
+import { evaluateWorkerSymbolQualityGate, evaluateWorkerTradeSideGate } from "../apps/dashboard/src/mission-control-server.js";
 
 function makeFeature(index: number, symbol: string, pnl: number): ClosedTradeFeatureRecord {
   const closedAt = new Date(Date.UTC(2026, 1, 20, 0, index, 0, 0)).toISOString();
@@ -105,5 +105,41 @@ describe("worker symbol quality gate", () => {
     });
     expect(result.eligible).toBe(false);
     expect(result.reason).toContain("fail-closed");
+  });
+
+  it("blocks a symbol-side pair when recent side expectancy is negative", () => {
+    const features = Array.from({ length: 10 }, (_, index) => makeFeature(index, "BTC-USDT", -0.01));
+    const result = evaluateWorkerTradeSideGate({
+      symbol: "BTC-USDT",
+      side: "buy",
+      features,
+      config: {
+        enabled: true,
+        lookbackTrades: 30,
+        minTrades: 8,
+        minExpectancyUsd: 0,
+        maxTimeStopRatePct: 85
+      }
+    });
+    expect(result.eligible).toBe(false);
+    expect(result.reason).toContain("side expectancy");
+  });
+
+  it("blocks a symbol-side pair when time-stop dominates and expectancy is non-positive", () => {
+    const features = Array.from({ length: 10 }, (_, index) => makeFeature(index, "BTC-USDT", 0));
+    const result = evaluateWorkerTradeSideGate({
+      symbol: "BTC-USDT",
+      side: "buy",
+      features,
+      config: {
+        enabled: true,
+        lookbackTrades: 30,
+        minTrades: 8,
+        minExpectancyUsd: -0.01,
+        maxTimeStopRatePct: 50
+      }
+    });
+    expect(result.eligible).toBe(false);
+    expect(result.reason).toContain("time_stop rate");
   });
 });

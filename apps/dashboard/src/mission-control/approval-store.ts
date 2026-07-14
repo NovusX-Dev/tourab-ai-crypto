@@ -144,4 +144,8 @@ export class ApprovalStore {
     }
     return { ok: request.status === "approved", request };
   }
+
+  clear(): void {
+    this.items.clear();
+  }
 }

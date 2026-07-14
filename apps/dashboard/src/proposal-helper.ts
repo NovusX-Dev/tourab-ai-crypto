@@ -17,6 +17,8 @@ interface OkxInstrumentRecord {
 interface OkxTickerRecord {
   instId: string;
   last: string;
+  bidPx?: string;
+  askPx?: string;
 }
 
 interface OkxPriceLimitRecord {
@@ -26,6 +28,7 @@ interface OkxPriceLimitRecord {
 }
 
 type FetchLike = typeof fetch;
+const DEFAULT_OKX_PUBLIC_TIMEOUT_MS = 4_000;
 
 export interface SpotMarketInputs {
   symbol: string;
@@ -33,6 +36,8 @@ export interface SpotMarketInputs {
   tickSz: number;
   lotSz: number;
   minSz: number;
+  bestBid?: number;
+  bestAsk?: number;
   buyLmt?: number;
   sellLmt?: number;
 }
@@ -53,6 +58,7 @@ export interface BuiltProposalResult {
     requestedRiskUsd: number;
     estimatedRiskUsd: number;
     notionalUsd: number;
+    blockedByMaxNotional: boolean;
     usedPriceBand: boolean;
     notes: string[];
   };
@@ -72,6 +78,10 @@ function floorToStep(value: number, step: number): number {
 
 function decimalsForStep(step: number): number {
   const s = step.toString();
+  const scientific = s.match(/e-(\d+)$/i);
+  if (scientific) {
+    return Number(scientific[1]);
+  }
   if (!s.includes(".")) {
     return 0;
   }
@@ -88,13 +98,70 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-async function okxGet<T>(fetchImpl: FetchLike, baseUrl: string, path: string): Promise<OkxEnvelope<T>> {
-  const response = await fetchImpl(`${baseUrl}${path}`, {
+export function computeSpotEntryPrice(
+  market: SpotMarketInputs,
+  side: "buy" | "sell",
+  entryOffsetBps: number
+): { entryPrice: number; referencePrice: number; usedPriceBand: boolean } {
+  const direction = side === "buy" ? -1 : 1;
+  const useAggressiveAnchor = entryOffsetBps < 0;
+  const referencePrice =
+    side === "buy"
+      ? useAggressiveAnchor
+        ? market.bestAsk ?? market.last
+        : market.bestBid ?? market.last
+      : useAggressiveAnchor
+        ? market.bestBid ?? market.last
+        : market.bestAsk ?? market.last;
+  const rawEntry = referencePrice * (1 + direction * (entryOffsetBps / 10_000));
+  let entry = rawEntry;
+  const hasBand = Number.isFinite(market.buyLmt) && Number.isFinite(market.sellLmt);
+  if (hasBand && market.buyLmt !== undefined && market.sellLmt !== undefined) {
+    entry = clamp(entry, market.sellLmt, market.buyLmt);
+  }
+  return {
+    entryPrice: normalizeToStep(entry, market.tickSz),
+    referencePrice,
+    usedPriceBand: hasBand
+  };
+}
+
+async function okxGet<T>(
+  fetchImpl: FetchLike,
+  baseUrl: string,
+  path: string,
+  timeoutMs = DEFAULT_OKX_PUBLIC_TIMEOUT_MS
+): Promise<OkxEnvelope<T>> {
+  const controller = new AbortController();
+  const fetchPromise = fetchImpl(`${baseUrl}${path}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json"
-    }
+    },
+    signal: controller.signal
   });
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeout = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`OKX public request timed out after ${timeoutMs}ms: ${path}`));
+    }, timeoutMs);
+    controller.signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeout);
+      },
+      { once: true }
+    );
+  });
+  let response: globalThis.Response;
+  try {
+    response = await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`OKX public request timed out after ${timeoutMs}ms: ${path}`);
+    }
+    throw error;
+  }
   if (!response.ok) {
     throw new Error(`OKX public request failed: ${response.status}`);
   }
@@ -162,6 +229,8 @@ export async function fetchSpotMarketInputs(
     tickSz: parsePositiveNumber(instrument.tickSz, "tickSz"),
     lotSz: parsePositiveNumber(instrument.lotSz, "lotSz"),
     minSz: parsePositiveNumber(instrument.minSz, "minSz"),
+    bestBid: ticker.bidPx ? Number(ticker.bidPx) : undefined,
+    bestAsk: ticker.askPx ? Number(ticker.askPx) : undefined,
     buyLmt: priceLimit.buyLmt,
     sellLmt: priceLimit.sellLmt
   };
@@ -172,16 +241,7 @@ export function buildValidSpotProposal(
   options: BuildProposalOptions
 ): BuiltProposalResult {
   const notes: string[] = [];
-  const direction = options.side === "buy" ? -1 : 1;
-  const rawEntry = market.last * (1 + direction * (options.entryOffsetBps / 10_000));
-  let entry = rawEntry;
-  const hasBand = Number.isFinite(market.buyLmt) && Number.isFinite(market.sellLmt);
-
-  if (hasBand && market.buyLmt !== undefined && market.sellLmt !== undefined) {
-    entry = clamp(entry, market.sellLmt, market.buyLmt);
-  }
-
-  const entryPrice = normalizeToStep(entry, market.tickSz);
+  const { entryPrice, usedPriceBand: hasBand } = computeSpotEntryPrice(market, options.side, options.entryOffsetBps);
   const stopMultiplier = options.stopDistanceBps / 10_000;
   const rawStop =
     options.side === "buy" ? entryPrice * (1 - stopMultiplier) : entryPrice * (1 + stopMultiplier);
@@ -195,12 +255,17 @@ export function buildValidSpotProposal(
   const notionalUsd = Math.min(options.maxNotionalUsd, notionalByRisk);
   const rawQty = notionalUsd / entryPrice;
   const alignedQty = normalizeToStep(rawQty, market.lotSz);
+  const minNotionalUsd = market.minSz * entryPrice;
+  const blockedByMaxNotional = minNotionalUsd > options.maxNotionalUsd;
   const qtyBase = Math.max(alignedQty, market.minSz);
   const effectiveNotional = qtyBase * entryPrice;
   const estimatedRiskUsd = effectiveNotional * stopDistanceFraction;
 
   if (qtyBase === market.minSz && alignedQty < market.minSz) {
     notes.push("Quantity raised to minSz to satisfy exchange constraints.");
+  }
+  if (blockedByMaxNotional) {
+    notes.push(`Min notional ${minNotionalUsd.toFixed(6)} exceeds maxNotionalUsd ${options.maxNotionalUsd}.`);
   }
   if (estimatedRiskUsd > requestedRiskUsd) {
     notes.push("Estimated risk exceeds requested risk after lot/min-size normalization.");
@@ -226,6 +291,7 @@ export function buildValidSpotProposal(
       requestedRiskUsd,
       estimatedRiskUsd: Number(estimatedRiskUsd.toFixed(6)),
       notionalUsd: Number(effectiveNotional.toFixed(6)),
+      blockedByMaxNotional,
       usedPriceBand: hasBand,
       notes
     }

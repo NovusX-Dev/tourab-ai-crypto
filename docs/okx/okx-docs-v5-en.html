@@ -19,6 +19,7 @@
 
 
 
+
     <style media="screen">
       .highlight table td { padding: 5px; }
 .highlight table pre { margin: 0; }
@@ -294,7 +295,7 @@
   color: #859900;
 }
     </style>
-    <link href="stylesheets/screen-0cf183b4.css" rel="stylesheet" media="screen" />
+    <link href="stylesheets/screen-a5d12b54.css" rel="stylesheet" media="screen" />
     <link href="stylesheets/print-2731ee0a.css" rel="stylesheet" media="print" />
       <script src="javascripts/all_nosearch-0bdd0505.js"></script>
 
@@ -302,7 +303,7 @@
       var currentHref = window.location.href;
       var pathname = window.location.pathname;
       var pathArr = pathname.split('/').reverse();
-      var modules = ['en', 'broker_en', 'trick_en', 'log_en'];
+      var modules = ['en', 'agent_en', 'broker_en', 'trick_en', 'log_en'];
       var moduleType = pathArr[1];
       var moduleIndex = modules.indexOf(moduleType);
       var switchLanguage = true;
@@ -330,7 +331,7 @@
         if (switchLanguage) {
           switchLanguage = false;
           var hash = window.location.hash;
-          var newPath = pathname.replace("en","zh") + hash;
+          var newPath = pathname.replace("en/", "zh/") + hash;
           window.location.href = sanitizePath(newPath.split('/'));
         }
       }
@@ -392,12 +393,14 @@
       <div class="toc-split-line"></div>
       <ul class="toc-nav-list">
         <li class="selected"><a href="/docs-v5/en">API</a></li>
+        <li><a href="/docs-v5/agent_en">🔥 Agent</a></li>
         <li><a href="/docs-v5/broker_en">Broker</a></li>
         <li><a href="/docs-v5/trick_en">Best Practice</a></li>
         <li><a href="/docs-v5/log_en">Change Log</a></li>
       </ul>
       <select class="toc-nav-dropdown" onchange="javascript:changeMenuLink(options[selectedIndex].value)">
         <option value="en">API</option>
+        <option value="agent_en">Agent</option>
         <option value="broker_en">Broker</option>
         <option value="trick_en">Best Practice</option>
         <option value="log_en">Change Log</option>
@@ -1954,6 +1957,35 @@
               </li>
           </ul>
                     </li>
+                    <li>
+                      <a href="#financial-product-dual-investment" class="toc-h2 toc-link" data-title="Dual investment">Dual investment</a>
+          <ul class="toc-list-h3">
+              <li>
+                <a href="#financial-product-dual-investment-get-currency-pairs" class="toc-h3 toc-link" data-title="GET / Currency pairs">GET / Currency pairs</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-get-product-info" class="toc-h3 toc-link" data-title="GET / Product info">GET / Product info</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-post-request-for-quote" class="toc-h3 toc-link" data-title="POST / Request for quote">POST / Request for quote</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-post-trade" class="toc-h3 toc-link" data-title="POST / Trade">POST / Trade</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-post-request-for-redeem-quote" class="toc-h3 toc-link" data-title="POST / Request for redeem quote">POST / Request for redeem quote</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-post-redeem" class="toc-h3 toc-link" data-title="POST / Redeem">POST / Redeem</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-get-order-state" class="toc-h3 toc-link" data-title="GET / Order state">GET / Order state</a>
+              </li>
+              <li>
+                <a href="#financial-product-dual-investment-get-order-history" class="toc-h3 toc-link" data-title="GET / Order history">GET / Order history</a>
+              </li>
+          </ul>
+                    </li>
                 </ul>
             </li>
             <li>
@@ -2050,10 +2082,13 @@
           <h1 id='overview'>Overview</h1>
 <p>Welcome to our API documentation. OKX provides REST and WebSocket APIs to suit your trading needs.<br></p>
 
-<ul>
-<li>For users who complete registration on my.okx.com, please visit <a href="https://my.okx.com/docs-v5/en/">https://my.okx.com/docs-v5/en/</a> for the API documentation.</li>
-<li>For users who complete registration on app.okx.com, please visit <a href="https://app.okx.com/docs-v5/en/">https://app.okx.com/docs-v5/en/</a> for the API documentation.</li>
-</ul>
+<aside class="warning">
+<b>Important: Regional API Domain Requirement</b><br><br>
+Depending on where you registered, you <b>must</b> use the correct domain for both API calls and documentation. <br>
+Using <code>www.okx.com</code> will not work for the regions below.<br><br>
+<b>US & AU users</b> (registered on <a href="https://app.okx.com">app.okx.com</a>): Use <code>us.okx.com</code> as your API domain. See the <a href="https://app.okx.com/docs-v5/en/">US & AU API documentation</a>.<br>
+<b>EU users</b> (registered on <a href="https://my.okx.com">my.okx.com</a>): Use <code>eea.okx.com</code> as your API domain. See the <a href="https://my.okx.com/docs-v5/en/">EU API documentation</a>.<br>
+</aside>
 <h2 id='overview-api-resources-and-support'>API Resources and Support</h2><h3 id='overview-api-resources-and-support-tutorials'>Tutorials</h3>
 <ul>
 <li>Learn how to trade with API: <a href="/docs-v5/trick_en/#instrument-configuration">Best practice to OKX’s API</a></li>
@@ -3371,7 +3406,7 @@ The Broker Program includes, and is not limited to, integrated trading platforms
 <tr>
 <td style="text-align: left">groupId</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Instrument trading fee group ID<br>Spot:<br><code>1</code>: Spot USDT<br><code>2</code>: Spot USDC &amp; Crypto<br><code>3</code>: Spot TRY<br><code>4</code>: Spot EUR<br><code>5</code>: Spot BRL<br><code>7</code>: Spot AED<br><code>8</code>: Spot AUD<br><code>9</code>: Spot USD<br><code>10</code>: Spot SGD<br><code>11</code>: Spot zero<br><code>12</code>: Spot group one<br><code>13</code>: Spot group two<br><code>14</code>: Spot group three<br><code>15</code>: Spot special rule<br><br>Expiry futures:<br><code>1</code>: Expiry futures crypto-margined<br><code>2</code>: Expiry futures USDT-margined<br><code>3</code>: Expiry futures USDC-margined<br><code>4</code>: Expiry futures premarket<br><code>5</code>: Expiry futures group one<br><code>6</code>: Expiry futures group two<br><br>Perpetual futures:<br><code>1</code>: Perpetual futures crypto-margined<br><code>2</code>: Perpetual futures USDT-margined<br><code>3</code>: Perpetual futures USDC-margined<br><code>4</code>: Perpetual futures group one<br><code>5</code>: Perpetual futures group two<br><br>Options:<br><code>1</code>: Options crypto-margined<br><code>2</code>: Options USDC-margined<br><br><strong>instType and groupId should be used together to determine a trading fee group. Users should use this endpoint together with <a href="/docs-v5/en/#trading-account-rest-api-get-fee-rates">fee rates endpoint</a> to get the trading fee of a specific symbol.</strong> <br><br><strong>Some enum values may not apply to you; the actual return values shall prevail.</strong></td>
+<td style="text-align: left">Instrument trading fee group ID<br>Spot:<br><code>1</code>: Spot USDT<br><code>2</code>: Spot USDC &amp; Crypto<br><code>3</code>: Spot TRY<br><code>4</code>: Spot EUR<br><code>5</code>: Spot BRL<br><code>7</code>: Spot AED<br><code>8</code>: Spot AUD<br><code>9</code>: Spot USD<br><code>10</code>: Spot SGD<br><code>11</code>: Spot zero<br><code>12</code>: Spot group one<br><code>13</code>: Spot group two<br><code>14</code>: Spot group three<br><code>15</code>: Spot special rule<br><br>Expiry futures:<br><code>1</code>: Expiry futures crypto-margined<br><code>2</code>: Expiry futures USDT-margined<br><code>3</code>: Expiry futures USDC-margined<br><code>4</code>: Expiry futures premarket<br><code>5</code>: Expiry futures group one<br><code>6</code>: Expiry futures group two<br><br>Perpetual futures:<br><code>1</code>: Perpetual futures crypto-margined<br><code>2</code>: Perpetual futures USDT-margined<br><code>3</code>: Perpetual futures USDC-margined<br><code>4</code>: Perpetual futures group one<br><code>5</code>: Perpetual futures group two <br><code>6</code>: Stock perpetual futures <br><br>Options:<br><code>1</code>: Options crypto-margined<br><code>2</code>: Options USDC-margined<br><br><strong>instType and groupId should be used together to determine a trading fee group. Users should use this endpoint together with <a href="/docs-v5/en/#trading-account-rest-api-get-fee-rates">fee rates endpoint</a> to get the trading fee of a specific symbol.</strong> <br><br><strong>Some enum values may not apply to you; the actual return values shall prevail.</strong></td>
 </tr>
 <tr>
 <td style="text-align: left">instFamily</td>
@@ -3481,12 +3516,12 @@ The Broker Program includes, and is not limited to, integrated trading platforms
 <tr>
 <td style="text-align: left">state</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Instrument status<br><code>live</code> <br><code>suspend</code><br><code>preopen</code> e.g. Futures and options contracts rollover from generation to trading start; certain symbols before they go live<br><code>test</code>: Test pairs, can&#39;t be traded</td>
+<td style="text-align: left">Instrument status<br><code>live</code> <br><code>suspend</code><br><code>rebase</code>: can&#39;t be traded during rebasing, only applicable to <code>SWAP</code><br><code>preopen</code> e.g. Futures and options contracts rollover from generation to trading start; certain symbols before they go live<br><code>test</code>: Test pairs, can&#39;t be traded</td>
 </tr>
 <tr>
 <td style="text-align: left">ruleType</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Trading rule types<br> <code>normal</code>: normal trading<br> <code>pre_market</code>: pre-market trading</td>
+<td style="text-align: left">Trading rule types<br> <code>normal</code>: normal trading<br> <code>pre_market</code>: pre-market trading<br> <code>rebase_contract</code>: pre-market rebase contract</td>
 </tr>
 <tr>
 <td style="text-align: left">posLmtAmt</td>
@@ -3571,7 +3606,7 @@ The Broker Program includes, and is not limited to, integrated trading platforms
 <tr>
 <td style="text-align: left">instCategory</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">The category of the instrument’s base currency (the first part of the instrument ID). For example, for <code>BTC-USDT-SWAP</code>, the <code>instCategory</code> refers to the category of <code>BTC</code>. <br> <code>1</code>: Crypto</td>
+<td style="text-align: left">The asset category of the instrument’s base asset (the first segment of the instrument ID). For example, for <code>BTC-USDT-SWAP</code>, the <code>instCategory</code> represents the asset category of <code>BTC</code>. <br> <code>1</code>: Crypto <br> <code>3</code>: Stocks</td>
 </tr>
 <tr>
 <td style="text-align: left">upcChg</td>
@@ -5526,13 +5561,13 @@ GET /api/v5/account/bills?instType<span class="o">=</span>MARGIN
 <td style="text-align: left">type</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">No</td>
-<td style="text-align: left">Bill type<br><code>1</code>: Transfer<br><code>2</code>: Trade<br><code>3</code>: Delivery<br><code>4</code>: Forced repayment<br><code>5</code>: Liquidation<br><code>6</code>: Margin transfer<br><code>7</code>: Interest deduction<br><code>8</code>: Funding fee<br><code>9</code>: ADL<br><code>10</code>: Clawback<br><code>11</code>: System token conversion<br><code>12</code>: Strategy transfer<br><code>13</code>: DDH<br><code>14</code>: Block trade<br><code>15</code>: Quick Margin<br><code>16</code>: Borrowing<br><code>22</code>: Repay<br><code>24</code>: Spread trading<br><code>26</code>: Structured products<br><code>27</code>: Convert<br><code>28</code>: Easy convert<br><code>29</code>: One-click repay<br><code>30</code>: Simple trade<br> <code>32</code>: Move position<br><code>33</code>: Loans<br><code>34</code>: Settlement<br><code>250</code>: Copy trader profit sharing expenses<br><code>251</code>: Copy trader profit sharing refund</td>
+<td style="text-align: left">Bill type<br><code>1</code>: Transfer<br><code>2</code>: Trade<br><code>3</code>: Delivery<br><code>4</code>: Forced repayment<br><code>5</code>: Liquidation<br><code>6</code>: Margin transfer<br><code>7</code>: Interest deduction<br><code>8</code>: Funding fee<br><code>9</code>: ADL<br><code>10</code>: Clawback<br><code>11</code>: System token conversion<br><code>12</code>: Strategy transfer<br><code>13</code>: DDH<br><code>14</code>: Block trade<br><code>15</code>: Quick Margin<br><code>16</code>: Borrowing<br><code>20</code>: Options transfer<br><code>22</code>: Repay<br><code>24</code>: Spread trading<br><code>26</code>: Structured products<br><code>27</code>: Convert<br><code>28</code>: Easy convert<br><code>29</code>: One-click repay<br><code>30</code>: Simple trade<br> <code>32</code>: Move position<br><code>33</code>: Loans<br><code>34</code>: Settlement<br><code>35</code>: Simple options<br><code>250</code>: Copy trader profit sharing expenses<br><code>251</code>: Copy trader profit sharing refund</td>
 </tr>
 <tr>
 <td style="text-align: left">subType</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">No</td>
-<td style="text-align: left">Bill subtype<br><code>1</code>: Buy<br><code>2</code>: Sell<br><code>3</code>: Open long<br><code>4</code>: Open short<br><code>5</code>: Close long<br><code>6</code>: Close short<br><code>9</code>: Interest deduction for Market loans<br><code>11</code>: Transfer in<br><code>12</code>: Transfer out<br><code>14</code>: Interest deduction for VIP loans<br><code>160</code>: Manual margin increase<br><code>161</code>: Manual margin decrease<br><code>162</code>: Auto margin increase<br><code>114</code>: Forced repayment buy<br><code>115</code>: Forced repayment sell<br><code>118</code>: System token conversion transfer in<br><code>119</code>: System token conversion transfer out<br><code>100</code>: Partial liquidation close long<br><code>101</code>: Partial liquidation close short<br><code>102</code>: Partial liquidation buy<br><code>103</code>: Partial liquidation sell<br><code>104</code>: Liquidation long<br><code>105</code>: Liquidation short<br><code>106</code>: Liquidation buy<br><code>107</code>: Liquidation sell<br><code>108</code>: Clawback<br><code>110</code>: Liquidation transfer in<br><code>111</code>: Liquidation transfer out<br><code>125</code>: ADL close long<br><code>126</code>: ADL close short<br><code>127</code>: ADL buy<br><code>128</code>: ADL sell<br><code>131</code>: ddh buy<br><code>132</code>: ddh sell<br><code>170</code>: Exercised(ITM buy side)<br><code>171</code>: Counterparty exercised(ITM sell side)<br><code>172</code>: Expired(Non-ITM buy and sell side)<br><code>112</code>: Delivery long (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>113</code>: Delivery short (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>117</code>: Delivery/Exercise clawback<br><code>173</code>: Funding fee expense<br><code>174</code>: Funding fee income<br><code>200</code>:System transfer in<br><code>201</code>: Manually transfer in<br><code>202</code>: System transfer out<br><code>203</code>: Manually transfer out<br><code>204</code>: block trade buy<br><code>205</code>: block trade sell<br><code>206</code>: block trade open long<br><code>207</code>: block trade open short<br><code>208</code>: block trade close long<br><code>209</code>: block trade close short<br><code>210</code>: Manual Borrowing of quick margin<br><code>211</code>: Manual Repayment of quick margin<br><code>212</code>: Auto borrow of quick margin<br><code>213</code>: Auto repay of quick margin<br><code>220</code>: Transfer in when using USDT to buy OPTION<br><code>221</code>: Transfer out when using USDT to buy OPTION<br><code>16</code>: Repay forcibly<br><code>17</code>: Repay interest by borrowing forcibly<br><code>224</code>: Repayment transfer in<br><code>225</code>: Repayment transfer out<br><code>236</code>: Easy convert in<br><code>237</code>: Easy convert out<br><code>250</code>: Profit sharing expenses<br><code>251</code>: Profit sharing refund<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund<br><code>282</code>: Spot profit share income<br><code>283</code>: Asset transfer for spot copy trading<br><code>270</code>: Spread trading buy<br><code>271</code>: Spread trading sell<br><code>272</code>: Spread trading open long<br><code>273</code>: Spread trading open short<br><code>274</code>: Spread trading close long<br><code>275</code>: Spread trading close short<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund <br><code>284</code>: Copy trade automatic transfer in<br><code>285</code>: Copy trade manual transfer in<br><code>286</code>: Copy trade automatic transfer out<br><code>287</code>: Copy trade manual transfer out<br><code>290</code>: Crypto dust auto-transfer out<br><del><code>293</code>: Fixed loan interest deduction</del><br><del><code>294</code>: Fixed loan interest refund</del><br><del><code>295</code>: Fixed loan overdue penalty</del><br><code>296</code>: From structured order placements<br><code>297</code>: To structured order placements<br><code>298</code>: From structured settlements<br><code>299</code>: To structured settlements<br><code>306</code>: Manual borrow<br><code>307</code>: Auto borrow<br><code>308</code>: Manual repay<br><code>309</code>: Auto repay<br><code>312</code>: Auto offset<br><code>318</code>: Convert in<br><code>319</code>: Convert out<br><code>320</code>: Simple buy<br><code>321</code>: Simple sell<br> <code>324</code>: Move position buy<br> <code>325</code>: Move position sell<br> <code>326</code>: Move position open long<br> <code>327</code>: Move position open short<br> <code>328</code>: Move position close long<br> <code>329</code>: Move position close short<br><code>332</code>: Margin transfer in isolated margin position <br><code>333</code>: Margin transfer out isolated margin position<br><code>334</code>: Margin loss when closing isolated margin position<br><code>355</code>: Settlement PnL<br><code>376</code>: Collateralized borrowing auto conversion buy<br><code>377</code>: Collateralized borrowing auto conversion sell<br><code>372</code>: Bot airdrop (transfer in)<br><code>373</code>: Bot airdrop (transfer out)<br><code>374</code>: Bot airdrop reclaim (transfer in)<br><code>375</code>: Bot airdrop reclaim (transfer out) <br><code>381</code>: Auto earn (auto lend)<br><code>384</code>: Auto earn (USDG)<br><code>392</code>: Auto staking<br><code>395</code>: Auto earn (auto lend) interest transferred to bots<br><code>396</code>: Auto staking interest transferred to bots</td>
+<td style="text-align: left">Bill subtype<br><code>1</code>: Buy<br><code>2</code>: Sell<br><code>3</code>: Open long<br><code>4</code>: Open short<br><code>5</code>: Close long<br><code>6</code>: Close short<br><code>9</code>: Interest deduction for Market loans<br><code>11</code>: Transfer in<br><code>12</code>: Transfer out<br><code>14</code>: Interest deduction for VIP loans<br><code>160</code>: Manual margin increase<br><code>161</code>: Manual margin decrease<br><code>162</code>: Auto margin increase<br><code>114</code>: Forced repayment buy<br><code>115</code>: Forced repayment sell<br><code>118</code>: System token conversion transfer in<br><code>119</code>: System token conversion transfer out<br><code>100</code>: Partial liquidation close long<br><code>101</code>: Partial liquidation close short<br><code>102</code>: Partial liquidation buy<br><code>103</code>: Partial liquidation sell<br><code>104</code>: Liquidation long<br><code>105</code>: Liquidation short<br><code>106</code>: Liquidation buy<br><code>107</code>: Liquidation sell<br><code>108</code>: Clawback<br><code>110</code>: Liquidation transfer in<br><code>111</code>: Liquidation transfer out<br><code>125</code>: ADL close long<br><code>126</code>: ADL close short<br><code>127</code>: ADL buy<br><code>128</code>: ADL sell<br><code>131</code>: ddh buy<br><code>132</code>: ddh sell<br><code>170</code>: Exercised(ITM buy side)<br><code>171</code>: Counterparty exercised(ITM sell side)<br><code>172</code>: Expired(Non-ITM buy and sell side)<br><code>112</code>: Delivery long (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>113</code>: Delivery short (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>117</code>: Delivery/Exercise clawback<br><code>173</code>: Funding fee expense<br><code>174</code>: Funding fee income<br><code>200</code>:System transfer in<br><code>201</code>: Manually transfer in<br><code>202</code>: System transfer out<br><code>203</code>: Manually transfer out<br><code>204</code>: block trade buy<br><code>205</code>: block trade sell<br><code>206</code>: block trade open long<br><code>207</code>: block trade open short<br><code>208</code>: block trade close long<br><code>209</code>: block trade close short<br><code>210</code>: Manual Borrowing of quick margin<br><code>211</code>: Manual Repayment of quick margin<br><code>212</code>: Auto borrow of quick margin<br><code>213</code>: Auto repay of quick margin<br><code>220</code>: Transfer in when using USDT to buy OPTION<br><code>221</code>: Transfer out when using USDT to buy OPTION<br><code>16</code>: Repay forcibly<br><code>17</code>: Repay interest by borrowing forcibly<br><code>224</code>: Repayment transfer in<br><code>225</code>: Repayment transfer out<br><code>236</code>: Easy convert in<br><code>237</code>: Easy convert out<br><code>250</code>: Profit sharing expenses<br><code>251</code>: Profit sharing refund<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund<br><code>282</code>: Spot profit share income<br><code>283</code>: Asset transfer for spot copy trading<br><code>270</code>: Spread trading buy<br><code>271</code>: Spread trading sell<br><code>272</code>: Spread trading open long<br><code>273</code>: Spread trading open short<br><code>274</code>: Spread trading close long<br><code>275</code>: Spread trading close short<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund <br><code>284</code>: Copy trade automatic transfer in<br><code>285</code>: Copy trade manual transfer in<br><code>286</code>: Copy trade automatic transfer out<br><code>287</code>: Copy trade manual transfer out<br><code>290</code>: Crypto dust auto-transfer out<br><del><code>293</code>: Fixed loan interest deduction</del><br><del><code>294</code>: Fixed loan interest refund</del><br><del><code>295</code>: Fixed loan overdue penalty</del><br><code>296</code>: From structured order placements<br><code>297</code>: To structured order placements<br><code>298</code>: From structured settlements<br><code>299</code>: To structured settlements<br><code>306</code>: Manual borrow<br><code>307</code>: Auto borrow<br><code>308</code>: Manual repay<br><code>309</code>: Auto repay<br><code>312</code>: Auto offset<br><code>318</code>: Convert in<br><code>319</code>: Convert out<br><code>320</code>: Simple buy<br><code>321</code>: Simple sell<br> <code>324</code>: Move position buy<br> <code>325</code>: Move position sell<br> <code>326</code>: Move position open long<br> <code>327</code>: Move position open short<br> <code>328</code>: Move position close long<br> <code>329</code>: Move position close short<br><code>332</code>: Margin transfer in isolated margin position <br><code>333</code>: Margin transfer out isolated margin position<br><code>334</code>: Margin loss when closing isolated margin position<br><code>355</code>: Settlement PnL<br><code>376</code>: Collateralized borrowing auto conversion buy<br><code>377</code>: Collateralized borrowing auto conversion sell<br><code>372</code>: Bot airdrop (transfer in)<br><code>373</code>: Bot airdrop (transfer out)<br><code>374</code>: Bot airdrop reclaim (transfer in)<br><code>375</code>: Bot airdrop reclaim (transfer out) <br><code>381</code>: Auto earn (auto lend)<br><code>382</code>: Simple options (transfer out)<br><code>383</code>: Simple options (transfer in)<br><code>384</code>: Auto earn (USDG)<br><code>392</code>: Auto staking<br><code>395</code>: Auto earn (auto lend) interest transferred to bots<br><code>396</code>: Auto staking interest transferred to bots</td>
 </tr>
 <tr>
 <td style="text-align: left">after</td>
@@ -5862,13 +5897,13 @@ GET /api/v5/account/bills-archive?instType<span class="o">=</span>MARGIN
 <td style="text-align: left">type</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">No</td>
-<td style="text-align: left">Bill type<br><code>1</code>: Transfer<br><code>2</code>: Trade<br><code>3</code>: Delivery<br><code>4</code>: Forced repayment<br><code>5</code>: Liquidation<br><code>6</code>: Margin transfer<br><code>7</code>: Interest deduction<br><code>8</code>: Funding fee<br><code>9</code>: ADL<br><code>10</code>: Clawback<br><code>11</code>: System token conversion<br><code>12</code>: Strategy transfer<br><code>13</code>: DDH<br><code>14</code>: Block trade<br><code>15</code>: Quick Margin<br><code>16</code>: Borrowing<br><code>22</code>: Repay<br><code>24</code>: Spread trading<br><code>26</code>: Structured products<br><code>27</code>: Convert<br><code>28</code>: Easy convert<br><code>29</code>: One-click repay<br><code>30</code>: Simple trade<br> <code>32</code>: Move position<br><code>33</code>: Loans<br/><code>34</code>: Settlement<br><code>250</code>: Copy trader profit sharing expenses<br><code>251</code>: Copy trader profit sharing refund</td>
+<td style="text-align: left">Bill type<br><code>1</code>: Transfer<br><code>2</code>: Trade<br><code>3</code>: Delivery<br><code>4</code>: Forced repayment<br><code>5</code>: Liquidation<br><code>6</code>: Margin transfer<br><code>7</code>: Interest deduction<br><code>8</code>: Funding fee<br><code>9</code>: ADL<br><code>10</code>: Clawback<br><code>11</code>: System token conversion<br><code>12</code>: Strategy transfer<br><code>13</code>: DDH<br><code>14</code>: Block trade<br><code>15</code>: Quick Margin<br><code>16</code>: Borrowing<br><code>20</code>: Options transfer<br><code>22</code>: Repay<br><code>24</code>: Spread trading<br><code>26</code>: Structured products<br><code>27</code>: Convert<br><code>28</code>: Easy convert<br><code>29</code>: One-click repay<br><code>30</code>: Simple trade<br> <code>32</code>: Move position<br><code>33</code>: Loans<br><code>34</code>: Settlement<br><code>35</code>: Simple options<br><code>250</code>: Copy trader profit sharing expenses<br><code>251</code>: Copy trader profit sharing refund</td>
 </tr>
 <tr>
 <td style="text-align: left">subType</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">No</td>
-<td style="text-align: left">Bill subtype<br><code>1</code>: Buy<br><code>2</code>: Sell<br><code>3</code>: Open long<br><code>4</code>: Open short<br><code>5</code>: Close long<br><code>6</code>: Close short<br><code>9</code>: Interest deduction for Market loans<br><code>11</code>: Transfer in<br><code>12</code>: Transfer out<br><code>14</code>: Interest deduction for VIP loans<br><code>160</code>: Manual margin increase<br><code>161</code>: Manual margin decrease<br><code>162</code>: Auto margin increase<br><code>114</code>: Forced repayment buy<br><code>115</code>: Forced repayment sell<br><code>118</code>: System token conversion transfer in<br><code>119</code>: System token conversion transfer out<br><code>100</code>: Partial liquidation close long<br><code>101</code>: Partial liquidation close short<br><code>102</code>: Partial liquidation buy<br><code>103</code>: Partial liquidation sell<br><code>104</code>: Liquidation long<br><code>105</code>: Liquidation short<br><code>106</code>: Liquidation buy<br><code>107</code>: Liquidation sell<br><code>108</code>: Clawback<br><code>110</code>: Liquidation transfer in<br><code>111</code>: Liquidation transfer out<br><code>125</code>: ADL close long<br><code>126</code>: ADL close short<br><code>127</code>: ADL buy<br><code>128</code>: ADL sell<br><code>131</code>: ddh buy<br><code>132</code>: ddh sell<br><code>170</code>: Exercised(ITM buy side)<br><code>171</code>: Counterparty exercised(ITM sell side)<br><code>172</code>: Expired(Non-ITM buy and sell side)<br><code>112</code>: Delivery long (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>113</code>: Delivery short (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>117</code>: Delivery/Exercise clawback<br><code>173</code>: Funding fee expense<br><code>174</code>: Funding fee income<br><code>200</code>:System transfer in<br><code>201</code>: Manually transfer in<br><code>202</code>: System transfer out<br><code>203</code>: Manually transfer out<br><code>204</code>: block trade buy<br><code>205</code>: block trade sell<br><code>206</code>: block trade open long<br><code>207</code>: block trade open short<br><code>208</code>: block trade close long<br><code>209</code>: block trade close short<br><code>210</code>: Manual Borrowing of quick margin<br><code>211</code>: Manual Repayment of quick margin<br><code>212</code>: Auto borrow of quick margin<br><code>213</code>: Auto repay of quick margin<br><code>220</code>: Transfer in when using USDT to buy OPTION<br><code>221</code>: Transfer out when using USDT to buy OPTION<br><code>16</code>: Repay forcibly<br><code>17</code>: Repay interest by borrowing forcibly<br><code>224</code>: Repayment transfer in<br><code>225</code>: Repayment transfer out<br><code>236</code>: Easy convert in<br><code>237</code>: Easy convert out<br><code>250</code>: Profit sharing expenses<br><code>251</code>: Profit sharing refund<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund<br><code>282</code>: Spot profit share income<br><code>283</code>: Asset transfer for spot copy trading<br><code>270</code>: Spread trading buy<br><code>271</code>: Spread trading sell<br><code>272</code>: Spread trading open long<br><code>273</code>: Spread trading open short<br><code>274</code>: Spread trading close long<br><code>275</code>: Spread trading close short<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund <br><code>284</code>: Copy trade automatic transfer in<br><code>285</code>: Copy trade manual transfer in<br><code>286</code>: Copy trade automatic transfer out<br><code>287</code>: Copy trade manual transfer out<br><code>290</code>: Crypto dust auto-transfer out<br><del><code>293</code>: Fixed loan interest deduction</del><br><del><code>294</code>: Fixed loan interest refund</del><br><del><code>295</code>: Fixed loan overdue penalty</del><br><code>296</code>: From structured order placements<br><code>297</code>: To structured order placements<br><code>298</code>: From structured settlements<br><code>299</code>: To structured settlements<br><code>306</code>: Manual borrow<br><code>307</code>: Auto borrow<br><code>308</code>: Manual repay<br><code>309</code>: Auto repay<br><code>312</code>: Auto offset<br><code>318</code>: Convert in<br><code>319</code>: Convert out<br><code>320</code>: Simple buy<br><code>321</code>: Simple sell<br> <code>324</code>: Move position buy<br> <code>325</code>: Move position sell<br> <code>326</code>: Move position open long<br> <code>327</code>: Move position open short<br> <code>328</code>: Move position close long<br> <code>329</code>: Move position close short<br><code>332</code>: Margin transfer in isolated margin position <br><code>333</code>: Margin transfer out isolated margin position<br><code>334</code>: Margin loss when closing isolated margin position<br><code>355</code>: Settlement PnL<br><code>376</code>: Collateralized borrowing auto conversion buy<br><code>377</code>: Collateralized borrowing auto conversion sell<br><code>372</code>: Bot airdrop (transfer in)<br><code>373</code>: Bot airdrop (transfer out)<br><code>374</code>: Bot airdrop reclaim (transfer in)<br><code>375</code>: Bot airdrop reclaim (transfer out) <br><code>381</code>: Auto earn (auto lend)<br><code>384</code>: Auto earn (USDG)<br><code>392</code>: Auto staking<br><code>395</code>: Auto earn (auto lend) interest transferred to bots<br><code>396</code>: Auto staking interest transferred to bots</td>
+<td style="text-align: left">Bill subtype<br><code>1</code>: Buy<br><code>2</code>: Sell<br><code>3</code>: Open long<br><code>4</code>: Open short<br><code>5</code>: Close long<br><code>6</code>: Close short<br><code>9</code>: Interest deduction for Market loans<br><code>11</code>: Transfer in<br><code>12</code>: Transfer out<br><code>14</code>: Interest deduction for VIP loans<br><code>160</code>: Manual margin increase<br><code>161</code>: Manual margin decrease<br><code>162</code>: Auto margin increase<br><code>114</code>: Forced repayment buy<br><code>115</code>: Forced repayment sell<br><code>118</code>: System token conversion transfer in<br><code>119</code>: System token conversion transfer out<br><code>100</code>: Partial liquidation close long<br><code>101</code>: Partial liquidation close short<br><code>102</code>: Partial liquidation buy<br><code>103</code>: Partial liquidation sell<br><code>104</code>: Liquidation long<br><code>105</code>: Liquidation short<br><code>106</code>: Liquidation buy<br><code>107</code>: Liquidation sell<br><code>108</code>: Clawback<br><code>110</code>: Liquidation transfer in<br><code>111</code>: Liquidation transfer out<br><code>125</code>: ADL close long<br><code>126</code>: ADL close short<br><code>127</code>: ADL buy<br><code>128</code>: ADL sell<br><code>131</code>: ddh buy<br><code>132</code>: ddh sell<br><code>170</code>: Exercised(ITM buy side)<br><code>171</code>: Counterparty exercised(ITM sell side)<br><code>172</code>: Expired(Non-ITM buy and sell side)<br><code>112</code>: Delivery long (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>113</code>: Delivery short (applicable to <code>FUTURES</code> expiration and <code>SWAP</code> delisting)<br><code>117</code>: Delivery/Exercise clawback<br><code>173</code>: Funding fee expense<br><code>174</code>: Funding fee income<br><code>200</code>:System transfer in<br><code>201</code>: Manually transfer in<br><code>202</code>: System transfer out<br><code>203</code>: Manually transfer out<br><code>204</code>: block trade buy<br><code>205</code>: block trade sell<br><code>206</code>: block trade open long<br><code>207</code>: block trade open short<br><code>208</code>: block trade close long<br><code>209</code>: block trade close short<br><code>210</code>: Manual Borrowing of quick margin<br><code>211</code>: Manual Repayment of quick margin<br><code>212</code>: Auto borrow of quick margin<br><code>213</code>: Auto repay of quick margin<br><code>220</code>: Transfer in when using USDT to buy OPTION<br><code>221</code>: Transfer out when using USDT to buy OPTION<br><code>16</code>: Repay forcibly<br><code>17</code>: Repay interest by borrowing forcibly<br><code>224</code>: Repayment transfer in<br><code>225</code>: Repayment transfer out<br><code>236</code>: Easy convert in<br><code>237</code>: Easy convert out<br><code>250</code>: Profit sharing expenses<br><code>251</code>: Profit sharing refund<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund<br><code>282</code>: Spot profit share income<br><code>283</code>: Asset transfer for spot copy trading<br><code>270</code>: Spread trading buy<br><code>271</code>: Spread trading sell<br><code>272</code>: Spread trading open long<br><code>273</code>: Spread trading open short<br><code>274</code>: Spread trading close long<br><code>275</code>: Spread trading close short<br><code>280</code>: SPOT profit sharing expenses<br><code>281</code>: SPOT profit sharing refund <br><code>284</code>: Copy trade automatic transfer in<br><code>285</code>: Copy trade manual transfer in<br><code>286</code>: Copy trade automatic transfer out<br><code>287</code>: Copy trade manual transfer out<br><code>290</code>: Crypto dust auto-transfer out<br><del><code>293</code>: Fixed loan interest deduction</del><br><del><code>294</code>: Fixed loan interest refund</del><br><del><code>295</code>: Fixed loan overdue penalty</del><br><code>296</code>: From structured order placements<br><code>297</code>: To structured order placements<br><code>298</code>: From structured settlements<br><code>299</code>: To structured settlements<br><code>306</code>: Manual borrow<br><code>307</code>: Auto borrow<br><code>308</code>: Manual repay<br><code>309</code>: Auto repay<br><code>312</code>: Auto offset<br><code>318</code>: Convert in<br><code>319</code>: Convert out<br><code>320</code>: Simple buy<br><code>321</code>: Simple sell<br> <code>324</code>: Move position buy<br> <code>325</code>: Move position sell<br> <code>326</code>: Move position open long<br> <code>327</code>: Move position open short<br> <code>328</code>: Move position close long<br> <code>329</code>: Move position close short<br><code>332</code>: Margin transfer in isolated margin position <br><code>333</code>: Margin transfer out isolated margin position<br><code>334</code>: Margin loss when closing isolated margin position<br><code>355</code>: Settlement PnL<br><code>376</code>: Collateralized borrowing auto conversion buy<br><code>377</code>: Collateralized borrowing auto conversion sell<br><code>372</code>: Bot airdrop (transfer in)<br><code>373</code>: Bot airdrop (transfer out)<br><code>374</code>: Bot airdrop reclaim (transfer in)<br><code>375</code>: Bot airdrop reclaim (transfer out) <br><code>381</code>: Auto earn (auto lend)<br><code>382</code>: Simple options (transfer out)<br><code>383</code>: Simple options (transfer in)<br><code>384</code>: Auto earn (USDG)<br><code>392</code>: Auto staking<br><code>395</code>: Auto earn (auto lend) interest transferred to bots<br><code>396</code>: Auto staking interest transferred to bots</td>
 </tr>
 <tr>
 <td style="text-align: left">after</td>
@@ -11400,49 +11435,49 @@ body
 <td>An array of objects containing details of each position to be moved</td>
 </tr>
 <tr>
-<td>&gt;from</td>
+<td>&gt; from</td>
 <td>Object</td>
 <td>yes</td>
 <td>Details of the position in the source account</td>
 </tr>
 <tr>
-<td>&gt;&gt;posId</td>
+<td>&gt;&gt; posId</td>
 <td>String</td>
 <td>Yes</td>
 <td>Position ID in the source account</td>
 </tr>
 <tr>
-<td>&gt;&gt;sz</td>
+<td>&gt;&gt; sz</td>
 <td>String</td>
 <td>Yes</td>
 <td>Number of contracts.</td>
 </tr>
 <tr>
-<td>&gt;&gt;side</td>
+<td>&gt;&gt; side</td>
 <td>String</td>
 <td>Yes</td>
 <td>Trade side from the perspective of source account<br> <code>buy</code><br> <code>sell</code></td>
 </tr>
 <tr>
-<td>&gt;to</td>
+<td>&gt; to</td>
 <td>Object</td>
 <td>Yes</td>
 <td>Details of the configuration of the destination account</td>
 </tr>
 <tr>
-<td>&gt;&gt;tdMode</td>
+<td>&gt;&gt; tdMode</td>
 <td>String</td>
 <td>No</td>
 <td>Trading mode in the destination account.<br> <code>cross</code><br> <code>isolated</code><br> If not provided, tdMode will take the default values as shown below:<br>Buy options in <code>Futures mode</code>/<code>Multi-currency margin mode</code>: <code>isolated</code><br> Other cases: <code>cross</code></td>
 </tr>
 <tr>
-<td>&gt;&gt;posSide</td>
+<td>&gt;&gt; posSide</td>
 <td>String</td>
 <td>No</td>
 <td>Position side<br> <code>net</code><br> <code>long</code><br> <code>short</code><br> This parameter is not mandatory if the destination sub-account is in <strong>net</strong> mode. If you pass it through, the only valid value is <code>net</code>.It can only be <code>long</code> or <code>short</code> if the destination sub-account is in long/short mode. If not specified, destination account in long/short mode always open new positions.</td>
 </tr>
 <tr>
-<td>&gt;&gt;ccy</td>
+<td>&gt;&gt; ccy</td>
 <td>String</td>
 <td>No</td>
 <td>Margin currency in destination accountOnly applicable to cross margin positions in <code>Futures mode</code>.</td>
@@ -11586,52 +11621,52 @@ body
 <td>An array of objects containing details of each position to be moved</td>
 </tr>
 <tr>
-<td>&gt;from</td>
+<td>&gt; from</td>
 <td>Object</td>
 <td>Object describing the &quot;from&quot; leg</td>
 </tr>
 <tr>
-<td>&gt;&gt;instId</td>
+<td>&gt;&gt; instId</td>
 <td>String</td>
 <td>Instrument ID</td>
 </tr>
 <tr>
-<td>&gt;&gt;posId</td>
+<td>&gt;&gt; posId</td>
 <td>String</td>
 <td>Position ID</td>
 </tr>
 <tr>
-<td>&gt;&gt;px</td>
+<td>&gt;&gt; px</td>
 <td>String</td>
 <td>Transfer price, typically a 60-minute TWAP of the mark price</td>
 </tr>
 <tr>
-<td>&gt;&gt;side</td>
+<td>&gt;&gt; side</td>
 <td>String</td>
 <td>Direction of the leg in the source account<br> <code>buy</code><br> <code>sell</code></td>
 </tr>
 <tr>
-<td>&gt;&gt;sz</td>
+<td>&gt;&gt; sz</td>
 <td>String</td>
 <td>Number of Contracts</td>
 </tr>
 <tr>
-<td>&gt;&gt;sCode</td>
+<td>&gt;&gt; sCode</td>
 <td>String</td>
 <td>The code of the event execution result, 0 means success</td>
 </tr>
 <tr>
-<td>&gt;&gt;sMsg</td>
+<td>&gt;&gt; sMsg</td>
 <td>String</td>
 <td>Rejection message if the request is unsuccessful</td>
 </tr>
 <tr>
-<td>&gt;to</td>
+<td>&gt; to</td>
 <td>Object</td>
 <td>Object describing the &quot;to&quot; leg</td>
 </tr>
 <tr>
-<td>&gt;&gt;instId</td>
+<td>&gt;&gt; instId</td>
 <td>String</td>
 <td>Instrument ID</td>
 </tr>
@@ -11641,32 +11676,32 @@ body
 <td>Trade side of the trade in the destination account</td>
 </tr>
 <tr>
-<td>&gt;&gt;posSide</td>
+<td>&gt;&gt; posSide</td>
 <td>String</td>
 <td>Position side of the trade in the destination account</td>
 </tr>
 <tr>
-<td>&gt;&gt;tdMode</td>
+<td>&gt;&gt; tdMode</td>
 <td>String</td>
 <td>Trade mode</td>
 </tr>
 <tr>
-<td>&gt;&gt;px</td>
+<td>&gt;&gt; px</td>
 <td>String</td>
 <td>Transfer price, typically a 60-minute TWAP of the mark price</td>
 </tr>
 <tr>
-<td>&gt;&gt;ccy</td>
+<td>&gt;&gt; ccy</td>
 <td>String</td>
 <td>Margin currency</td>
 </tr>
 <tr>
-<td>&gt;&gt;sCode</td>
+<td>&gt;&gt; sCode</td>
 <td>String</td>
 <td>The code of the event execution result, 0 means success</td>
 </tr>
 <tr>
-<td>&gt;&gt;sMsg</td>
+<td>&gt;&gt; sMsg</td>
 <td>String</td>
 <td>Rejection message if the request is unsuccessful</td>
 </tr>
@@ -15274,7 +15309,8 @@ The account greeks data is sent on event basis and regular basis
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"inTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421339"</span><span class="p">,</span><span class="w">
@@ -15332,6 +15368,11 @@ The account greeks data is sent on event basis and regular basis
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Rejection or success message of event execution.</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -15761,7 +15802,8 @@ Unlike other endpoints, the rate limit of this endpoint is determined by the num
             </span><span class="nl">"tag"</span><span class="p">:</span><span class="s2">""</span><span class="p">,</span><span class="w">
             </span><span class="nl">"ts"</span><span class="p">:</span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
             </span><span class="nl">"sCode"</span><span class="p">:</span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="w">
+            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
         </span><span class="p">},</span><span class="w">
         </span><span class="p">{</span><span class="w">
             </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="s2">"oktswap7"</span><span class="p">,</span><span class="w">
@@ -15769,7 +15811,8 @@ Unlike other endpoints, the rate limit of this endpoint is determined by the num
             </span><span class="nl">"tag"</span><span class="p">:</span><span class="s2">""</span><span class="p">,</span><span class="w">
             </span><span class="nl">"ts"</span><span class="p">:</span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
             </span><span class="nl">"sCode"</span><span class="p">:</span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="w">
+            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
         </span><span class="p">}</span><span class="w">
     </span><span class="p">],</span><span class="w">
     </span><span class="nl">"inTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421339"</span><span class="p">,</span><span class="w">
@@ -15827,6 +15870,11 @@ Unlike other endpoints, the rate limit of this endpoint is determined by the num
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Rejection or success message of event execution.</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -16355,6 +16403,7 @@ body
          </span><span class="nl">"reqId"</span><span class="p">:</span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
          </span><span class="nl">"sCode"</span><span class="p">:</span><span class="s2">"0"</span><span class="p">,</span><span class="w">
          </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="w">
+         </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
         </span><span class="p">}</span><span class="w">
     </span><span class="p">],</span><span class="w">
     </span><span class="nl">"inTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421339"</span><span class="p">,</span><span class="w">
@@ -16412,6 +16461,11 @@ body
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Rejection message if the request is unsuccessful.</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -16648,7 +16702,8 @@ body
             </span><span class="nl">"ts"</span><span class="p">:</span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
             </span><span class="nl">"reqId"</span><span class="p">:</span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
             </span><span class="nl">"sCode"</span><span class="p">:</span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="w">
+            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
         </span><span class="p">},</span><span class="w">
         </span><span class="p">{</span><span class="w">
             </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="s2">"oktswap7"</span><span class="p">,</span><span class="w">
@@ -16656,7 +16711,8 @@ body
             </span><span class="nl">"ts"</span><span class="p">:</span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
             </span><span class="nl">"reqId"</span><span class="p">:</span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
             </span><span class="nl">"sCode"</span><span class="p">:</span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="w">
+            </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="s2">""</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
         </span><span class="p">}</span><span class="w">
     </span><span class="p">],</span><span class="w">
     </span><span class="nl">"inTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421339"</span><span class="p">,</span><span class="w">
@@ -16714,6 +16770,11 @@ body
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Rejection message if the request is unsuccessful.</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -20148,7 +20209,7 @@ body
 </tr>
 </tbody></table>
 <h3 id='order-book-trading-trade-get-one-click-repay-currency-list-new'>GET / One-click repay currency list (New)</h3>
-<p>Get list of debt currency data and repay currencies. Only applicable to <code>SPOT mode</code>.</p>
+<p>Get list of debt currency data and repay currencies. Only applicable to <code>SPOT mode</code>/<code>Multi-currency margin mode</code>/<code>Portfolio margin mode</code>.</p>
 <h4 id='order-book-trading-trade-get-one-click-repay-currency-list-new-rate-limit-1-request-per-2-seconds'>Rate Limit: 1 request per 2 seconds</h4><h4 id='order-book-trading-trade-get-one-click-repay-currency-list-new-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='order-book-trading-trade-get-one-click-repay-currency-list-new-permission-read'>Permission: Read</h4><h4 id='order-book-trading-trade-get-one-click-repay-currency-list-new-http-request'>HTTP Request</h4>
 <p><code>GET /api/v5/trade/one-click-repay-currency-list-v2</code></p>
 
@@ -20247,7 +20308,7 @@ body
 </tr>
 </tbody></table>
 <h3 id='order-book-trading-trade-post-trade-one-click-repay-new'>POST / Trade one-click repay (New)</h3>
-<p>Trade one-click repay to repay debts. Only applicable to <code>SPOT mode</code>. </p>
+<p>Trade one-click repay to repay debts. Only applicable to <code>SPOT mode</code>/<code>Multi-currency margin mode</code>/<code>Portfolio margin mode</code>.</p>
 <h4 id='order-book-trading-trade-post-trade-one-click-repay-new-rate-limit-1-request-per-2-seconds'>Rate Limit: 1 request per 2 seconds</h4><h4 id='order-book-trading-trade-post-trade-one-click-repay-new-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='order-book-trading-trade-post-trade-one-click-repay-new-permission-trade'>Permission: Trade</h4><h4 id='order-book-trading-trade-post-trade-one-click-repay-new-http-request'>HTTP Request</h4>
 <p><code>POST /api/v5/trade/one-click-repay-v2</code></p>
 
@@ -20749,27 +20810,27 @@ GET /api/v5/trade/account-rate-limit
 <tr>
 <td>fillRatio</td>
 <td>String</td>
-<td>Sub account fill ratio during the monitoring period <br>Applicable for users with trading fee level &gt;= VIP 5 and return &quot;&quot; for others <br>For accounts with no trading volume during the monitoring period, return &quot;0&quot;. For accounts with trading volume but no order count due to our counting logic, return &quot;9999&quot;.</td>
+<td>Sub account fill ratio during the monitoring period. <br>Applicable to users with trading fee tier &gt;= VIP 5; other users will receive <code>&quot;&quot;</code>.<br>If there has been no trading activity on the account in the past 7 days, <code>&quot;&quot;</code> will be returned.<br>If there is no executed volume during the monitoring period, <code>&quot;0&quot;</code> will be returned.<br>If there is executed volume but no order operation count during the monitoring period, <code>&quot;9999&quot;</code> will be returned.</td>
 </tr>
 <tr>
 <td>mainFillRatio</td>
 <td>String</td>
-<td>Master account aggregated fill ratio during the monitoring period <br>Applicable for users with trading fee level &gt;= VIP 5 and return &quot;&quot; for others <br>For accounts with no trading volume during the monitoring period, return &quot;0&quot;</td>
+<td>Master account aggregated fill ratio during the monitoring period. <br>Applicable to users with trading fee tier &gt;= VIP 5; other users will receive <code>&quot;&quot;</code>.<br>If there has been no trading activity on the account in the past 7 days, <code>&quot;&quot;</code> will be returned.<br>If there is no executed volume during the monitoring period, <code>&quot;0&quot;</code> will be returned.</td>
 </tr>
 <tr>
 <td>accRateLimit</td>
 <td>String</td>
-<td>Current sub-account rate limit per two seconds</td>
+<td>Current sub-account rate limit per 2 seconds</td>
 </tr>
 <tr>
 <td>nextAccRateLimit</td>
 <td>String</td>
-<td>Expected sub-account rate limit (per two seconds) in the next period <br>Applicable for users with trading fee level &gt;= VIP 5 and return &quot;&quot; for others</td>
+<td>Expected sub-account rate limit (per 2 seconds) in the next monitoring period. <br>Applicable to users with trading fee tier &gt;= VIP 5; other users will receive <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td>ts</td>
 <td>String</td>
-<td>Data update time <br>For users with trading fee level &gt;= VIP 5, the data will be generated at 08:00 am (UTC) <br>For users with trading fee level &lt; VIP 5, return the current timestamp</td>
+<td>Data update timestamp <br>For users with trading fee tier &gt;= VIP 5, the data will be generated daily at 08:00 am (UTC) <br>For users with trading fee tier &lt; VIP 5, the current timestamp will be returned.</td>
 </tr>
 </tbody></table>
 <h3 id='order-book-trading-trade-post-order-precheck'>POST / Order precheck</h3>
@@ -21766,7 +21827,7 @@ POST /api/v5/trade/order-precheck
 <td>Rebate currency<br>For maker sell orders of Spot and Margin, this represents the base currency. For all other cases, it represents the currency in which rebates are paid.</td>
 </tr>
 <tr>
-<td style="text-align: left">rebate</td>
+<td style="text-align: left">&gt; rebate</td>
 <td style="text-align: left">String</td>
 <td>Rebate amount, only applicable to Spot and Margin<br>For maker sell orders: <del>Accumulated fee and</del> rebate amount in the unit of base currency.<br>For all other cases, it represents the maker rebate amount, always positive, return &quot;&quot; if no rebate.</td>
 </tr>
@@ -22531,6 +22592,11 @@ Rate limit is shared with the `Place order` REST API endpoints
 <td style="text-align: left">Rejection or success message of event execution.</td>
 </tr>
 <tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
+</tr>
+<tr>
 <td style="text-align: left">inTime</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Timestamp at Websocket gateway when the request is received, Unix timestamp format in microseconds, e.g. <code>1597026383085123</code></td>
@@ -22867,7 +22933,8 @@ Rate limit is shared with the `Place multiple orders` REST API endpoints
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">},</span><span class="w">
     </span><span class="p">{</span><span class="w">
       </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
@@ -22875,7 +22942,8 @@ Rate limit is shared with the `Place multiple orders` REST API endpoints
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
@@ -22897,15 +22965,17 @@ Rate limit is shared with the `Place multiple orders` REST API endpoints
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">},</span><span class="w">
     </span><span class="p">{</span><span class="w">
       </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5XXXX"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Insufficient margin"</span><span class="w">
+      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"51008"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Order failed. Insufficient USDT balance in account"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1000"</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2"</span><span class="p">,</span><span class="w">
@@ -22926,20 +22996,23 @@ Rate limit is shared with the `Place multiple orders` REST API endpoints
       </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5XXXX"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Insufficient margin"</span><span class="w">
+      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"51008"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Order failed. Insufficient USDT balance in account"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1000"</span><span class="w">
     </span><span class="p">},</span><span class="w">
     </span><span class="p">{</span><span class="w">
       </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"oktswap7"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"tag"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5XXXX"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Insufficient margin"</span><span class="w">
+      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"51008"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Order failed. Insufficient USDT balance in account"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1000"</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
   </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
   </span><span class="nl">"inTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421339"</span><span class="p">,</span><span class="w">
   </span><span class="nl">"outTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491423240"</span><span class="w">
 </span><span class="p">}</span><span class="w">
@@ -23018,6 +23091,11 @@ Rate limit is shared with the `Place multiple orders` REST API endpoints
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Rejection or success message of event execution.</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -23636,7 +23714,8 @@ Rate limit is shared with the `Amend order` REST API endpoints
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"reqId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
@@ -23657,8 +23736,9 @@ Rate limit is shared with the `Amend order` REST API endpoints
       </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2510789768709120"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"reqId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5XXXX"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"order not exist"</span><span class="w">
+      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"51008"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Order failed. Insufficient USDT balance in account"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10000"</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
@@ -23741,6 +23821,11 @@ Rate limit is shared with the `Amend order` REST API endpoints
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Order status message</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -23910,7 +23995,8 @@ Rate limit is shared with the `Amend multiple orders` REST API endpoints
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"reqId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">},</span><span class="w">
     </span><span class="p">{</span><span class="w">
       </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"oktswap7"</span><span class="p">,</span><span class="w">
@@ -23918,7 +24004,8 @@ Rate limit is shared with the `Amend multiple orders` REST API endpoints
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"reqId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
@@ -23947,8 +24034,9 @@ Rate limit is shared with the `Amend multiple orders` REST API endpoints
       </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"reqId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5XXXX"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"order not exist"</span><span class="w">
+          </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"51008"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Order failed. Insufficient USDT balance in account"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1000"</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
@@ -23973,12 +24061,13 @@ Rate limit is shared with the `Amend multiple orders` REST API endpoints
       </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">},</span><span class="w">
     </span><span class="p">{</span><span class="w">
-      </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"oktswap7"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"clOrdId"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"oktswap7"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1695190491421"</span><span class="p">,</span><span class="w">
       </span><span class="nl">"reqId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"b12344"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5XXXX"</span><span class="p">,</span><span class="w">
-      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"order not exist"</span><span class="w">
+      </span><span class="nl">"sCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"51063"</span><span class="p">,</span><span class="w">
+      </span><span class="nl">"sMsg"</span><span class="p">:</span><span class="w"> </span><span class="s2">"OrdId does not exist"</span><span class="w">
+      </span><span class="nl">"subCode"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="w">
     </span><span class="p">}</span><span class="w">
   </span><span class="p">],</span><span class="w">
   </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2"</span><span class="p">,</span><span class="w">
@@ -24061,6 +24150,11 @@ Rate limit is shared with the `Amend multiple orders` REST API endpoints
 <td style="text-align: left">&gt; sMsg</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Order status message</td>
+</tr>
+<tr>
+<td style="text-align: left">&gt; subCode</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Sub-code of sCode.<br> Returns <code>&quot;&quot;</code> when sCode is 0 (request successful).<br> When sCode is not 0 (request failed), returns the sub-code if available; otherwise returns <code>&quot;&quot;</code>.</td>
 </tr>
 <tr>
 <td style="text-align: left">inTime</td>
@@ -42016,7 +42110,7 @@ Up to 500 most recent historical public transaction data can be retrieved.
 <td style="text-align: left">Trade price</td>
 </tr>
 <tr>
-<td style="text-align: left">&gt; sz</td>
+<td style="text-align: left">sz</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Trade quantity. The unit is contract.</td>
 </tr>
@@ -43624,7 +43718,7 @@ Only API users who are VIP5 and above in trading fee tier are allowed to subscri
 <tr>
 <td style="text-align: left">&gt; ts</td>
 <td style="text-align: left">String</td>
-<td>Order book generation time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code> <br>Exception: For the <code>bbo-tbt</code> channel, <code>ts</code> is the timestamp when the push is triggered</td>
+<td>Order book generation time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code> <br>Exception: For the <code>bbo-tbt</code> channel, <code>ts</code> is the timestamp when the book is generated by matching engine.</td>
 </tr>
 <tr>
 <td style="text-align: left">&gt; checksum</td>
@@ -44339,7 +44433,7 @@ During call auction, users can get the updates of equilibrium price, matched siz
 </a></p>
 <h3 id='order-book-trading-sbe-market-data-general-information'>General Information</h3>
 <ul>
-<li>Access is restricted to API users with <strong>VIP6</strong> trading fee tier or higher for production, and <strong>VIP1</strong> or higher for demo trading.<br></li>
+<li>The <code>bbo-tbt</code> channel is <strong>available to users of any trading fee tier</strong> but requires login. The <code>trades</code> and <code>books-l2-tbt</code> channels are restricted to users with a trading fee tier of <strong>VIP6</strong> or above in the live trading environment, and <strong>VIP1</strong> or above in the demo trading environment.<br></li>
 <li>SBE channels will use a new WebSocket URL.<br>
 Live trading: <code>wss://ws.okx.com:8443/ws/v5/public-sbe</code><br>
 Demo trading: <code>wss://wspap.okx.com:8443/ws/v5/public-sbe</code> <br></li>
@@ -55909,7 +56003,7 @@ The data returned will be arranged in an array like this: [ts,o,h,l,c,vol,confir
 <tr>
 <td style="text-align: left">groupId</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Instrument trading fee group ID<br>Spot:<br><code>1</code>: Spot USDT<br><code>2</code>: Spot USDC &amp; Crypto<br><code>3</code>: Spot TRY<br><code>4</code>: Spot EUR<br><code>5</code>: Spot BRL<br><code>7</code>: Spot AED<br><code>8</code>: Spot AUD<br><code>9</code>: Spot USD<br><code>10</code>: Spot SGD<br><code>11</code>: Spot zero<br><code>12</code>: Spot group one<br><code>13</code>: Spot group two<br><code>14</code>: Spot group three<br><code>15</code>: Spot special rule<br><br>Expiry futures:<br><code>1</code>: Expiry futures crypto-margined<br><code>2</code>: Expiry futures USDT-margined<br><code>3</code>: Expiry futures USDC-margined<br><code>4</code>: Expiry futures premarket<br><code>5</code>: Expiry futures group one<br><code>6</code>: Expiry futures group two<br><br>Perpetual futures:<br><code>1</code>: Perpetual futures crypto-margined<br><code>2</code>: Perpetual futures USDT-margined<br><code>3</code>: Perpetual futures USDC-margined<br><code>4</code>: Perpetual futures group one<br><code>5</code>: Perpetual futures group two<br><br>Options:<br><code>1</code>: Options crypto-margined<br><code>2</code>: Options USDC-margined<br><br><strong>instType and groupId should be used together to determine a trading fee group. Users should use this endpoint together with <a href="/docs-v5/en/#trading-account-rest-api-get-fee-rates">fee rates endpoint</a> to get the trading fee of a specific symbol.</strong> <br><br><strong>Some enum values may not apply to you; the actual return values shall prevail.</strong></td>
+<td style="text-align: left">Instrument trading fee group ID<br>Spot:<br><code>1</code>: Spot USDT<br><code>2</code>: Spot USDC &amp; Crypto<br><code>3</code>: Spot TRY<br><code>4</code>: Spot EUR<br><code>5</code>: Spot BRL<br><code>7</code>: Spot AED<br><code>8</code>: Spot AUD<br><code>9</code>: Spot USD<br><code>10</code>: Spot SGD<br><code>11</code>: Spot zero<br><code>12</code>: Spot group one<br><code>13</code>: Spot group two<br><code>14</code>: Spot group three<br><code>15</code>: Spot special rule<br><br>Expiry futures:<br><code>1</code>: Expiry futures crypto-margined<br><code>2</code>: Expiry futures USDT-margined<br><code>3</code>: Expiry futures USDC-margined<br><code>4</code>: Expiry futures premarket<br><code>5</code>: Expiry futures group one<br><code>6</code>: Expiry futures group two<br><br>Perpetual futures:<br><code>1</code>: Perpetual futures crypto-margined<br><code>2</code>: Perpetual futures USDT-margined<br><code>3</code>: Perpetual futures USDC-margined<br><code>4</code>: Perpetual futures group one<br><code>5</code>: Perpetual futures group two <br><code>6</code>: Stock perpetual futures <br><br>Options:<br><code>1</code>: Options crypto-margined<br><code>2</code>: Options USDC-margined<br><br><strong>instType and groupId should be used together to determine a trading fee group. Users should use this endpoint together with <a href="/docs-v5/en/#trading-account-rest-api-get-fee-rates">fee rates endpoint</a> to get the trading fee of a specific symbol.</strong> <br><br><strong>Some enum values may not apply to you; the actual return values shall prevail.</strong></td>
 </tr>
 <tr>
 <td style="text-align: left">instFamily</td>
@@ -56024,12 +56118,12 @@ The data returned will be arranged in an array like this: [ts,o,h,l,c,vol,confir
 <tr>
 <td style="text-align: left">state</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Instrument status<br><code>live</code> <br><code>suspend</code><br><code>preopen</code>. e.g. There will be <code>preopen</code> before the Futures and Options new contracts state is live.<br><code>test</code>: Test pairs, can’t be traded</td>
+<td style="text-align: left">Instrument status<br><code>live</code> <br><code>suspend</code><br><code>rebase</code>: can&#39;t be traded during rebasing, only applicable to <code>SWAP</code><br><code>preopen</code>. e.g. There will be <code>preopen</code> before the Futures and Options new contracts state is live.<br><code>test</code>: Test pairs, can’t be traded</td>
 </tr>
 <tr>
 <td style="text-align: left">ruleType</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Trading rule types<br> <code>normal</code>: normal trading<br> <code>pre_market</code>: pre-market trading</td>
+<td style="text-align: left">Trading rule types<br> <code>normal</code>: normal trading<br> <code>pre_market</code>: pre-market trading<br> <code>rebase_contract</code>: pre-market rebase contract</td>
 </tr>
 <tr>
 <td style="text-align: left">maxLmtSz</td>
@@ -56089,7 +56183,7 @@ The data returned will be arranged in an array like this: [ts,o,h,l,c,vol,confir
 <tr>
 <td style="text-align: left">instCategory</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">The category of the instrument’s base currency (the first part of the instrument ID). For example, for <code>BTC-USDT-SWAP</code>, the <code>instCategory</code> refers to the category of <code>BTC</code>. <br> <code>1</code>: Crypto</td>
+<td style="text-align: left">The asset category of the instrument’s base asset (the first segment of the instrument ID). For example, for <code>BTC-USDT-SWAP</code>, the <code>instCategory</code> represents the asset category of <code>BTC</code>. <br> <code>1</code>: Crypto <br> <code>3</code>: Stocks</td>
 </tr>
 <tr>
 <td style="text-align: left">upcChg</td>
@@ -59852,7 +59946,7 @@ When converting Unix timestamps to dates, the following timezone conventions are
 <tr>
 <td style="text-align: left">&gt; groupId</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Instrument trading fee group ID<br>Spot:<br><code>1</code>: Spot USDT<br><code>2</code>: Spot USDC &amp; Crypto<br><code>3</code>: Spot TRY<br><code>4</code>: Spot EUR<br><code>5</code>: Spot BRL<br><code>7</code>: Spot AED<br><code>8</code>: Spot AUD<br><code>9</code>: Spot USD<br><code>10</code>: Spot SGD<br><code>11</code>: Spot zero<br><code>12</code>: Spot group one<br><code>13</code>: Spot group two<br><code>14</code>: Spot group three<br><code>15</code>: Spot special rule<br><br>Expiry futures:<br><code>1</code>: Expiry futures crypto-margined<br><code>2</code>: Expiry futures USDT-margined<br><code>3</code>: Expiry futures USDC-margined<br><code>4</code>: Expiry futures premarket<br><code>5</code>: Expiry futures group one<br><code>6</code>: Expiry futures group two<br><br>Perpetual futures:<br><code>1</code>: Perpetual futures crypto-margined<br><code>2</code>: Perpetual futures USDT-margined<br><code>3</code>: Perpetual futures USDC-margined<br><code>4</code>: Perpetual futures group one<br><code>5</code>: Perpetual futures group two<br><br>Options:<br><code>1</code>: Options crypto-margined<br><code>2</code>: Options USDC-margined<br><br><strong>instType and groupId should be used together to determine a trading fee group. Users should use this endpoint together with <a href="/docs-v5/en/#trading-account-rest-api-get-fee-rates">fee rates endpoint</a> to get the trading fee of a specific symbol.</strong> <br><br><strong>Some enum values may not apply to you; the actual return values shall prevail.</strong></td>
+<td style="text-align: left">Instrument trading fee group ID<br>Spot:<br><code>1</code>: Spot USDT<br><code>2</code>: Spot USDC &amp; Crypto<br><code>3</code>: Spot TRY<br><code>4</code>: Spot EUR<br><code>5</code>: Spot BRL<br><code>7</code>: Spot AED<br><code>8</code>: Spot AUD<br><code>9</code>: Spot USD<br><code>10</code>: Spot SGD<br><code>11</code>: Spot zero<br><code>12</code>: Spot group one<br><code>13</code>: Spot group two<br><code>14</code>: Spot group three<br><code>15</code>: Spot special rule<br><br>Expiry futures:<br><code>1</code>: Expiry futures crypto-margined<br><code>2</code>: Expiry futures USDT-margined<br><code>3</code>: Expiry futures USDC-margined<br><code>4</code>: Expiry futures premarket<br><code>5</code>: Expiry futures group one<br><code>6</code>: Expiry futures group two<br><br>Perpetual futures:<br><code>1</code>: Perpetual futures crypto-margined<br><code>2</code>: Perpetual futures USDT-margined<br><code>3</code>: Perpetual futures USDC-margined<br><code>4</code>: Perpetual futures group one<br><code>5</code>: Perpetual futures group two<br><code>6</code>: Stock perpetual futures <br><br>Options:<br><code>1</code>: Options crypto-margined<br><code>2</code>: Options USDC-margined<br><br><strong>instType and groupId should be used together to determine a trading fee group. Users should use this endpoint together with <a href="/docs-v5/en/#trading-account-rest-api-get-fee-rates">fee rates endpoint</a> to get the trading fee of a specific symbol.</strong> <br><br><strong>Some enum values may not apply to you; the actual return values shall prevail.</strong></td>
 </tr>
 <tr>
 <td style="text-align: left">&gt; instFamily</td>
@@ -59967,17 +60061,12 @@ When converting Unix timestamps to dates, the following timezone conventions are
 <tr>
 <td style="text-align: left">&gt; state</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Instrument status<br><code>live</code><br><code>suspend</code><br><code>expired</code><br><code>preopen</code>. e.g. There will be preopen before the Futures and Options new contracts state is live. <br><code>test</code>: Test pairs, can&#39;t be traded</td>
-</tr>
-<tr>
-<td style="text-align: left">&gt; state</td>
-<td style="text-align: left">String</td>
-<td style="text-align: left">Instrument status<br><code>live</code><br><code>suspend</code><br><code>expired</code><br><code>preopen</code> e.g. Futures and options contracts rollover from generation to trading start; certain symbols before they go live<br><code>test</code>: Test pairs, can&#39;t be traded</td>
+<td style="text-align: left">Instrument status<br><code>live</code><br><code>suspend</code><br><code>expired</code><br><code>rebase</code>: can&#39;t be traded during rebasing, only applicable to <code>SWAP</code><br><code>preopen</code>. e.g. There will be <code>preopen</code> before the Futures and Options new contracts state is live.<br><code>test</code>: Test pairs, can&#39;t be traded</td>
 </tr>
 <tr>
 <td style="text-align: left">&gt; ruleType</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">Trading rule types<br> <code>normal</code>: normal trading<br> <code>pre_market</code>: pre-market trading</td>
+<td style="text-align: left">Trading rule types<br> <code>normal</code>: normal trading<br> <code>pre_market</code>: pre-market trading<br> <code>rebase_contract</code>: pre-market rebase contract</td>
 </tr>
 <tr>
 <td style="text-align: left">&gt; maxLmtSz</td>
@@ -60022,7 +60111,7 @@ When converting Unix timestamps to dates, the following timezone conventions are
 <tr>
 <td style="text-align: left">&gt; instCategory</td>
 <td style="text-align: left">String</td>
-<td style="text-align: left">The category of the instrument’s base currency (the first part of the instrument ID). For example, for <code>BTC-USDT-SWAP</code>, the <code>instCategory</code> refers to the category of <code>BTC</code>. <br> <code>1</code>: Crypto</td>
+<td style="text-align: left">The asset category of the instrument’s base asset (the first segment of the instrument ID). For example, for <code>BTC-USDT-SWAP</code>, the <code>instCategory</code> represents the asset category of <code>BTC</code>. <br> <code>1</code>: Crypto <br> <code>3</code>: Stocks</td>
 </tr>
 <tr>
 <td style="text-align: left">&gt; upcChg</td>
@@ -61176,7 +61265,7 @@ For some altcoins perpetual swaps with significant fluctuations in funding rates
 <h3 id='public-data-websocket-estimated-delivery-exercise-settlement-price-channel'>Estimated delivery/exercise/settlement price channel</h3>
 <p>Retrieve the estimated delivery/exercise/settlement price of <code>FUTURES</code>, <code>OPTION</code> and <code>SWAP</code> contracts.</p>
 
-<p>Only the estimated price will be pushed in an hour before delivery/exercise/settlement, and will be pushed if there is any price change.</p>
+<p>The estimated price, calculated based on index price during the one-hour period prior to delivery, excerise, or settlement, with updates pushed approximately every 200ms.</p>
 <h4 id='public-data-websocket-estimated-delivery-exercise-settlement-price-channel-url-path'>URL Path</h4>
 <p>/ws/v5/public</p>
 
@@ -65690,7 +65779,7 @@ body
 <td style="text-align: left">type</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">No</td>
-<td style="text-align: left">Bill type<br><code>1</code>: Deposit<br><code>2</code>: Withdrawal<br><code>13</code>: Canceled withdrawal<br><code>20</code>: Transfer to sub account (for master account)<br><code>21</code>: Transfer from sub account (for master account)<br><code>22</code>: Transfer out from sub to master account (for sub-account)<br><code>23</code>: Transfer in from master to sub account (for sub-account)<br><code>28</code>: Manually claimed Airdrop<br><code>47</code>: System reversal<br><code>48</code>: Event Reward<br><code>49</code>: Event Giveaway<br><code>68</code>: Fee rebate (by rebate card)<br><code>72</code>: Token received<br><code>73</code>: Token given away<br><code>74</code>: Token refunded<br><code>75</code>: [Simple earn flexible] Subscription<br><code>76</code>: [Simple earn flexible] Redemption<br><code>77</code>: Jumpstart distribute<br><code>78</code>: Jumpstart lock up<br><code>80</code>: DEFI/Staking subscription<br><code>82</code>: DEFI/Staking redemption<br><code>83</code>: Staking yield<br><code>84</code>: Violation fee<br><code>89</code>: Deposit yield<br><code>116</code>: [Fiat] Place an order<br><code>117</code>: [Fiat] Fulfill an order<br><code>118</code>: [Fiat] Cancel an order<br><code>124</code>: Jumpstart unlocking<br><code>130</code>: Transferred from Trading account<br><code>131</code>: Transferred to Trading account<br><code>132</code>: [P2P] Frozen by customer service<br><code>133</code>: [P2P] Unfrozen by customer service<br><code>134</code>: [P2P] Transferred by customer service<br><code>135</code>: Cross chain exchange<br><code>137</code>: [ETH Staking] Subscription<br><code>138</code>: [ETH Staking] Swapping<br><code>139</code>: [ETH Staking] Earnings<br><code>146</code>: Customer feedback<br><code>150</code>: Affiliate commission<br><code>151</code>: Referral reward<br><code>152</code>: Broker reward<br><code>160</code>: Dual Investment subscribe<br><code>161</code>: Dual Investment collection<br><code>162</code>: Dual Investment profit<br><code>163</code>: Dual Investment refund<br><code>172</code>: [Affiliate] Sub-affiliate commission<br><code>173</code>: [Affiliate] Fee rebate (by trading fee)<br><code>174</code>: Jumpstart Pay<br><code>175</code>: Locked collateral<br><code>176</code>: Loan<br><code>177</code>: Added collateral<br><code>178</code>: Returned collateral<br><code>179</code>: Repayment<br><code>180</code>: Unlocked collateral<br><code>181</code>: Airdrop payment<br><code>185</code>: [Broker] Convert reward<br><code>187</code>: [Broker] Convert transfer<br><code>189</code>: Mystery box bonus<br><code>195</code>: Untradable asset withdrawal<br><code>196</code>: Untradable asset withdrawal revoked<br><code>197</code>: Untradable asset deposit<br><code>198</code>: Untradable asset collection reduce<br><code>199</code>: Untradable asset collection increase<br><code>200</code>: Buy<br><code>202</code>: Price Lock Subscribe<br><code>203</code>: Price Lock Collection<br><code>204</code>: Price Lock Profit<br><code>205</code>: Price Lock Refund<br><code>207</code>: Dual Investment Lite Subscribe<br><code>208</code>: Dual Investment Lite Collection<br><code>209</code>: Dual Investment Lite Profit<br><code>210</code>: Dual Investment Lite Refund<br><code>212</code>: [Flexible loan] Multi-collateral loan collateral locked<br><code>215</code>: [Flexible loan] Multi-collateral loan collateral released<br><code>217</code>: [Flexible loan] Multi-collateral loan borrowed<br><code>218</code>: [Flexible loan] Multi-collateral loan repaid<br><code>232</code>: [Flexible loan] Subsidized interest received<br><code>220</code>: Delisted crypto<br><code>221</code>: Blockchain&#39;s withdrawal fee<br><code>222</code>: Withdrawal fee refund<br><code>223</code>: SWAP lead trading profit share<br><code>225</code>: Shark Fin subscribe<br><code>226</code>: Shark Fin collection<br><code>227</code>: Shark Fin profit<br><code>228</code>: Shark Fin refund<br><code>229</code>: Airdrop<br><code>232</code>: Subsidized interest received<br><code>233</code>: Broker rebate compensation<br><code>240</code>: Snowball subscribe<br><code>241</code>: Snowball refund<br><code>242</code>: Snowball profit<br><code>243</code>: Snowball trading failed<br><code>249</code>: Seagull subscribe<br><code>250</code>: Seagull collection<br><code>251</code>: Seagull profit<br><code>252</code>: Seagull refund<br><code>263</code>: Strategy bots profit share<br><code>265</code>: Signal revenue<br><code>266</code>: SPOT lead trading profit share<br><code>270</code>: DCD broker transfer<br><code>271</code>: DCD broker rebate<br><code>272</code>: [Convert] Buy Crypto/Fiat<br><code>273</code>: [Convert] Sell Crypto/Fiat<br><code>284</code>: [Custody] Transfer out trading sub-account<br><code>285</code>: [Custody] Transfer in trading sub-account<br><code>286</code>: [Custody] Transfer out custody funding account<br><code>287</code>: [Custody] Transfer in custody funding account<br><code>288</code>: [Custody] Fund delegation <br><code>289</code>: [Custody] Fund undelegation<br><code>299</code>: Affiliate recommendation commission<br><code>300</code>: Fee discount rebate<br><code>303</code>: Snowball market maker transfer<br><del><code>304</code>: [Simple Earn Fixed] Order submission</del><br><del><code>305</code>: [Simple Earn Fixed] Order redemption</del><br><del><code>306</code>: [Simple Earn Fixed] Principal distribution</del><br><del><code>307</code>: [Simple Earn Fixed] Interest distribution (early termination compensation)</del><br><del><code>308</code>: [Simple Earn Fixed] Interest distribution</del><br><del><code>309</code>: [Simple Earn Fixed] Interest distribution (extension compensation) </del><br><code>311</code>: Crypto dust auto-transfer in<br><code>313</code>: Sent by gift<br><code>314</code>: Received from gift<br><code>315</code>: Refunded from gift<br><code>328</code>: [SOL staking] Send Liquidity Staking Token reward<br><code>329</code>: [SOL staking] Subscribe Liquidity Staking Token staking<br><code>330</code>: [SOL staking] Mint Liquidity Staking Token<br><code>331</code>: [SOL staking] Redeem Liquidity Staking Token order<br><code>332</code>: [SOL staking] Settle Liquidity Staking Token order<br><code>333</code>: Trial fund reward<br><code>339</code>: [Simple Earn Fixed] Order submission<br><code>340</code>: [Simple Earn Fixed] Order failure refund<br><code>341</code>: [Simple Earn Fixed] Redemption<br><code>342</code>: [Simple Earn Fixed] Principal<br><code>343</code>: [Simple Earn Fixed] Interest<br><code>344</code>: [Simple Earn Fixed] Compensatory interest<br><code>345</code>: [Institutional Loan] Principal repayment<br><code>346</code>: [Institutional Loan] Interest repayment<br><code>347</code>: [Institutional Loan] Overdue penalty<br><code>348</code>: [BTC staking] Subscription<br><code>349</code>: [BTC staking] Redemption<br><code>350</code>: [BTC staking] Earnings<br><code>351</code>: [Institutional Loan] Loan disbursement<br><code>354</code>: Copy and bot rewards<br><code>361</code>: Deposit from closed sub-account<br><code>372</code>: Asset segregation<br><code>373</code>: Asset release<br> <code>400</code>: Auto lend interest <br> <code>408</code>: Auto earn USDG interest</td>
+<td style="text-align: left">Bill type<br><code>1</code>: Deposit<br><code>2</code>: Withdrawal<br><code>13</code>: Canceled withdrawal<br><code>20</code>: Transfer to sub account (for master account)<br><code>21</code>: Transfer from sub account (for master account)<br><code>22</code>: Transfer out from sub to master account (for sub-account)<br><code>23</code>: Transfer in from master to sub account (for sub-account)<br><code>28</code>: Manually claimed Airdrop<br><code>47</code>: System reversal<br><code>48</code>: Event Reward<br><code>49</code>: Event Giveaway<br><code>68</code>: Fee rebate (by rebate card)<br><code>72</code>: Token received<br><code>73</code>: Token given away<br><code>74</code>: Token refunded<br><code>75</code>: [Simple earn flexible] Subscription<br><code>76</code>: [Simple earn flexible] Redemption<br><code>77</code>: Jumpstart distribute<br><code>78</code>: Jumpstart lock up<br><code>80</code>: DEFI/Staking subscription<br><code>82</code>: DEFI/Staking redemption<br><code>83</code>: Staking yield<br><code>84</code>: Violation fee<br><code>89</code>: Deposit yield<br><code>116</code>: [Fiat] Place an order<br><code>117</code>: [Fiat] Fulfill an order<br><code>118</code>: [Fiat] Cancel an order<br><code>124</code>: Jumpstart unlocking<br><code>130</code>: Transferred from Trading account<br><code>131</code>: Transferred to Trading account<br><code>132</code>: [P2P] Frozen by customer service<br><code>133</code>: [P2P] Unfrozen by customer service<br><code>134</code>: [P2P] Transferred by customer service<br><code>135</code>: Cross chain exchange<br><code>137</code>: [ETH Staking] Subscription<br><code>138</code>: [ETH Staking] Swapping<br><code>139</code>: [ETH Staking] Earnings<br><code>146</code>: Customer feedback<br><code>150</code>: Affiliate commission<br><code>151</code>: Referral reward<br><code>152</code>: Broker reward<br><code>160</code>: Dual Investment subscribe<br><code>161</code>: Dual Investment collection<br><code>162</code>: Dual Investment profit<br><code>163</code>: Dual Investment refund<br><code>172</code>: [Affiliate] Sub-affiliate commission<br><code>173</code>: [Affiliate] Fee rebate (by trading fee)<br><code>174</code>: Jumpstart Pay<br><code>175</code>: Locked collateral<br><code>176</code>: Loan<br><code>177</code>: Added collateral<br><code>178</code>: Returned collateral<br><code>179</code>: Repayment<br><code>180</code>: Unlocked collateral<br><code>181</code>: Airdrop payment<br><code>185</code>: [Broker] Convert reward<br><code>187</code>: [Broker] Convert transfer<br><code>189</code>: Mystery box bonus<br><code>195</code>: Untradable asset withdrawal<br><code>196</code>: Untradable asset withdrawal revoked<br><code>197</code>: Untradable asset deposit<br><code>198</code>: Untradable asset collection reduce<br><code>199</code>: Untradable asset collection increase<br><code>200</code>: Buy<br><code>202</code>: Price Lock Subscribe<br><code>203</code>: Price Lock Collection<br><code>204</code>: Price Lock Profit<br><code>205</code>: Price Lock Refund<br><code>207</code>: Dual Investment Lite Subscribe<br><code>208</code>: Dual Investment Lite Collection<br><code>209</code>: Dual Investment Lite Profit<br><code>210</code>: Dual Investment Lite Refund<br><code>212</code>: [Flexible loan] Multi-collateral loan collateral locked<br><code>215</code>: [Flexible loan] Multi-collateral loan collateral released<br><code>217</code>: [Flexible loan] Multi-collateral loan borrowed<br><code>218</code>: [Flexible loan] Multi-collateral loan repaid<br><code>232</code>: [Flexible loan] Subsidized interest received<br><code>220</code>: Delisted crypto<br><code>221</code>: Blockchain&#39;s withdrawal fee<br><code>222</code>: Withdrawal fee refund<br><code>223</code>: SWAP lead trading profit share<br><code>225</code>: Shark Fin subscribe<br><code>226</code>: Shark Fin collection<br><code>227</code>: Shark Fin profit<br><code>228</code>: Shark Fin refund<br><code>229</code>: Airdrop<br><code>232</code>: Subsidized interest received<br><code>233</code>: Broker rebate compensation<br><code>240</code>: Snowball subscribe<br><code>241</code>: Snowball refund<br><code>242</code>: Snowball profit<br><code>243</code>: Snowball trading failed<br><code>249</code>: Seagull subscribe<br><code>250</code>: Seagull collection<br><code>251</code>: Seagull profit<br><code>252</code>: Seagull refund<br><code>263</code>: Strategy bots profit share<br><code>265</code>: Signal revenue<br><code>266</code>: SPOT lead trading profit share<br><code>270</code>: DCD broker transfer<br><code>271</code>: DCD broker rebate<br><code>272</code>: [Convert] Buy Crypto/Fiat<br><code>273</code>: [Convert] Sell Crypto/Fiat<br><code>284</code>: [Custody] Transfer out trading sub-account<br><code>285</code>: [Custody] Transfer in trading sub-account<br><code>286</code>: [Custody] Transfer out custody funding account<br><code>287</code>: [Custody] Transfer in custody funding account<br><code>288</code>: [Custody] Fund delegation <br><code>289</code>: [Custody] Fund undelegation<br><code>299</code>: Affiliate recommendation commission<br><code>300</code>: Fee discount rebate<br><code>303</code>: Snowball market maker transfer<br><del><code>304</code>: [Simple Earn Fixed] Order submission</del><br><del><code>305</code>: [Simple Earn Fixed] Order redemption</del><br><del><code>306</code>: [Simple Earn Fixed] Principal distribution</del><br><del><code>307</code>: [Simple Earn Fixed] Interest distribution (early termination compensation)</del><br><del><code>308</code>: [Simple Earn Fixed] Interest distribution</del><br><del><code>309</code>: [Simple Earn Fixed] Interest distribution (extension compensation) </del><br><code>311</code>: Crypto dust auto-transfer in<br><code>313</code>: Sent by gift<br><code>314</code>: Received from gift<br><code>315</code>: Refunded from gift<br><code>328</code>: [SOL staking] Send Liquidity Staking Token reward<br><code>329</code>: [SOL staking] Subscribe Liquidity Staking Token staking<br><code>330</code>: [SOL staking] Mint Liquidity Staking Token<br><code>331</code>: [SOL staking] Redeem Liquidity Staking Token order<br><code>332</code>: [SOL staking] Settle Liquidity Staking Token order<br><code>333</code>: Trial fund reward<br><code>339</code>: [Simple Earn Fixed] Order submission<br><code>340</code>: [Simple Earn Fixed] Order failure refund<br><code>341</code>: [Simple Earn Fixed] Redemption<br><code>342</code>: [Simple Earn Fixed] Principal<br><code>343</code>: [Simple Earn Fixed] Interest<br><code>344</code>: [Simple Earn Fixed] Compensatory interest<br><code>345</code>: [Institutional Loan] Principal repayment<br><code>346</code>: [Institutional Loan] Interest repayment<br><code>347</code>: [Institutional Loan] Overdue penalty<br><code>348</code>: [BTC staking] Subscription<br><code>349</code>: [BTC staking] Redemption<br><code>350</code>: [BTC staking] Earnings<br><code>351</code>: [Institutional Loan] Loan disbursement<br><code>354</code>: Copy and bot rewards<br><code>361</code>: Deposit from closed sub-account<br><code>372</code>: Asset segregation<br><code>373</code>: Asset release<br> <code>400</code>: Auto lend interest <br> <code>408</code>: Auto earn USDG interest<br><code>476</code>: Transferred out to Cloud Exchange<br><code>477</code>: Transferred in from Cloud Exchange</td>
 </tr>
 <tr>
 <td style="text-align: left">clientId</td>
@@ -65830,7 +65919,7 @@ body
 <td style="text-align: left">type</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">No</td>
-<td style="text-align: left">Bill type<br><code>1</code>: Deposit<br><code>2</code>: Withdrawal<br><code>13</code>: Canceled withdrawal<br><code>20</code>: Transfer to sub account (for master account)<br><code>21</code>: Transfer from sub account (for master account)<br><code>22</code>: Transfer out from sub to master account (for sub-account)<br><code>23</code>: Transfer in from master to sub account (for sub-account)<br><code>28</code>: Manually claimed Airdrop<br><code>47</code>: System reversal<br><code>48</code>: Event Reward<br><code>49</code>: Event Giveaway<br><code>68</code>: Fee rebate (by rebate card)<br><code>72</code>: Token received<br><code>73</code>: Token given away<br><code>74</code>: Token refunded<br><code>75</code>: [Simple earn flexible] Subscription<br><code>76</code>: [Simple earn flexible] Redemption<br><code>77</code>: Jumpstart distribute<br><code>78</code>: Jumpstart lock up<br><code>80</code>: DEFI/Staking subscription<br><code>82</code>: DEFI/Staking redemption<br><code>83</code>: Staking yield<br><code>84</code>: Violation fee<br><code>89</code>: Deposit yield<br><code>116</code>: [Fiat] Place an order<br><code>117</code>: [Fiat] Fulfill an order<br><code>118</code>: [Fiat] Cancel an order<br><code>124</code>: Jumpstart unlocking<br><code>130</code>: Transferred from Trading account<br><code>131</code>: Transferred to Trading account<br><code>132</code>: [P2P] Frozen by customer service<br><code>133</code>: [P2P] Unfrozen by customer service<br><code>134</code>: [P2P] Transferred by customer service<br><code>135</code>: Cross chain exchange<br><code>137</code>: [ETH Staking] Subscription<br><code>138</code>: [ETH Staking] Swapping<br><code>139</code>: [ETH Staking] Earnings<br><code>146</code>: Customer feedback<br><code>150</code>: Affiliate commission<br><code>151</code>: Referral reward<br><code>152</code>: Broker reward<br><code>160</code>: Dual Investment subscribe<br><code>161</code>: Dual Investment collection<br><code>162</code>: Dual Investment profit<br><code>163</code>: Dual Investment refund<br><code>172</code>: [Affiliate] Sub-affiliate commission<br><code>173</code>: [Affiliate] Fee rebate (by trading fee)<br><code>174</code>: Jumpstart Pay<br><code>175</code>: Locked collateral<br><code>176</code>: Loan<br><code>177</code>: Added collateral<br><code>178</code>: Returned collateral<br><code>179</code>: Repayment<br><code>180</code>: Unlocked collateral<br><code>181</code>: Airdrop payment<br><code>185</code>: [Broker] Convert reward<br><code>187</code>: [Broker] Convert transfer<br><code>189</code>: Mystery box bonus<br><code>195</code>: Untradable asset withdrawal<br><code>196</code>: Untradable asset withdrawal revoked<br><code>197</code>: Untradable asset deposit<br><code>198</code>: Untradable asset collection reduce<br><code>199</code>: Untradable asset collection increase<br><code>200</code>: Buy<br><code>202</code>: Price Lock Subscribe<br><code>203</code>: Price Lock Collection<br><code>204</code>: Price Lock Profit<br><code>205</code>: Price Lock Refund<br><code>207</code>: Dual Investment Lite Subscribe<br><code>208</code>: Dual Investment Lite Collection<br><code>209</code>: Dual Investment Lite Profit<br><code>210</code>: Dual Investment Lite Refund<br><code>212</code>: [Flexible loan] Multi-collateral loan collateral locked<br><code>215</code>: [Flexible loan] Multi-collateral loan collateral released<br><code>217</code>: [Flexible loan] Multi-collateral loan borrowed<br><code>218</code>: [Flexible loan] Multi-collateral loan repaid<br><code>232</code>: [Flexible loan] Subsidized interest received<br><code>220</code>: Delisted crypto<br><code>221</code>: Blockchain&#39;s withdrawal fee<br><code>222</code>: Withdrawal fee refund<br><code>223</code>: SWAP lead trading profit share<br><code>225</code>: Shark Fin subscribe<br><code>226</code>: Shark Fin collection<br><code>227</code>: Shark Fin profit<br><code>228</code>: Shark Fin refund<br><code>229</code>: Airdrop<br><code>232</code>: Subsidized interest received<br><code>233</code>: Broker rebate compensation<br><code>240</code>: Snowball subscribe<br><code>241</code>: Snowball refund<br><code>242</code>: Snowball profit<br><code>243</code>: Snowball trading failed<br><code>249</code>: Seagull subscribe<br><code>250</code>: Seagull collection<br><code>251</code>: Seagull profit<br><code>252</code>: Seagull refund<br><code>263</code>: Strategy bots profit share<br><code>265</code>: Signal revenue<br><code>266</code>: SPOT lead trading profit share<br><code>270</code>: DCD broker transfer<br><code>271</code>: DCD broker rebate<br><code>272</code>: [Convert] Buy Crypto/Fiat<br><code>273</code>: [Convert] Sell Crypto/Fiat<br><code>284</code>: [Custody] Transfer out trading sub-account<br><code>285</code>: [Custody] Transfer in trading sub-account<br><code>286</code>: [Custody] Transfer out custody funding account<br><code>287</code>: [Custody] Transfer in custody funding account<br><code>288</code>: [Custody] Fund delegation <br><code>289</code>: [Custody] Fund undelegation<br><code>299</code>: Affiliate recommendation commission<br><code>300</code>: Fee discount rebate<br><code>303</code>: Snowball market maker transfer<br><del><code>304</code>: [Simple Earn Fixed] Order submission</del><br><del><code>305</code>: [Simple Earn Fixed] Order redemption</del><br><del><code>306</code>: [Simple Earn Fixed] Principal distribution</del><br><del><code>307</code>: [Simple Earn Fixed] Interest distribution (early termination compensation)</del><br><del><code>308</code>: [Simple Earn Fixed] Interest distribution</del><br><del><code>309</code>: [Simple Earn Fixed] Interest distribution (extension compensation) </del><br><code>311</code>: Crypto dust auto-transfer in<br><code>313</code>: Sent by gift<br><code>314</code>: Received from gift<br><code>315</code>: Refunded from gift<br><code>328</code>: [SOL staking] Send Liquidity Staking Token reward<br><code>329</code>: [SOL staking] Subscribe Liquidity Staking Token staking<br><code>330</code>: [SOL staking] Mint Liquidity Staking Token<br><code>331</code>: [SOL staking] Redeem Liquidity Staking Token order<br><code>332</code>: [SOL staking] Settle Liquidity Staking Token order<br><code>333</code>: Trial fund reward<br><code>339</code>: [Simple Earn Fixed] Order submission<br><code>340</code>: [Simple Earn Fixed] Order failure refund<br><code>341</code>: [Simple Earn Fixed] Redemption<br><code>342</code>: [Simple Earn Fixed] Principal<br><code>343</code>: [Simple Earn Fixed] Interest<br><code>344</code>: [Simple Earn Fixed] Compensatory interest<br><code>345</code>: [Institutional Loan] Principal repayment<br><code>346</code>: [Institutional Loan] Interest repayment<br><code>347</code>: [Institutional Loan] Overdue penalty<br><code>348</code>: [BTC staking] Subscription<br><code>349</code>: [BTC staking] Redemption<br><code>350</code>: [BTC staking] Earnings<br><code>351</code>: [Institutional Loan] Loan disbursement<br><code>354</code>: Copy and bot rewards<br><code>361</code>: Deposit from closed sub-account<br><code>372</code>: Asset segregation<br><code>373</code>: Asset release<br><code>400</code>: auto lend interest<br><code>408</code>: Auto earn interest (USDG earn)</td>
+<td style="text-align: left">Bill type<br><code>1</code>: Deposit<br><code>2</code>: Withdrawal<br><code>13</code>: Canceled withdrawal<br><code>20</code>: Transfer to sub account (for master account)<br><code>21</code>: Transfer from sub account (for master account)<br><code>22</code>: Transfer out from sub to master account (for sub-account)<br><code>23</code>: Transfer in from master to sub account (for sub-account)<br><code>28</code>: Manually claimed Airdrop<br><code>47</code>: System reversal<br><code>48</code>: Event Reward<br><code>49</code>: Event Giveaway<br><code>68</code>: Fee rebate (by rebate card)<br><code>72</code>: Token received<br><code>73</code>: Token given away<br><code>74</code>: Token refunded<br><code>75</code>: [Simple earn flexible] Subscription<br><code>76</code>: [Simple earn flexible] Redemption<br><code>77</code>: Jumpstart distribute<br><code>78</code>: Jumpstart lock up<br><code>80</code>: DEFI/Staking subscription<br><code>82</code>: DEFI/Staking redemption<br><code>83</code>: Staking yield<br><code>84</code>: Violation fee<br><code>89</code>: Deposit yield<br><code>116</code>: [Fiat] Place an order<br><code>117</code>: [Fiat] Fulfill an order<br><code>118</code>: [Fiat] Cancel an order<br><code>124</code>: Jumpstart unlocking<br><code>130</code>: Transferred from Trading account<br><code>131</code>: Transferred to Trading account<br><code>132</code>: [P2P] Frozen by customer service<br><code>133</code>: [P2P] Unfrozen by customer service<br><code>134</code>: [P2P] Transferred by customer service<br><code>135</code>: Cross chain exchange<br><code>137</code>: [ETH Staking] Subscription<br><code>138</code>: [ETH Staking] Swapping<br><code>139</code>: [ETH Staking] Earnings<br><code>146</code>: Customer feedback<br><code>150</code>: Affiliate commission<br><code>151</code>: Referral reward<br><code>152</code>: Broker reward<br><code>160</code>: Dual Investment subscribe<br><code>161</code>: Dual Investment collection<br><code>162</code>: Dual Investment profit<br><code>163</code>: Dual Investment refund<br><code>172</code>: [Affiliate] Sub-affiliate commission<br><code>173</code>: [Affiliate] Fee rebate (by trading fee)<br><code>174</code>: Jumpstart Pay<br><code>175</code>: Locked collateral<br><code>176</code>: Loan<br><code>177</code>: Added collateral<br><code>178</code>: Returned collateral<br><code>179</code>: Repayment<br><code>180</code>: Unlocked collateral<br><code>181</code>: Airdrop payment<br><code>185</code>: [Broker] Convert reward<br><code>187</code>: [Broker] Convert transfer<br><code>189</code>: Mystery box bonus<br><code>195</code>: Untradable asset withdrawal<br><code>196</code>: Untradable asset withdrawal revoked<br><code>197</code>: Untradable asset deposit<br><code>198</code>: Untradable asset collection reduce<br><code>199</code>: Untradable asset collection increase<br><code>200</code>: Buy<br><code>202</code>: Price Lock Subscribe<br><code>203</code>: Price Lock Collection<br><code>204</code>: Price Lock Profit<br><code>205</code>: Price Lock Refund<br><code>207</code>: Dual Investment Lite Subscribe<br><code>208</code>: Dual Investment Lite Collection<br><code>209</code>: Dual Investment Lite Profit<br><code>210</code>: Dual Investment Lite Refund<br><code>212</code>: [Flexible loan] Multi-collateral loan collateral locked<br><code>215</code>: [Flexible loan] Multi-collateral loan collateral released<br><code>217</code>: [Flexible loan] Multi-collateral loan borrowed<br><code>218</code>: [Flexible loan] Multi-collateral loan repaid<br><code>232</code>: [Flexible loan] Subsidized interest received<br><code>220</code>: Delisted crypto<br><code>221</code>: Blockchain&#39;s withdrawal fee<br><code>222</code>: Withdrawal fee refund<br><code>223</code>: SWAP lead trading profit share<br><code>225</code>: Shark Fin subscribe<br><code>226</code>: Shark Fin collection<br><code>227</code>: Shark Fin profit<br><code>228</code>: Shark Fin refund<br><code>229</code>: Airdrop<br><code>232</code>: Subsidized interest received<br><code>233</code>: Broker rebate compensation<br><code>240</code>: Snowball subscribe<br><code>241</code>: Snowball refund<br><code>242</code>: Snowball profit<br><code>243</code>: Snowball trading failed<br><code>249</code>: Seagull subscribe<br><code>250</code>: Seagull collection<br><code>251</code>: Seagull profit<br><code>252</code>: Seagull refund<br><code>263</code>: Strategy bots profit share<br><code>265</code>: Signal revenue<br><code>266</code>: SPOT lead trading profit share<br><code>270</code>: DCD broker transfer<br><code>271</code>: DCD broker rebate<br><code>272</code>: [Convert] Buy Crypto/Fiat<br><code>273</code>: [Convert] Sell Crypto/Fiat<br><code>284</code>: [Custody] Transfer out trading sub-account<br><code>285</code>: [Custody] Transfer in trading sub-account<br><code>286</code>: [Custody] Transfer out custody funding account<br><code>287</code>: [Custody] Transfer in custody funding account<br><code>288</code>: [Custody] Fund delegation <br><code>289</code>: [Custody] Fund undelegation<br><code>299</code>: Affiliate recommendation commission<br><code>300</code>: Fee discount rebate<br><code>303</code>: Snowball market maker transfer<br><del><code>304</code>: [Simple Earn Fixed] Order submission</del><br><del><code>305</code>: [Simple Earn Fixed] Order redemption</del><br><del><code>306</code>: [Simple Earn Fixed] Principal distribution</del><br><del><code>307</code>: [Simple Earn Fixed] Interest distribution (early termination compensation)</del><br><del><code>308</code>: [Simple Earn Fixed] Interest distribution</del><br><del><code>309</code>: [Simple Earn Fixed] Interest distribution (extension compensation) </del><br><code>311</code>: Crypto dust auto-transfer in<br><code>313</code>: Sent by gift<br><code>314</code>: Received from gift<br><code>315</code>: Refunded from gift<br><code>328</code>: [SOL staking] Send Liquidity Staking Token reward<br><code>329</code>: [SOL staking] Subscribe Liquidity Staking Token staking<br><code>330</code>: [SOL staking] Mint Liquidity Staking Token<br><code>331</code>: [SOL staking] Redeem Liquidity Staking Token order<br><code>332</code>: [SOL staking] Settle Liquidity Staking Token order<br><code>333</code>: Trial fund reward<br><code>339</code>: [Simple Earn Fixed] Order submission<br><code>340</code>: [Simple Earn Fixed] Order failure refund<br><code>341</code>: [Simple Earn Fixed] Redemption<br><code>342</code>: [Simple Earn Fixed] Principal<br><code>343</code>: [Simple Earn Fixed] Interest<br><code>344</code>: [Simple Earn Fixed] Compensatory interest<br><code>345</code>: [Institutional Loan] Principal repayment<br><code>346</code>: [Institutional Loan] Interest repayment<br><code>347</code>: [Institutional Loan] Overdue penalty<br><code>348</code>: [BTC staking] Subscription<br><code>349</code>: [BTC staking] Redemption<br><code>350</code>: [BTC staking] Earnings<br><code>351</code>: [Institutional Loan] Loan disbursement<br><code>354</code>: Copy and bot rewards<br><code>361</code>: Deposit from closed sub-account<br><code>372</code>: Asset segregation<br><code>373</code>: Asset release<br><code>400</code>: auto lend interest<br><code>408</code>: Auto earn interest (USDG earn)<br><code>476</code>: Transferred out to Cloud Exchange<br><code>477</code>: Transferred in from Cloud Exchange</td>
 </tr>
 <tr>
 <td style="text-align: left">clientId</td>
@@ -74275,7 +74364,7 @@ body
 </tr>
 </tbody></table>
 <h3 id='financial-product-eth-staking-get-balance'>GET / Balance</h3>
-<p>The balance is a snapshot summarized all BETH assets (including assets in redeeming) in account.</p>
+<p>The balance represents the real-time total BETH holdings across the entire account, including assets in the trading account, funding account, and those currently in the redeeming process.</p>
 <h4 id='financial-product-eth-staking-get-balance-rate-limit-6-requests-per-second'>Rate Limit: 6 requests per second</h4><h4 id='financial-product-eth-staking-get-balance-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-eth-staking-get-balance-permission-read'>Permission: Read</h4><h4 id='financial-product-eth-staking-get-balance-http-request'>HTTP Request</h4>
 <p><code>GET /api/v5/finance/staking-defi/eth/balance</code></p>
 
@@ -74704,7 +74793,7 @@ body
 </span></code></pre></div><h4 id='financial-product-sol-staking-post-redeem-response-parameters'>Response Parameters</h4>
 <p>code = <code>0</code> means your request has been successfully handled.</p>
 <h3 id='financial-product-sol-staking-get-balance'>GET / Balance</h3>
-<p>The balance is summarized all OKSOL assets (including assets in redeeming) in account.</p>
+<p>The balance represents the real-time total OKSOL holdings across the entire account, including assets in the trading account, funding account, and those currently in the redeeming process.</p>
 <h4 id='financial-product-sol-staking-get-balance-rate-limit-6-requests-per-second'>Rate Limit: 6 requests per second</h4><h4 id='financial-product-sol-staking-get-balance-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-sol-staking-get-balance-permission-read'>Permission: Read</h4><h4 id='financial-product-sol-staking-get-balance-http-request'>HTTP Request</h4>
 <p><code>GET /api/v5/finance/staking-defi/sol/balance</code></p>
 
@@ -75525,6 +75614,7 @@ Only returned records after December 14, 2021.</p>
         </span><span class="nl">"ccy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
         </span><span class="nl">"amt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.01"</span><span class="p">,</span><span class="w">
         </span><span class="nl">"rate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.001"</span><span class="p">,</span><span class="w">
+        </span><span class="nl">"lendingRate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.001"</span><span class="p">,</span><span class="w">
         </span><span class="nl">"ts"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1597026383085"</span><span class="w">
     </span><span class="p">}]</span><span class="w">
 </span><span class="p">}</span><span class="w">
@@ -75550,6 +75640,11 @@ Only returned records after December 14, 2021.</p>
 <td style="text-align: left">rate</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Annual borrowing interest rate</td>
+</tr>
+<tr>
+<td style="text-align: left">lendingRate</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Annual lending interest rate</td>
 </tr>
 <tr>
 <td style="text-align: left">ts</td>
@@ -76300,6 +76395,865 @@ body
 <td style="text-align: left">ts</td>
 <td style="text-align: left">String</td>
 <td style="text-align: left">Timestamp to calculated interest, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+</tbody></table>
+<h2 id='financial-product-dual-investment'>Dual investment</h2><h3 id='financial-product-dual-investment-get-currency-pairs'>GET / Currency pairs</h3>
+<p>Returns available dual investment currency pairs.</p>
+<h4 id='financial-product-dual-investment-get-currency-pairs-rate-limit-1-request-per-second'>Rate Limit: 1 request per second</h4><h4 id='financial-product-dual-investment-get-currency-pairs-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-get-currency-pairs-permission-read'>Permission: Read</h4><h4 id='financial-product-dual-investment-get-currency-pairs-http-request'>HTTP Request</h4>
+<p><code>GET /api/v5/finance/sfp/dcd/currency-pair</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>GET /api/v5/finance/sfp/dcd/currency-pair
+</code></pre></div><h4 id='financial-product-dual-investment-get-currency-pairs-request-parameters'>Request Parameters</h4>
+<p>None</p>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"baseCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"USDT"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"optType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"C"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"uly"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC-USD"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-get-currency-pairs-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">baseCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Base currency</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote currency</td>
+</tr>
+<tr>
+<td style="text-align: left">optType</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Option type<br><code>C</code>: Call<br><code>P</code>: Put</td>
+</tr>
+<tr>
+<td style="text-align: left">uly</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Underlying</td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-get-product-info'>GET / Product info</h3>
+<p>Return dual investment product list.</p>
+<h4 id='financial-product-dual-investment-get-product-info-rate-limit-1-request-per-second'>Rate Limit: 1 request per second</h4><h4 id='financial-product-dual-investment-get-product-info-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-get-product-info-permission-read'>Permission: Read</h4><h4 id='financial-product-dual-investment-get-product-info-http-request'>HTTP Request</h4>
+<p><code>GET /api/v5/finance/sfp/dcd/products</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>GET /api/v5/finance/sfp/dcd/products?baseCcy<span class="o">=</span>BTC&amp;quoteCcy<span class="o">=</span>USDT&amp;optType<span class="o">=</span>C
+</code></pre></div><h4 id='financial-product-dual-investment-get-product-info-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">baseCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Base currency</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Quote currency</td>
+</tr>
+<tr>
+<td style="text-align: left">optType</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Option type<br><code>C</code>: Call<br><code>P</code>: Put</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"absYield"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.00232413"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"annualizedYield"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.0541"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"baseCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"USDT"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"expTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774598400000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"interestAccrualTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1773244800000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"listTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1743150759000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"maxSize"</span><span class="p">:</span><span class="w"> </span><span class="s2">"6000000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"minSize"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"notionalCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"USDT"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"optType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"P"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"productId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC-USDT-260327-54500-P"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1773243808703"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"redeemEndTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774594800000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"redeemStartTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1773244800000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"stepSz"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"tradeEndTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774584000000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"strike"</span><span class="p">:</span><span class="w"> </span><span class="s2">"54500"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"uly"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC-USD"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-get-product-info-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">absYield</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Absolute yield</td>
+</tr>
+<tr>
+<td style="text-align: left">annualizedYield</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Annualized yield</td>
+</tr>
+<tr>
+<td style="text-align: left">baseCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Base currency</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote currency</td>
+</tr>
+<tr>
+<td style="text-align: left">notionalCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Investment currency. If <code>C</code>, then baseCcy; if <code>P</code>, then quoteCcy.</td>
+</tr>
+<tr>
+<td style="text-align: left">expTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Expiry time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">interestAccrualTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Interest accrual start time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">listTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Product launch time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">minSize</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Minimum trade size in notional currency</td>
+</tr>
+<tr>
+<td style="text-align: left">maxSize</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Maximum trade size in notional currency</td>
+</tr>
+<tr>
+<td style="text-align: left">optType</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Option type<br><code>C</code>: Call<br><code>P</code>: Put</td>
+</tr>
+<tr>
+<td style="text-align: left">productId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Product ID</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">When product was quoted, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">redeemStartTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Earliest time to request early redemption, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">redeemEndTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Latest time to request early redemption, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">stepSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Trade step size in notional currency</td>
+</tr>
+<tr>
+<td style="text-align: left">tradeEndTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Trade end time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">uly</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Underlying</td>
+</tr>
+<tr>
+<td style="text-align: left">strike</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Strike price</td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-post-request-for-quote'>POST / Request for quote</h3>
+<p>Requests a real-time quote for a dual investment product. The quote has a TTL and must be used before expiry.</p>
+<h4 id='financial-product-dual-investment-post-request-for-quote-rate-limit-10-requests-per-60-seconds'>Rate Limit: 10 requests per 60 seconds</h4><h4 id='financial-product-dual-investment-post-request-for-quote-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-post-request-for-quote-permission-trade'>Permission: Trade</h4><h4 id='financial-product-dual-investment-post-request-for-quote-http-request'>HTTP Request</h4>
+<p><code>POST /api/v5/finance/sfp/dcd/quote</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>POST /api/v5/finance/sfp/dcd/quote
+body
+<span class="o">{</span>
+    <span class="s2">"productId"</span>: <span class="s2">"BTC-USDT-260327-77000-C"</span>,
+    <span class="s2">"notionalSz"</span>: <span class="s2">"1.5"</span>,
+    <span class="s2">"notionalCcy"</span>: <span class="s2">"BTC"</span>
+<span class="o">}</span>
+</code></pre></div><h4 id='financial-product-dual-investment-post-request-for-quote-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">productId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Product ID</td>
+</tr>
+<tr>
+<td style="text-align: left">notionalSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Investment size</td>
+</tr>
+<tr>
+<td style="text-align: left">notionalCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Investment currency</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"absYield"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.00135182"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"annualizedYield"</span><span class="p">:</span><span class="w"> </span><span class="s2">"69.65"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"interestAccrualTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1773241200000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"notionalSz"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.001"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"notionalCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"productId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC-USDT-260312-72000-C"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"qtbcDCD-QUOTE17732395560537636"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"validUntil"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774584000000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"idxPx"</span><span class="p">:</span><span class="w"> </span><span class="s2">"69000"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-post-request-for-quote-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">absYield</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Absolute yield</td>
+</tr>
+<tr>
+<td style="text-align: left">annualizedYield</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Annualized yield</td>
+</tr>
+<tr>
+<td style="text-align: left">interestAccrualTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Interest accrual start time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">notionalSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Investment size</td>
+</tr>
+<tr>
+<td style="text-align: left">notionalCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Investment currency</td>
+</tr>
+<tr>
+<td style="text-align: left">productId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Product ID</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote ID</td>
+</tr>
+<tr>
+<td style="text-align: left">validUntil</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote valid until, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">idxPx</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Index price</td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-post-trade'>POST / Trade</h3>
+<p>Places a dual investment order using a valid quote.</p>
+<h4 id='financial-product-dual-investment-post-trade-rate-limit-2-requests-per-60-seconds'>Rate Limit: 2 requests per 60 seconds</h4><h4 id='financial-product-dual-investment-post-trade-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-post-trade-permission-trade'>Permission: Trade</h4><h4 id='financial-product-dual-investment-post-trade-http-request'>HTTP Request</h4>
+<p><code>POST /api/v5/finance/sfp/dcd/trade</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>POST /api/v5/finance/sfp/dcd/trade
+body
+<span class="o">{</span>
+    <span class="s2">"quoteId"</span>: <span class="s2">"quoterbpDCD-QUOTE17732116652401234"</span>
+<span class="o">}</span>
+</code></pre></div><h4 id='financial-product-dual-investment-post-trade-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">quoteId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Quote ID</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"quoteId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"quoterbpDCD-QUOTE17732116652401234"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"987654321"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"state"</span><span class="p">:</span><span class="w"> </span><span class="s2">"live"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-post-trade-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">quoteId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote ID</td>
+</tr>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">state</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order state<br><code>initial</code>: request has been received by system, will further process<br><code>pending_book</code>: trade received by liquidity provider, pending further processing<br><code>live</code>: trade is live<br><code>rejected</code>: trade has been rejected</td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-post-request-for-redeem-quote'>POST / Request for redeem quote</h3>
+<p>Requests an early redemption quote for a live dual investment order. This is step 1 of the two-step early redemption flow; call POST / Redeem to confirm.</p>
+<h4 id='financial-product-dual-investment-post-request-for-redeem-quote-rate-limit-10-requests-per-60-seconds'>Rate Limit: 10 requests per 60 seconds</h4><h4 id='financial-product-dual-investment-post-request-for-redeem-quote-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-post-request-for-redeem-quote-permission-trade'>Permission: Trade</h4><h4 id='financial-product-dual-investment-post-request-for-redeem-quote-http-request'>HTTP Request</h4>
+<p><code>POST /api/v5/finance/sfp/dcd/redeem-quote</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>POST /api/v5/finance/sfp/dcd/redeem-quote
+body
+<span class="o">{</span>
+    <span class="s2">"ordId"</span>: <span class="s2">"987654321"</span>
+<span class="o">}</span>
+</code></pre></div><h4 id='financial-product-dual-investment-post-request-for-redeem-quote-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"987654321"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"quoterbcDCD-REDEEM17732116652401234"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"redeemCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"redeemSz"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.4856"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"termRate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"-0.50"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"validUntil"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774598400000"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-post-request-for-redeem-quote-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote ID</td>
+</tr>
+<tr>
+<td style="text-align: left">redeemSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Redeem size</td>
+</tr>
+<tr>
+<td style="text-align: left">redeemCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Redeem currency</td>
+</tr>
+<tr>
+<td style="text-align: left">termRate</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Term rate</td>
+</tr>
+<tr>
+<td style="text-align: left">validUntil</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Redeem quote valid until, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-post-redeem'>POST / Redeem</h3>
+<p>Confirms early redemption using a valid redeem quote. This is step 2 of the two-step early redemption flow.</p>
+<h4 id='financial-product-dual-investment-post-redeem-rate-limit-2-requests-per-60-seconds'>Rate Limit: 2 requests per 60 seconds</h4><h4 id='financial-product-dual-investment-post-redeem-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-post-redeem-permission-trade'>Permission: Trade</h4><h4 id='financial-product-dual-investment-post-redeem-http-request'>HTTP Request</h4>
+<p><code>POST /api/v5/finance/sfp/dcd/redeem</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>POST /api/v5/finance/sfp/dcd/redeem
+body
+<span class="o">{</span>
+    <span class="s2">"ordId"</span>: <span class="s2">"987654321"</span>,
+    <span class="s2">"quoteId"</span>: <span class="s2">"quoterbcDCD-REDEEM17732116652401234"</span>
+<span class="o">}</span>
+</code></pre></div><h4 id='financial-product-dual-investment-post-redeem-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Quote ID</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"987654321"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"state"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pending_redeem_booking"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-post-redeem-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">state</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">order state<br><code>pending_redeem_booking</code>: redeem received, waiting for liquidity provider further processing<br><code>pending_redeem</code>: liquidity provider booked, waiting for transfer<br><code>redeeming</code>: redemption in progress<br><code>redeemed</code>: redemption completed</td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-get-order-state'>GET / Order state</h3>
+<p>Returns the current state of a dual investment order.</p>
+<h4 id='financial-product-dual-investment-get-order-state-rate-limit-3-requests-per-second'>Rate Limit: 3 requests per second</h4><h4 id='financial-product-dual-investment-get-order-state-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-get-order-state-permission-read'>Permission: Read</h4><h4 id='financial-product-dual-investment-get-order-state-http-request'>HTTP Request</h4>
+<p><code>GET /api/v5/finance/sfp/dcd/order-status</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>GET /api/v5/finance/sfp/dcd/order-status?ordId<span class="o">=</span>987654321
+</code></pre></div><h4 id='financial-product-dual-investment-get-order-state-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yes</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"987654321"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"state"</span><span class="p">:</span><span class="w"> </span><span class="s2">"live"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-get-order-state-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">state</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order state<br><code>initial</code><br><code>live</code><br><code>pending_settle</code><br><code>settled</code><br><code>pending_redeem</code><br><code>redeemed</code><br><code>rejected</code></td>
+</tr>
+</tbody></table>
+<h3 id='financial-product-dual-investment-get-order-history'>GET / Order history</h3>
+<p>Return dual investment history orders</p>
+<h4 id='financial-product-dual-investment-get-order-history-rate-limit-1-request-per-second'>Rate Limit: 1 request per second</h4><h4 id='financial-product-dual-investment-get-order-history-rate-limit-rule-user-id'>Rate limit rule: User ID</h4><h4 id='financial-product-dual-investment-get-order-history-permission-read'>Permission: Read</h4><h4 id='financial-product-dual-investment-get-order-history-http-request'>HTTP Request</h4>
+<p><code>GET /api/v5/finance/sfp/dcd/order-history</code></p>
+
+<blockquote>
+<p>Request Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight shell tab-shell"><code>GET /api/v5/finance/sfp/dcd/order-history
+</code></pre></div><h4 id='financial-product-dual-investment-get-order-history-request-parameters'>Request Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Required</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Order ID. When provided, returns that specific order directly (ignores other filters)</td>
+</tr>
+<tr>
+<td style="text-align: left">productId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Product ID, e.g. <code>BTC-USDT-260327-77000-C</code></td>
+</tr>
+<tr>
+<td style="text-align: left">uly</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Underlying index, e.g. <code>BTC-USD</code></td>
+</tr>
+<tr>
+<td style="text-align: left">state</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Order state filter<br><code>initial</code><br><code>live</code><br><code>pending_settle</code><br><code>settled</code><br><code>pending_redeem</code><br><code>redeemed</code><br><code>rejected</code></td>
+</tr>
+<tr>
+<td style="text-align: left">beginId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Return records newer than this order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">endId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Return records earlier than this order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">begin</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Begin timestamp filter, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">end</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">End timestamp filter, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">limit</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">No</td>
+<td style="text-align: left">Number of results per request, max 100</td>
+</tr>
+</tbody></table>
+
+<blockquote>
+<p>Response Example</p>
+</blockquote>
+<div class="highlight"><pre class="highlight json tab-json"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0"</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"msg"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w">
+    </span><span class="nl">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+        </span><span class="p">{</span><span class="w">
+            </span><span class="nl">"ordId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"987654321"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"quoterbpDCD-QUOTE17732116652401234"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"state"</span><span class="p">:</span><span class="w"> </span><span class="s2">"settled"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"productId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC-USDT-260327-77000-C"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"baseCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"quoteCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"USDT"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"uly"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC-USD"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"strike"</span><span class="p">:</span><span class="w"> </span><span class="s2">"77000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"notionalSz"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.5"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"notionalCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"absYield"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.00806038"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"annualizedYield"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.1834"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"yieldSz"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.01209057"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"yieldCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"settleSz"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.51209057"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"settleCcy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BTC"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"settlePx"</span><span class="p">:</span><span class="w"> </span><span class="s2">"76500"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"settleTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774598400000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"expTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774598400000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"redeemStartTime"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">"1774598400000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"redeemEndime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1774598400000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"cTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1773212400000"</span><span class="p">,</span><span class="w">
+            </span><span class="nl">"uTime"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1773212400000"</span><span class="w">
+        </span><span class="p">}</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div><h4 id='financial-product-dual-investment-get-order-history-response-parameters'>Response Parameters</h4>
+<table><thead>
+<tr>
+<th style="text-align: left"><strong>Parameter</strong></th>
+<th style="text-align: left"><strong>Type</strong></th>
+<th style="text-align: left"><strong>Description</strong></th>
+</tr>
+</thead><tbody>
+<tr>
+<td style="text-align: left">ordId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order ID</td>
+</tr>
+<tr>
+<td style="text-align: left">quoteId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote ID</td>
+</tr>
+<tr>
+<td style="text-align: left">state</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order state<br><code>initial</code><br><code>live</code><br><code>pending_settle</code><br><code>settled</code><br><code>pending_redeem</code><br><code>redeemed</code><br><code>rejected</code></td>
+</tr>
+<tr>
+<td style="text-align: left">productId</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Product ID, e.g. <code>BTC-USDT-260327-77000-C</code></td>
+</tr>
+<tr>
+<td style="text-align: left">baseCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Base currency, e.g. <code>BTC</code></td>
+</tr>
+<tr>
+<td style="text-align: left">quoteCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Quote currency, e.g. <code>USDT</code></td>
+</tr>
+<tr>
+<td style="text-align: left">uly</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Underlying index, e.g. <code>BTC-USD</code></td>
+</tr>
+<tr>
+<td style="text-align: left">strike</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Strike price</td>
+</tr>
+<tr>
+<td style="text-align: left">notionalSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Notional size</td>
+</tr>
+<tr>
+<td style="text-align: left">notionalCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Notional currency</td>
+</tr>
+<tr>
+<td style="text-align: left">absYield</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Absolute yield rate</td>
+</tr>
+<tr>
+<td style="text-align: left">annualizedYield</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Annual yield rate</td>
+</tr>
+<tr>
+<td style="text-align: left">yieldSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yield size</td>
+</tr>
+<tr>
+<td style="text-align: left">yieldCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Yield currency</td>
+</tr>
+<tr>
+<td style="text-align: left">settleSz</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Settlement size (&quot;&quot; if not yet settled)</td>
+</tr>
+<tr>
+<td style="text-align: left">settleCcy</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Settlement currency (&quot;&quot; if not yet settled)</td>
+</tr>
+<tr>
+<td style="text-align: left">settlePx</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Settlement price (&quot;&quot; if not yet settled)</td>
+</tr>
+<tr>
+<td style="text-align: left">expTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Product expiration time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">settleTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Actual settled time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code> (&quot;&quot; if not yet settled)</td>
+</tr>
+<tr>
+<td style="text-align: left">redeemStartTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Earliest time to request early redemption, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">redeemEndTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Latest time to request early redemption, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">cTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Order creation time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
+</tr>
+<tr>
+<td style="text-align: left">uTime</td>
+<td style="text-align: left">String</td>
+<td style="text-align: left">Last update time, Unix timestamp format in milliseconds, e.g. <code>1597026383085</code></td>
 </tr>
 </tbody></table>
 <h1 id='affiliate'>Affiliate</h1>
@@ -79602,6 +80556,11 @@ For private endpoint, the response is restricted based on your country of reside
 <td>The user isn’t your invitee</td>
 </tr>
 <tr>
+<td>51625</td>
+<td>200</td>
+<td>One-click repay requires auto-borrow to be enabled. Please enable auto-borrow, or repay the debt currency via Easy Convert or spot trading.</td>
+</tr>
+<tr>
 <td>51156</td>
 <td>200</td>
 <td>You&#39;re leading trades in long/short mode and can&#39;t use this API endpoint to close positions</td>
@@ -81408,6 +82367,11 @@ For private endpoint, the response is restricted based on your country of reside
 <td>59528</td>
 <td>200</td>
 <td>Failed to switch strategy because your account’s {param0} borrowing in the targeted strategy will exceed the main account borrowing limit after the switch. Repay your liabilities and try again.</td>
+</tr>
+<tr>
+<td>59550</td>
+<td>200</td>
+<td>Complete identity verification (Lv2) to access this feature.</td>
 </tr>
 <tr>
 <td>59601</td>
